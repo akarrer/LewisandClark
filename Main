@@ -1,7 +1,6 @@
 """
 Lewis & Clark Expedition v4
-Europa Universalis-style illustrated map, animated cartoon cinematic,
-deep RPG encounter system, zoom/pan, state overlays.
+
 """
 
 import tkinter as tk
