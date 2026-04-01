@@ -6,31 +6,14 @@ deep RPG encounter system, zoom/pan, state overlays.
 
 import tkinter as tk
 from tkinter import font as tkfont, messagebox, filedialog
-import random, textwrap, json, os, copy, math, threading
-
-# ── Sound system (graceful fallback on non-Windows / no audio) ───────────────
-def _play_tone(freq=440, duration=120):
-    """Non-blocking tone via winsound or silence on other platforms."""
-    def _beep():
-        try:
-            import winsound
-            winsound.Beep(max(37,min(32767,freq)), duration)
-        except Exception:
-            pass
-    threading.Thread(target=_beep, daemon=True).start()
-
-SFX = {
-    "travel":    lambda: _play_tone(330, 90),
-    "event":     lambda: _play_tone(220, 140),
-    "good":      lambda: _play_tone(523, 100),
-    "bad":       lambda: _play_tone(180, 200),
-    "discovery": lambda: _play_tone(659, 80),
-    "trade":     lambda: _play_tone(440, 80),
-    "objective": lambda: _play_tone(784, 150),
-    "click":     lambda: _play_tone(600, 40),
-}
+import random, textwrap, json, os, copy, math
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
+
+# Sound disabled — stub so existing SFX calls are silent
+SFX = {k: (lambda:None) for k in ["travel","event","good","bad","discovery","trade","objective","click"]}
+
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  PALETTE
@@ -353,37 +336,114 @@ EVENTS = [
 #  CINEMATIC DATA — Illustrated cartoon scenes
 # ═══════════════════════════════════════════════════════════════════════════════
 CINE_SCENES = [
-    {"id":"purchase","title":"The Louisiana Purchase","year":"April 30, 1803","location":"Paris, France",
-     "narration":["In a gilded Paris salon, American envoys Robert Livingston and James Monroe face Napoleon Bonaparte's foreign minister, Talleyrand.",
-                  "Napoleon, preparing for war with Britain, needs money. The Americans need room to grow.",
-                  "For fifteen million dollars — roughly three cents per acre — the United States doubles in size overnight.",
-                  "Eight hundred thousand square miles of uncharted wilderness now fly the American flag."],
-     "scene":"signing","accent":C["gold2"]},
-    {"id":"jefferson","title":"Jefferson's Vision","year":"January 1803","location":"Washington City",
-     "narration":["President Thomas Jefferson has dreamed of the West since before the Revolution.",
-                  "He believes a navigable water route — the Northwest Passage — connects the Missouri to the Pacific.",
-                  "In a secret message to Congress, he requests funds for a small expedition of 'intelligent officers.'",
-                  "He taps his private secretary, Captain Meriwether Lewis, who has longed for this command."],
-     "scene":"monticello","accent":C["amber"]},
-    {"id":"corps","title":"The Corps of Discovery","year":"Summer 1803","location":"Pittsburgh & St. Louis",
-     "narration":["Lewis recruits his old friend William Clark as co-commander — two men who trust each other absolutely.",
-                  "Together they select thirty-three people: soldiers, frontiersmen, hunters, a carpenter, and a cook.",
-                  "York, Clark's enslaved manservant, and the half-Shawnee hunter Drouillard complete the roster.",
-                  "At Fort Mandan they will meet Sacagawea — who will prove worth more than all the soldiers combined."],
-     "scene":"muster","accent":C["teal2"]},
-    {"id":"stakes","title":"The Stakes","year":"Spring 1804","location":"The Frontier",
-     "narration":["The Teton Sioux have stopped every trading vessel on the upper Missouri by force.",
-                  "The Rocky Mountains are completely unknown to American science.",
-                  "The Pacific coast lies perhaps three thousand miles away — through country no American has mapped.",
-                  "Failure means death, disgrace, and the end of Jefferson's vision. Success would change everything."],
-     "scene":"frontier","accent":C["red2"]},
-    {"id":"depart","title":"Set Forth","year":"May 14, 1804","location":"Camp Dubois, Illinois",
-     "narration":["At four in the afternoon, the keelboat and two pirogues push off from the muddy bank.",
-                  "Thirty-three people. Two tons of supplies. An American flag snapping in the Missouri wind.",
-                  "Lewis writes in his journal: 'I felt myself perfectly comfortable in every particular.'",
-                  "The great adventure of American exploration begins."],
-     "scene":"departure","accent":C["gold"]},
+    {
+        "id":"secret_message",
+        "title":"Jefferson's Secret Message",
+        "year":"January 18, 1803",
+        "location":"Washington City, D.C.",
+        "fact":"Jefferson sent Congress a CONFIDENTIAL message — the word 'confidential' underlined twice.",
+        "narration":[
+            "President Jefferson sits alone at his writing desk. He is composing the most important letter of his presidency — and it must be secret.",
+            "Spain still controls the Louisiana Territory. Jefferson writes to Congress requesting $2,500 for a 'literary expedition' — a deliberate lie. The real budget is $2,500. The real mission: map the entire continent.",
+            "Jefferson has one man in mind. His private secretary, Captain Meriwether Lewis, 28 years old, has been living in the White House for two years precisely so Jefferson could prepare him for this moment.",
+            "Congress approves the money in secret. The expedition is authorized before anyone knows there is a territory to explore.",
+        ],
+        "scene":"jefferson_writing",
+        "accent":"#d4b84a",
+    },
+    {
+        "id":"napoleon",
+        "title":"Napoleon Sells a Continent",
+        "year":"April 11–30, 1803",
+        "location":"Paris, France",
+        "fact":"Napoleon offered Louisiana to the Americans before they asked. Talleyrand made the offer at 8am on April 11th.",
+        "narration":[
+            "Three thousand miles away, something extraordinary is happening. Napoleon Bonaparte has just lost Haiti — his Caribbean empire destroyed by disease and the enslaved people's revolution under Toussaint Louverture.",
+            "Without Haiti, Louisiana is worthless. He needs money for war with Britain. On April 11th, his foreign minister Talleyrand calls in the American ambassadors and — without any request — offers to sell the entire Louisiana Territory.",
+            "Robert Livingston and James Monroe have no authority to buy a continent. They have been sent to buy New Orleans alone. But they say yes anyway.",
+            "April 30, 1803: The Louisiana Purchase is signed. 828,000 square miles. Fifteen million dollars. Three cents per acre. The United States doubles overnight.",
+        ],
+        "scene":"napoleon_sells",
+        "accent":"#c03030",
+    },
+    {
+        "id":"lewis_prepares",
+        "title":"Lewis Prepares",
+        "year":"June–October 1803",
+        "location":"Philadelphia, Harpers Ferry & Pittsburgh",
+        "fact":"Lewis carried 193 pounds of portable soup, 30 gallons of whiskey, and a collapsible iron-frame boat he invented himself.",
+        "narration":[
+            "Lewis spends the summer in Philadelphia studying botany, astronomy, medicine, and zoology with the finest scientists in America. He is cramming four university degrees into four months.",
+            "At Harpers Ferry Arsenal he oversees construction of his iron-frame boat — a collapsible vessel he has designed himself, to be assembled in the mountains. It will fail spectacularly. He doesn't know this yet.",
+            "He orders 193 pounds of 'portable soup,' 30 gallons of whiskey, 15 rifles, tomahawks, knives, fishing tackle, oilskin bags for journals, mathematical instruments, and 4,600 needles for trade.",
+            "In Pittsburgh he waits six weeks for a drunken boatbuilder to finish the keelboat. He uses the time to write letters, study maps, and practice celestial navigation.",
+        ],
+        "scene":"lewis_packing",
+        "accent":"#1e8060",
+    },
+    {
+        "id":"clark_recruited",
+        "title":"Clark is Recruited",
+        "year":"June 19, 1803",
+        "location":"Clarksville, Indiana Territory",
+        "fact":"Lewis wrote Clark a letter offering him co-command. Clark was living on a farm. He said yes the same day.",
+        "narration":[
+            "Lewis writes to his old army friend William Clark in Indiana. Clark is 33, living quietly on a farm, largely retired from military life after a difficult service record.",
+            "Lewis offers him equal command — not as a subordinate but as a true partner. 'I make no hesitation in saying that there is no man on earth with whom I should feel equal pleasure in sharing them as with yourself,' Lewis writes.",
+            "Clark accepts immediately. He begins recruiting men from the Kentucky and Indiana frontier — hunters, blacksmiths, carpenters, men who can handle a rifle and an oar.",
+            "The two men have not seen each other in years. They will spend the next three years in the wilderness together, never once having a serious argument. History has rarely seen a partnership like it.",
+        ],
+        "scene":"clark_letter",
+        "accent":"#1c6090",
+    },
+    {
+        "id":"corps_assembled",
+        "title":"The Corps of Discovery",
+        "year":"Winter 1803–1804",
+        "location":"Camp Dubois, Illinois",
+        "fact":"The Corps included one Black man (York), one half-Shawnee (Drouillard), one woman (Sacagawea), and an infant.",
+        "narration":[
+            "At Camp Dubois, across from the mouth of the Missouri, forty-five men train through a brutal winter. Only thirty-three will make the permanent journey. Lewis and Clark drill them daily — shooting, rowing, discipline.",
+            "York is William Clark's enslaved man. He is strong, quick, and indispensable. Native peoples the Corps encounters will be transfixed by him. Clark will eventually refuse to grant him freedom after the expedition ends.",
+            "George Drouillard, half-Shawnee half-Canadian, speaks English, French, and the sign language of the plains. He is the finest hunter and scout on the frontier. Without him, the Corps would likely starve.",
+            "At Fort Mandan they will meet Toussaint Charbonneau and his Shoshone wife Sacagawea, who is perhaps sixteen years old and eight months pregnant. She will prove worth more than any soldier.",
+        ],
+        "scene":"camp_dubois",
+        "accent":"#8c7040",
+    },
+    {
+        "id":"the_river",
+        "title":"The Missouri River",
+        "year":"Spring 1804",
+        "location":"The Louisiana Territory",
+        "fact":"The Missouri runs 2,341 miles. Lewis and Clark's route was approximately 3,700 miles each way.",
+        "narration":[
+            "The Missouri River is nothing like any river in the eastern United States. It is brown, wide, violent, and alive. Entire forests wheel past in the current. Sandbars appear and vanish overnight. The channel changes daily.",
+            "The Teton Sioux — the most powerful nation on the upper Missouri — have blocked all river traffic for years. No American trading party has passed their territory without paying tribute. Lewis and Clark will face them in September.",
+            "Beyond the Sioux: Mandan, Hidatsa, Arikara, Shoshone, Nez Perce, Clatsop — dozens of nations, each with their own politics, languages, and relationships with the land the Americans are claiming to have bought.",
+            "Jefferson wants Lewis and Clark to do something diplomatically impossible: tell every nation they encounter that they now have a new 'father' — the President of the United States. Most nations will smile politely and ignore this completely.",
+        ],
+        "scene":"river_vast",
+        "accent":"#1c6090",
+    },
+    {
+        "id":"depart",
+        "title":"Set Forth",
+        "year":"May 14, 1804",
+        "location":"Camp Dubois, Illinois",
+        "fact":"They left at 4pm on a Monday. Lewis wasn't even there — he was still in St. Louis handling paperwork.",
+        "narration":[
+            "May 14, 1804. Four in the afternoon. The keelboat and two smaller pirogues push off from the muddy bank at Camp Dubois.",
+            "Clark commands the boats. Lewis is still in St. Louis finishing paperwork — he will catch up in three days. This tells you something about both men.",
+            "Thirty-three permanent members. Two tons of supplies. Enough food for two years, though they will have to hunt most of it. An American flag snapping in the Missouri wind.",
+            "They have no idea what lies ahead. The Rocky Mountains are unknown. The Pacific coast is a guess. The distance is a prayer. The great adventure of American exploration begins.",
+        ],
+        "scene":"departure",
+        "accent":"#d4981e",
+    },
 ]
+
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  GAME STATE
@@ -495,334 +555,364 @@ class Particle:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  ILLUSTRATED SCENE RENDERER
-#  Each scene is a layered canvas painting: sky, terrain, characters, FX
+#  SCENE RENDERER  — 7 historically accurate animated scenes
 # ═══════════════════════════════════════════════════════════════════════════════
 class SceneRenderer:
-    """Draws animated illustrated scenes on a tk.Canvas — cartoon/painterly style."""
+    """Animated illustrated scenes for the cinematic intro."""
+    def __init__(self, canvas):
+        self.canvas=canvas; self.frame=0
+    def tick(self): self.frame+=1
 
-    def __init__(self, canvas: tk.Canvas):
-        self.canvas = canvas
-        self.frame = 0
-
-    def tick(self): self.frame += 1
-
-    def draw(self, scene_id: str, accent: str):
-        c = self.canvas; c.delete("all")
-        W = c.winfo_width() or 760; H = c.winfo_height() or 420
-        f = self.frame; t = f * 0.024
-
-        if   scene_id == "signing":    self._scene_signing(c,W,H,t,accent)
-        elif scene_id == "monticello": self._scene_monticello(c,W,H,t,accent)
-        elif scene_id == "muster":     self._scene_muster(c,W,H,t,accent)
-        elif scene_id == "frontier":   self._scene_frontier(c,W,H,t,accent)
-        elif scene_id == "departure":  self._scene_departure(c,W,H,t,accent)
-
-        # Universal: film grain
-        if f%3<2:
-            for _ in range(60):
+    def draw(self, scene_id, accent):
+        c=self.canvas; c.delete("all")
+        W=c.winfo_width() or 760; H=c.winfo_height() or 420
+        f=self.frame; t=f*0.024
+        dispatch = {
+            "jefferson_writing": self._s_jefferson,
+            "napoleon_sells":    self._s_napoleon,
+            "lewis_packing":     self._s_lewis_packing,
+            "clark_letter":      self._s_clark_letter,
+            "camp_dubois":       self._s_camp_dubois,
+            "river_vast":        self._s_river_vast,
+            "departure":         self._s_departure,
+            # Legacy fallbacks
+            "signing":           self._s_napoleon,
+            "monticello":        self._s_jefferson,
+            "muster":            self._s_camp_dubois,
+            "frontier":          self._s_river_vast,
+        }
+        fn = dispatch.get(scene_id, self._s_river_vast)
+        fn(c,W,H,t,accent)
+        # Film grain
+        if f%4<2:
+            for _ in range(50):
                 gx=random.randint(0,W); gy=random.randint(0,H)
                 c.create_rectangle(gx,gy,gx+2,gy+2,fill=C["bg2"],outline="")
-
-        # Clean border frame — single gold-tinted line, no recursive rectangles
         c.create_rectangle(2,2,W-2,H-2,outline=C["bgold"],width=2,fill="")
 
-    # ── SCENE: SIGNING ROOM (Paris 1803) ──────────────────────────────────────
-    def _scene_signing(self,c,W,H,t,accent):
-        # Warm candlelit salon — dark paneled walls, golden light
-        c.create_rectangle(0,0,W,H,fill="#100804",outline="")
+    # ── Helpers ───────────────────────────────────────────────────────────────
+    def _sky_gradient(self,c,W,H,top_col,bot_col,h_frac=0.55):
+        tr,tg,tb=[int(top_col[i:i+2],16) for i in (1,3,5)]
+        br,bg2,bb=[int(bot_col[i:i+2],16) for i in (1,3,5)]
+        rows=int(H*h_frac)
+        for i in range(rows):
+            f2=i/max(1,rows-1)
+            r=int(tr+(br-tr)*f2); g=int(tg+(bg2-tg)*f2); b=int(tb+(bb-tb)*f2)
+            c.create_line(0,i,W,i,fill=f"#{r:02x}{g:02x}{b:02x}")
 
-        # Back wall paneling
-        for i in range(0,W,60):
-            c.create_rectangle(i,0,i+58,H,fill="#160c06",outline="#1e1008",width=1)
-        for j in range(0,H,80):
-            c.create_line(0,j,W,j,fill="#1a0e07",width=1)
-
-        # Tall window with golden light flooding in
-        wx=W*0.72; wy=40; ww=120; wh=H*0.65
-        c.create_rectangle(wx,wy,wx+ww,wy+wh,fill="#c87818",outline="#8a5010",width=3)
-        # Window panes
-        c.create_line(wx+ww//2,wy,wx+ww//2,wy+wh,fill="#6a3808",width=2)
-        c.create_line(wx,wy+wh//3,wx+ww,wy+wh//3,fill="#6a3808",width=2)
-        c.create_line(wx,wy+2*wh//3,wx+ww,wy+2*wh//3,fill="#6a3808",width=2)
-        # Light rays from window
-        for ray in range(8):
-            ang = -20 + ray*8
-            rx = wx + math.cos(math.radians(90+ang))*400
-            ry = wy+wh//2 + math.sin(math.radians(90+ang))*400
-            col_r = int(0x50+ray*3); col_g = int(0x28+ray*2)
-            c.create_line(wx,wy+wh//2,rx,ry,fill=f"#{col_r:02x}{col_g:02x}08",width=2)
-
-        # Table
-        tx=W*0.15; ty=H*0.58; tw=W*0.70; th=30
-        c.create_rectangle(tx,ty,tx+tw,ty+th,fill="#3a1e08",outline="#5a2e10",width=2)
-        c.create_rectangle(tx,ty+th,tx+tw,ty+th+8,fill="#2a1408",outline="")
-        # Table legs
-        for lx in [tx+20,tx+tw-20]:
-            c.create_rectangle(lx-5,ty+th+8,lx+5,H,fill="#2a1408",outline="")
-
-        # Treaty document on table
-        doc_x=W*0.38; doc_y=H*0.52
-        c.create_rectangle(doc_x,doc_y,doc_x+100,doc_y+60,fill="#e8d890",outline="#8a6020",width=2)
-        for li in range(8):
-            c.create_line(doc_x+10,doc_y+8+li*6,doc_x+90,doc_y+8+li*6,fill="#8a7030",width=1)
-        c.create_text(doc_x+50,doc_y+52,text="Louisiana Treaty",font=("Georgia",7),fill="#4a3010")
-
-        # Quill pen (animated dip)
-        qx=doc_x+85; qy=doc_y-20+math.sin(t*2)*6
-        c.create_line(qx,qy,qx-15,qy+45,fill="#d4c870",width=2,smooth=True)
-        c.create_oval(qx-3,qy-3,qx+3,qy+3,fill="#2a1808",outline="")
-
-        # Candelabra
-        for cx2,cy2 in [(W*0.25,H*0.45),(W*0.65,H*0.42)]:
-            # Stand
-            c.create_line(cx2,cy2,cx2,cy2+80,fill="#4a3010",width=4)
-            c.create_line(cx2-20,cy2+80,cx2+20,cy2+80,fill="#4a3010",width=3)
-            # 3 candles
-            for ci in range(3):
-                cndx=cx2-16+ci*16; cndy=cy2
-                c.create_rectangle(cndx-2,cndy,cndx+2,cndy+25,fill="#d8cca0",outline="")
-                # Flame
-                fk=math.sin(t*5+ci+cx2)*4
-                c.create_oval(cndx-4+fk,cndy-14,cndx+4+fk,cndy+2,fill="#e89818",outline="")
-                c.create_oval(cndx-2+fk,cndy-18,cndx+2+fk,cndy-8,fill="#f8d840",outline="")
-            # Glow
-            c.create_oval(cx2-60,cy2-50,cx2+60,cy2+60,fill="#2a1404",outline="",stipple="gray25")
-
-        # Figure 1: seated diplomat (left)
-        self._draw_figure(c, W*0.22, H*0.52, "#1a0e04", "#d4c0a0", seated=True, facing="right")
-        # Figure 2: standing diplomat (center-right)
-        self._draw_figure(c, W*0.50, H*0.45, "#0e1828", "#c8d4e0", seated=False, facing="left")
-        # Figure 3: French official standing
-        self._draw_figure(c, W*0.62, H*0.46, "#1e0a0a", "#d8c090", seated=False, facing="left")
-
-    # ── SCENE: MONTICELLO DAWN ─────────────────────────────────────────────────
-    def _scene_monticello(self,c,W,H,t,accent):
-        # Pastoral dawn — rolling Virginia hills, Jefferson's estate
-        # Sky gradient
-        for i in range(int(H*0.55)):
-            frac=i/(H*0.55)
-            rr=int(0x18+frac*0x38); gg=int(0x10+frac*0x28); bb=int(0x08+frac*0x18)
-            c.create_line(0,i,W,i,fill=f"#{rr:02x}{gg:02x}{bb:02x}")
-
-        # Sun on horizon
-        sun_y=int(H*0.48)+int(math.sin(t*0.2)*4)
-        for r in range(60,3,-8):
-            frac=(60-r)/60
-            rr=int(0xc0*frac+0x40); gg=int(0x60*frac+0x10); bb=0
-            c.create_oval(W//2-r,sun_y-r,W//2+r,sun_y+r,fill=f"#{rr:02x}{gg:02x}{bb:02x}",outline="")
-
-        # Sun rays
-        for ray in range(16):
-            ang=ray*22.5; length=80+math.sin(t*2+ray)*20
-            rx=W//2+math.cos(math.radians(ang))*length
-            ry=sun_y+math.sin(math.radians(ang))*length
-            c.create_line(W//2,sun_y,rx,ry,fill="#5a3010",width=1)
-
-        # Rolling hills
-        for hi,(base_frac,col,amp) in enumerate([(0.55,"#1a2a10",22),(0.62,"#223015",18),(0.70,"#1a2810",14)]):
+    def _hills(self,c,W,H,layers):
+        for base_frac,col,freq,amp in layers:
             pts=[0,H]
-            for hx in range(0,W+8,8):
-                hy=H*base_frac+math.sin(hx*0.006+hi)*amp+math.sin(hx*0.018+hi*2)*10
-                pts.extend([hx,int(hy)])
-            pts.extend([W,H])
-            c.create_polygon(pts,fill=col,outline="")
+            for x in range(0,W+4,4):
+                y=H*base_frac+math.sin(x*freq)*amp+math.sin(x*freq*2.3)*amp*0.4
+                pts.extend([x,int(y)])
+            pts.extend([W,H]); c.create_polygon(pts,fill=col,outline="")
 
-        # Monticello (neoclassical silhouette)
-        bx=W*0.55; by=H*0.52
-        # Main body
-        c.create_rectangle(bx-70,by-60,bx+70,by+40,fill="#1e1808",outline="#2a2010",width=1)
-        # Dome
-        c.create_oval(bx-30,by-100,bx+30,by-52,fill="#1e1808",outline="#2a2010",width=1)
-        # Portico columns
-        for ci in range(5):
-            cx2=bx-40+ci*20
-            c.create_rectangle(cx2-3,by-55,cx2+3,by+40,fill="#2a2010",outline="")
-        # Pediment
-        c.create_polygon(bx-50,by-55,bx,by-80,bx+50,by-55,fill="#1a1608",outline="#2a2010")
-        # Windows (lit)
-        for wx2,wy2 in [(bx-40,by-40),(bx-10,by-40),(bx+20,by-40),(bx-25,by-15),(bx+10,by-15)]:
-            c.create_rectangle(wx2-5,wy2-7,wx2+5,wy2+5,fill="#c07010",outline="")
+    def _candle(self,c,cx,cy,t,flicker_seed=0):
+        fk=math.sin(t*6+flicker_seed)*4
+        # Glow
+        for gr in range(5,0,-1):
+            g=int(0x18+gr*10)
+            c.create_oval(cx-gr*12,cy-gr*8,cx+gr*12,cy+gr*6,
+                          fill=f"#{g:02x}{int(g*0.5):02x}04",outline="")
+        # Wax
+        c.create_rectangle(cx-3,cy,cx+3,cy+20,fill="#d8cca0",outline="")
+        # Flame
+        c.create_oval(cx-5+fk,cy-16,cx+5+fk,cy+1,fill="#e89018",outline="")
+        c.create_oval(cx-2+fk,cy-20,cx+2+fk,cy-10,fill="#f8e040",outline="")
 
-        # Jefferson figure on terrace
-        self._draw_figure(c, bx-80, by+38, "#0c1830", "#d0c8b0", seated=True, facing="right")
+    def _figure_silhouette(self,c,x,y,h,col,seated=False,facing=1):
+        hw=h//5
+        c.create_oval(x-hw,y-h,x+hw,y-h+hw*2,fill=col,outline="")
+        if seated:
+            c.create_rectangle(x-hw,y-h+hw*2,x+hw,y-h//2,fill=col,outline="")
+            c.create_rectangle(x+facing*hw,y-h//2,x+facing*h//2,y-h//2+hw,fill=col,outline="")
+        else:
+            c.create_rectangle(x-hw,y-h+hw*2,x+hw,y,fill=col,outline="")
+        c.create_line(x-hw,y-h+hw*3,x-h//3,y-h//2,fill=col,width=max(2,hw))
+        c.create_line(x+hw,y-h+hw*3,x+h//3,y-h//2,fill=col,width=max(2,hw))
 
-        # Trees (lollipop style, painterly)
-        for tx,ty_frac,tr in [(W*0.30,0.62,28),(W*0.38,0.65,22),(W*0.78,0.60,32),(W*0.84,0.63,26)]:
-            ty=H*ty_frac
-            c.create_line(tx,ty,tx,ty+50,fill="#1a2010",width=5)
-            c.create_oval(tx-tr,ty-tr,tx+tr,ty+tr,fill="#1e3012",outline="#2a4018",width=1)
+    # ── Scene 1: Jefferson writing the secret message ─────────────────────────
+    def _s_jefferson(self,c,W,H,t,accent):
+        c.create_rectangle(0,0,W,H,fill="#0e0904",outline="")
+        # Stone wall texture
+        for wi in range(0,W,48):
+            for hi2 in range(0,H,28):
+                shade=random.Random(wi*100+hi2).randint(12,18)
+                c.create_rectangle(wi,hi2,wi+46,hi2+26,fill=f"#{shade:02x}{int(shade*0.7):02x}{int(shade*0.5):02x}",outline=f"#{shade//2:02x}{shade//3:02x}{shade//4:02x}")
+        # Large window — night sky with stars
+        wx=W*0.68; wy=30; ww=int(W*0.25); wh=int(H*0.62)
+        c.create_rectangle(wx,wy,wx+ww,wy+wh,fill="#040810",outline="#2a2010",width=4)
+        # Stars through window
+        rng2=random.Random(42)
+        for _ in range(30):
+            sx2=wx+rng2.randint(4,ww-4); sy2=wy+rng2.randint(4,wh-4)
+            bv=rng2.randint(60,140); c.create_oval(sx2-1,sy2-1,sx2+1,sy2+1,fill=f"#{bv:02x}{bv:02x}{int(bv*0.8):02x}",outline="")
+        # Window frame cross
+        c.create_line(wx+ww//2,wy,wx+ww//2,wy+wh,fill="#1e1808",width=3)
+        c.create_line(wx,wy+wh//3,wx+ww,wy+wh//3,fill="#1e1808",width=3)
+        # Writing desk
+        dx=W*0.08; dy=H*0.55
+        c.create_rectangle(dx,dy,dx+W*0.55,dy+20,fill="#2a1508",outline="#3a2010",width=2)
+        c.create_rectangle(dx,dy+20,dx+W*0.55,dy+28,fill="#1e0e04",outline="")
+        # Paper on desk
+        px=dx+60; py=dy-45
+        c.create_rectangle(px,py,px+120,py+60,fill="#e0d890",outline="#8a7020",width=1)
+        # Writing lines
+        for li in range(7):
+            lw=random.Random(li).randint(60,110)
+            c.create_line(px+8,py+8+li*7,px+8+lw,py+8+li*7,fill="#3a2808",width=1)
+        # "CONFIDENTIAL" in red across page
+        c.create_text(px+60,py+22,text="CONFIDENTIAL",font=("Georgia",7,"bold"),fill="#8a1010",anchor="center")
+        # Inkwell + quill
+        c.create_oval(px+130,py+30,px+148,py+48,fill="#0a0804",outline="#3a2810")
+        qx=px+138; qy=py+10+math.sin(t*2)*4
+        c.create_line(qx,qy,qx-20,qy+50,fill="#d4c860",width=2,smooth=True)
+        # Candles
+        for cndx in [dx+20,dx+W*0.4]:
+            self._candle(c,cndx,dy-35,t,cndx)
+        # Jefferson silhouette at desk
+        self._figure_silhouette(c,dx+W*0.22,dy+2,55,"#0e0a04",seated=True,facing=1)
+        # Jefferson medal/portrait on wall
+        c.create_oval(W*0.1,H*0.12,W*0.2,H*0.32,fill="#1a1408",outline="#3a2a10",width=2)
 
-    # ── SCENE: MUSTER (Corps assembles) ───────────────────────────────────────
-    def _scene_muster(self,c,W,H,t,accent):
-        # River bank camp at St. Louis — dawn light, rows of tents, the keelboat
-        # Sky
-        for i in range(int(H*0.50)):
-            frac=i/(H*0.50)
-            rr=int(0x14+frac*0x30); gg=int(0x10+frac*0x22); bb=int(0x14+frac*0x28)
-            c.create_line(0,i,W,i,fill=f"#{rr:02x}{gg:02x}{bb:02x}")
+    # ── Scene 2: Napoleon's sale ──────────────────────────────────────────────
+    def _s_napoleon(self,c,W,H,t,accent):
+        c.create_rectangle(0,0,W,H,fill="#0c0806",outline="")
+        # Ornate gilt salon — columns and arches
+        for ci in range(0,W,W//6):
+            c.create_rectangle(ci,0,ci+18,H*0.85,fill="#1a1208",outline="#28200a",width=1)
+            c.create_oval(ci-4,H*0.82,ci+22,H*0.90,fill="#1e1608",outline="#28200a")
+        # Coffered ceiling
+        for row in range(3):
+            for col in range(5):
+                cx2=col*(W//5)+W//10; cy2=row*28+14
+                c.create_rectangle(cx2-W//12,cy2-10,cx2+W//12,cy2+10,fill="#160e04",outline="#221808",width=1)
+                c.create_oval(cx2-8,cy2-8,cx2+8,cy2+8,fill="#1e1606",outline="#2a2008")
+        # Long treaty table
+        tx=W*0.1; ty=H*0.52; tw=W*0.8; th=22
+        c.create_rectangle(tx,ty,tx+tw,ty+th,fill="#2a1608",outline="#3a2010",width=2)
+        c.create_rectangle(tx,ty+th,tx+tw,ty+th+8,fill="#1e0e04",outline="")
+        # Treaty document — center of table
+        doc_x=W//2-60; doc_y=ty-55
+        c.create_rectangle(doc_x,doc_y,doc_x+120,doc_y+70,fill="#ead890",outline="#6a4810",width=2)
+        for li in range(9):
+            lw=random.Random(li+5).randint(60,108)
+            c.create_line(doc_x+8,doc_y+7+li*7,doc_x+8+lw,doc_y+7+li*7,fill="#8a6828",width=1)
+        c.create_text(doc_x+60,doc_y+56,text="Louisiana Territory",font=("Georgia",7,"italic"),fill="#3a2010")
+        # Large red wax seal
+        c.create_oval(doc_x+85,doc_y+44,doc_x+112,doc_y+71,fill="#8a1010",outline="#4a0808",width=2)
+        # Three figures at table
+        for fx,fc,seated in [(W*0.22,"#0c1020",True),(W*0.5,"#160c04",True),(W*0.78,"#0e1018",True)]:
+            self._figure_silhouette(c,fx,ty,52,fc,seated=True)
+        # Candelabra
+        for cx3 in [W*0.15,W*0.85]:
+            c.create_line(cx3,ty-10,cx3,ty-50,fill="#3a2808",width=4)
+            for ci2 in range(-2,3):
+                self._candle(c,cx3+ci2*14,ty-52,t,ci2*100+cx3)
 
-        # River
-        for i in range(int(H*0.50),H):
-            sh=math.sin((i-H*0.50)*0.12+t*1.8)*0.3+0.6
-            rr=min(255,int(0x10+sh*0x18)); gg=min(255,int(0x1e+sh*0x12)); bb=min(255,int(0x28+sh*0x16))
-            c.create_line(0,i,W,i,fill=f"#{rr:02x}{gg:02x}{bb:02x}")
+    # ── Scene 3: Lewis packing/preparing ─────────────────────────────────────
+    def _s_lewis_packing(self,c,W,H,t,accent):
+        self._sky_gradient(c,W,H,"#0e1808","#1e2c10",0.45)
+        self._hills(c,W,H,[(0.45,"#1a2c10",0.006,15),(0.58,"#1e3414",0.009,10),(0.72,"#162a0c",0.015,7)])
+        # River band
+        for ri in range(int(H*0.52),int(H*0.62)):
+            sh=math.sin(ri*0.12+t*1.5)*0.3+0.6
+            rr=int(0x10+sh*0x12); gg=int(0x1e+sh*0x10); bb=int(0x28+sh*0x0e)
+            c.create_line(0,ri,W,ri,fill=f"#{rr:02x}{gg:02x}{bb:02x}")
+        # Warehouse / arsenal building
+        bx=W*0.35; by=H*0.28; bw=W*0.45; bh=H*0.32
+        c.create_rectangle(bx,by,bx+bw,by+bh,fill="#181208",outline="#2a2010",width=2)
+        for wi2 in range(int(bx)+20,int(bx+bw)-20,36):
+            c.create_rectangle(wi2,by+20,wi2+18,by+bh-10,fill="#0e1820",outline="#1a2830",width=1)
+        # Crates, barrels, equipment piled outside
+        for bx2,by2,bw2,bh2,col in [
+            (W*0.12,H*0.55,36,28,"#2a1808"),(W*0.18,H*0.57,28,22,"#241408"),
+            (W*0.24,H*0.54,32,26,"#1e1006"),(W*0.30,H*0.56,24,30,"#221208"),
+        ]:
+            c.create_rectangle(bx2,by2,bx2+bw2,by2+bh2,fill=col,outline="#3a2010",width=1)
+            # Barrel stave lines
+            for si in range(1,4): c.create_arc(bx2,by2+si*(bh2//4),bx2+bw2,by2+si*(bh2//4)+4,start=0,extent=180,style="arc",outline="#3a2010",width=1)
+        # Rifle stack
+        for ri2 in range(5):
+            rx=W*0.78+ri2*6; ry_top=H*0.38; ry_bot=H*0.62
+            c.create_line(rx,ry_top,rx+ri2*2,ry_bot,fill="#2a1a08",width=2)
+        # Lewis figure supervising
+        self._figure_silhouette(c,W*0.65,H*0.60,50,"#0e1020",seated=False,facing=-1)
+        # Label
+        c.create_text(W//2,H*0.85,text="Harpers Ferry Arsenal  ·  Summer 1803",
+                      font=("Georgia",8,"italic"),fill=C["parch3"],anchor="center")
 
-        # Bank
-        bank_y=int(H*0.55)
-        pts=[0,H]+[[int(x),int(H*0.54+math.sin(x*0.02)*6)] for x in range(0,W+4,4)]+[W,H]
-        flat=[v for pair in pts for v in (pair if isinstance(pair,list) else [pair])]
-        c.create_polygon(flat,fill="#3a2c10",outline="")
+    # ── Scene 4: Clark reading Lewis's letter ─────────────────────────────────
+    def _s_clark_letter(self,c,W,H,t,accent):
+        self._sky_gradient(c,W,H,"#14100a","#242015",0.5)
+        self._hills(c,W,H,[(0.5,"#1e2a0e",0.005,18),(0.65,"#182208",0.008,12),(0.8,"#101808",0.014,7)])
+        # Farm cabin
+        fx=W*0.42; fy=H*0.28; fw=W*0.35; fh=H*0.35
+        c.create_rectangle(fx,fy,fx+fw,fy+fh,fill="#1a1008",outline="#2a1a0a",width=2)
+        # Log texture
+        for log_y in range(int(fy),int(fy+fh),12):
+            c.create_line(fx,log_y,fx+fw,log_y,fill="#221408",width=1)
+        # Roof
+        c.create_polygon(fx-10,fy,fx+fw//2,fy-40,fx+fw+10,fy,fill="#141008",outline="#1e1608",width=1)
+        # Door
+        c.create_rectangle(fx+fw//2-12,fy+fh-35,fx+fw//2+12,fy+fh,fill="#0a0806",outline="#1e1208",width=1)
+        # Lit window — warm glow
+        for lx2 in [fx+20,fx+fw-38]:
+            c.create_rectangle(lx2,fy+20,lx2+22,fy+50,fill="#c07010",outline="#3a2008",width=1)
+            c.create_line(lx2+11,fy+20,lx2+11,fy+50,fill="#2a1808",width=1)
+            c.create_line(lx2,fy+35,lx2+22,fy+35,fill="#2a1808",width=1)
+        # Clark at fence reading letter, candle light
+        self._candle(c,W*0.22,H*0.54,t,1)
+        self._figure_silhouette(c,W*0.22,H*0.56,52,"#0e0c08",seated=False,facing=1)
+        # Letter in hands
+        lx3=W*0.26; ly3=H*0.38
+        c.create_rectangle(lx3,ly3,lx3+50,ly3+36,fill="#e0d880",outline="#6a4810",width=1)
+        for li in range(5):
+            c.create_line(lx3+5,ly3+5+li*6,lx3+45,ly3+5+li*6,fill="#4a3010",width=1)
+        # Indiana Territory label
+        c.create_text(W//2,H*0.87,text="Clarksville, Indiana Territory  ·  June 19, 1803",
+                      font=("Georgia",8,"italic"),fill=C["parch3"],anchor="center")
 
-        # Camp fires (animated)
-        for fx,fy_frac in [(W*0.20,0.52),(W*0.45,0.50),(W*0.68,0.52)]:
-            fy=H*fy_frac
-            c.create_oval(fx-20,fy-10,fx+20,fy+6,fill="#1a1006",outline="")  # ash circle
+    # ── Scene 5: Camp Dubois training ─────────────────────────────────────────
+    def _s_camp_dubois(self,c,W,H,t,accent):
+        self._sky_gradient(c,W,H,"#0a0c10","#1a2018",0.48)
+        # Stars
+        rng3=random.Random(77)
+        for _ in range(40):
+            sx3=rng3.randint(0,W); sy3=rng3.randint(0,int(H*0.44))
+            bv3=rng3.randint(50,130)
+            c.create_oval(sx3-1,sy3-1,sx3+1,sy3+1,fill=f"#{bv3:02x}{bv3:02x}{int(bv3*0.8):02x}",outline="")
+        self._hills(c,W,H,[(0.48,"#182a10",0.006,14),(0.60,"#1a2c0e",0.01,10),(0.75,"#121e08",0.018,6)])
+        # Missouri River
+        rv=int(H*0.50)
+        for ri in range(22):
+            sh=math.sin((rv+ri)*0.1+t*2)*0.35+0.55
+            rr=int(0x10+sh*0x14); gg=int(0x1e+sh*0x10); bb=int(0x28+sh*0x0e)
+            c.create_line(0,rv+ri,W,rv+ri,fill=f"#{rr:02x}{gg:02x}{bb:02x}")
+        # Camp tents
+        tent_positions=[(W*0.15,H*0.44),(W*0.25,H*0.43),(W*0.35,H*0.44),(W*0.50,H*0.43),(W*0.62,H*0.44),(W*0.74,H*0.43)]
+        for tx4,ty4 in tent_positions:
+            c.create_polygon(tx4-20,ty4+12,tx4,ty4-18,tx4+20,ty4+12,fill="#3a2c14",outline="#4a3c1e",width=1)
+            c.create_line(tx4,ty4-18,tx4,ty4-28,fill="#4a3818",width=2)
+        # Multiple campfires
+        for fx5,fy5 in [(W*0.2,H*0.48),(W*0.45,H*0.47),(W*0.7,H*0.48)]:
+            c.create_oval(fx5-18,fy5-8,fx5+18,fy5+4,fill="#150e04",outline="")
             for fi in range(3):
-                fof=fi*8-8; flick=math.sin(t*6+fi+fx)*5
-                c.create_oval(fx+fof-4+flick,fy-18,fx+fof+4+flick,fy-2,fill="#d07010",outline="")
-                c.create_oval(fx+fof-2+flick,fy-22,fx+fof+2+flick,fy-12,fill="#f0d020",outline="")
+                fof=fi*8-8; flick=math.sin(t*6+fi+fx5)*4
+                c.create_oval(fx5+fof-4+flick,fy5-16,fx5+fof+4+flick,fy5-2,fill="#c06008",outline="")
+                c.create_oval(fx5+fof-2+flick,fy5-20,fx5+fof+2+flick,fy5-12,fill="#f0c020",outline="")
+        # Keelboat on river
+        bx6=W*0.55+math.sin(t*0.3)*8; by6=H*0.52
+        c.create_polygon(bx6-65,by6,bx6-45,by6-14,bx6+65,by6-14,bx6+72,by6,fill="#0c0e08",outline="#1a1808",width=1)
+        c.create_line(bx6+6,by6-14,bx6+6,by6-58,fill="#141008",width=3)
+        # Flag
+        for fi2 in range(4):
+            fx6=bx6+6+fi2*10; fy6=by6-58+fi2*2+math.sin(t*4+fi2*0.7)*4
+            c.create_line(fx6,by6-58,fx6+10,fy6,fill="#7a0c0e" if fi2%2==0 else "#a09060",width=2)
+        # Corps silhouettes drilling
+        for pi,(px6,py6) in enumerate([(W*0.18,H*0.46),(W*0.28,H*0.46),(W*0.38,H*0.46),(W*0.22,H*0.46),(W*0.32,H*0.46)]):
+            self._figure_silhouette(c,px6,py6,34,"#0a0e08",seated=False,facing=1 if pi%2==0 else -1)
 
-        # Tents
-        for tx2,ty2_frac in [(W*0.10,0.50),(W*0.22,0.49),(W*0.35,0.50),(W*0.58,0.50),(W*0.72,0.49)]:
-            tx3=tx2; ty3=H*ty2_frac
-            c.create_polygon(tx3-22,ty3+10,tx3,ty3-20,tx3+22,ty3+10,fill="#4a3818",outline="#6a5020",width=1)
-            c.create_line(tx3,ty3-20,tx3,ty3-30,fill="#5a4018",width=2)  # pole
+    # ── Scene 6: The vast Missouri River ─────────────────────────────────────
+    def _s_river_vast(self,c,W,H,t,accent):
+        self._sky_gradient(c,W,H,"#0c0e14","#1a2020",0.52)
+        # Moon
+        mx7=W*0.78; my7=H*0.14
+        c.create_oval(mx7-28,my7-28,mx7+28,my7+28,fill="#c8c090",outline="")
+        c.create_oval(mx7+8,my7-22,mx7+36,my7+10,fill="#0c0e14",outline="")
+        # Stars
+        rng4=random.Random(99)
+        for _ in range(60):
+            sx8=rng4.randint(0,W); sy8=rng4.randint(0,int(H*0.48))
+            bv8=rng4.randint(40,110)
+            twink=int(math.sin(t*2.5+sx8*0.05)*15)
+            bv8=min(130,max(20,bv8+twink))
+            c.create_oval(sx8-1,sy8-1,sx8+1,sy8+1,fill=f"#{bv8:02x}{bv8:02x}{int(bv8*0.8):02x}",outline="")
+        self._hills(c,W,H,[(0.52,"#1a2c10",0.005,16),(0.68,"#162408",0.009,10)])
+        # The vast Missouri — fills lower half
+        for ri in range(int(H*0.50),H):
+            sh=math.sin(ri*0.08+t*1.8)*0.4+0.55
+            frac=(ri-H*0.50)/(H*0.50)
+            rr=int((0x0c+sh*0x18)*(1-frac*0.3)); gg=int((0x1e+sh*0x12)*(1-frac*0.3)); bb=int((0x2e+sh*0x18)*(1-frac*0.3))
+            c.create_line(0,ri,W,ri,fill=f"#{min(255,rr):02x}{min(255,gg):02x}{min(255,bb):02x}")
+        # Moon reflection on water
+        for mr in range(8):
+            mry=int(H*0.55+mr*14)
+            mx8=W*0.78+math.sin(t+mr)*mr*3
+            c.create_oval(mx8-int(4+mr*2),mry-3,mx8+int(4+mr*2),mry+3,fill="#2a2818",outline="")
+        # Three boats on horizon
+        for bi,(bfx,bsize) in enumerate([(W*0.2,0.9),(W*0.45,1.0),(W*0.68,0.85)]):
+            bx9=bfx+math.sin(t*0.4+bi)*6; by9=int(H*0.52+bi*5)
+            hw9=int(52*bsize); hh9=int(10*bsize)
+            c.create_polygon(bx9-hw9,by9,bx9-int(35*bsize),by9-hh9,bx9+hw9,by9-hh9,bx9+int(58*bsize),by9,fill="#080c08",outline="")
+            c.create_line(bx9,by9-hh9,bx9,by9-int(44*bsize),fill="#0c1008",width=int(2*bsize))
+        # Native fires on bank
+        for nfx in [W*0.05,W*0.92]:
+            nfy=H*0.50
+            c.create_oval(nfx-12,nfy-6,nfx+12,nfy+4,fill="#100804",outline="")
+            fk9=math.sin(t*5+nfx)*3
+            c.create_oval(nfx-4+fk9,nfy-14,nfx+4+fk9,nfy-2,fill="#b05008",outline="")
+            c.create_oval(nfx-2+fk9,nfy-18,nfx+2+fk9,nfy-10,fill="#e8c010",outline="")
 
-        # Keelboat (large, detailed)
-        bx=W*0.50; by=H*0.56+math.sin(t*0.8)*3
-        pts=[bx-90,by,bx-70,by-18,bx+80,by-18,bx+90,by]
-        c.create_polygon(pts,fill="#2a1808",outline="#4a2c10",width=2)
-        # Cabin
-        c.create_rectangle(bx-30,by-40,bx+40,by-18,fill="#221406",outline="#3a2008",width=1)
-        # Mast
-        c.create_line(bx+5,by-18,bx+5,by-80,fill="#2e1c08",width=3)
-        c.create_line(bx-20,by-65,bx+30,by-65,fill="#2e1c08",width=2)
-        # American flag (animated wave)
-        for fi in range(5):
-            fx2=bx-20+fi*10; fy2=by-65+math.sin(t*4+fi*0.7)*4
-            c.create_line(fx2,by-65,fx2,fy2,fill="#8a0e10" if fi%2==0 else "#d4c8a0",width=2)
-
-        # Corps members as silhouettes
-        for pi,(px2,py2_frac,col) in enumerate([(W*0.30,0.53,"#1a1408"),(W*0.40,0.53,"#0e1020"),
-                                                  (W*0.50,0.53,"#181208"),(W*0.55,0.53,"#0e1828"),
-                                                  (W*0.60,0.53,"#181208"),(W*0.66,0.53,"#1a1008")]):
-            py3=H*py2_frac; self._draw_figure(c,px2,py3,col,"#c0a870",seated=False,facing="right",small=True)
-
-    # ── SCENE: FRONTIER ────────────────────────────────────────────────────────
-    def _scene_frontier(self,c,W,H,t,accent):
-        # Storm-lit frontier — dark sky, vast plains, distant mountains
-        c.create_rectangle(0,0,W,H,fill="#080810",outline="")
-        # Storm clouds
-        for ci in range(7):
-            cloud_x=(ci*200+int(t*30))%(W+200)-100
-            cloud_y=H*0.15+ci*18; cr=50+ci*15
-            dk=max(8,min(20,10+int(math.sin(t+ci)*3)))
-            c.create_oval(cloud_x-cr,cloud_y-cr//2,cloud_x+cr,cloud_y+cr//2,
-                          fill=f"#{dk:02x}{dk:02x}{dk+6:02x}",outline="")
-        # Lightning bolt
-        if int(t*10)%80 < 5:
-            lx=W*0.6
-            pts=[lx,20,lx-15,H*0.35,lx+8,H*0.35,lx-10,H*0.6]
-            c.create_line(pts,fill="#d0d8f8",width=3,smooth=False)
-            c.create_line(pts,fill="#8090c0",width=6,smooth=False)
-        # Mountains
-        for mi,(mx2,my_frac,mw2,mcol) in enumerate([
-            (W*0.80,0.22,240,"#0e1018"),(W*0.55,0.18,280,"#0c0e16"),(W*0.25,0.25,210,"#10141a"),(W*0.68,0.30,170,"#12161e")]):
-            c.create_polygon(mx2-mw2,H,mx2,H*my_frac,mx2+mw2,H,fill=mcol,outline="")
-            c.create_polygon(mx2-38,H*my_frac+35,mx2,H*my_frac,mx2+38,H*my_frac+35,fill="#1e2430",outline="")
-        # Plains
-        for pi,col in [(0.62,"#0c1008"),(0.72,"#0e1208"),(0.82,"#101408")]:
-            c.create_rectangle(0,H*pi,W,H,fill=col,outline="")
-        # Lone tree silhouette
-        tx=W*0.35; ty=H*0.58
-        c.create_line(tx,H,tx,ty,fill="#0a0c08",width=8)
-        for branch in [(-25,ty+15),(25,ty+20),(-15,ty+35),(20,ty+40)]:
-            c.create_line(tx,ty+20,tx+branch[0],branch[1],fill="#0a0c08",width=4)
-        # Lone figure — a frontiersman
-        self._draw_figure(c,W*0.20,H*0.70,"#0c1014","#c0c8d0",seated=False,facing="right")
-
-        # Distant campfire glow on horizon
-        for gi in range(3):
-            gx=W*0.55+gi*20; gy=H*0.62
-            c.create_oval(gx-15,gy-8,gx+15,gy+4,fill="#1a0e04",outline="")
-            fk=math.sin(t*4+gi)*3
-            c.create_oval(gx-4+fk,gy-14,gx+4+fk,gy-2,fill="#c06010",outline="")
-
-    # ── SCENE: DEPARTURE ──────────────────────────────────────────────────────
-    def _scene_departure(self,c,W,H,t,accent):
-        # Golden dawn — boats leaving camp, American flags, crowd on shore
-        # Sky gradient
-        sky_cols=["#100804","#1c1008","#28180a","#38220c","#48300e","#56400e","#483010"]
-        for i,sky_c in enumerate(sky_cols):
-            y1=int(H*i/len(sky_cols)); y2=int(H*(i+1)/len(sky_cols))
-            c.create_rectangle(0,y1,W,y2,fill=sky_c,outline="")
-
+    # ── Scene 7: Departure ────────────────────────────────────────────────────
+    def _s_departure(self,c,W,H,t,accent):
+        # Golden dawn
+        dawn_cols=["#0e0804","#1a1006","#261808","#34220a","#42300c","#4e3c0e","#42300c"]
+        step=int(H*0.55)//max(1,len(dawn_cols))
+        for i,dc in enumerate(dawn_cols):
+            c.create_rectangle(0,i*step,W,(i+1)*step,fill=dc,outline="")
         # Rising sun
-        sun_y=int(H*0.44+math.sin(t*0.15)*5)
-        for r in range(80,4,-10):
-            frac=(80-r)/80
-            rr=min(255,int(0xb0*frac+0x30)); gg=min(255,int(0x58*frac+0x10)); bb=0
-            c.create_oval(W//2-r,sun_y-r,W//2+r,sun_y+r,fill=f"#{rr:02x}{gg:02x}{bb:02x}",outline="")
-        # Sun rays
-        for ray in range(20):
-            ang=ray*18; length=90+math.sin(t*3+ray)*15
-            rx=W//2+math.cos(math.radians(ang))*length; ry=sun_y+math.sin(math.radians(ang))*length
-            c.create_line(W//2,sun_y,rx,ry,fill="#6a3808",width=1)
-
-        # River — shimmering
-        river_y=int(H*0.50)
-        for i in range(H-river_y):
-            sh=math.sin(i*0.10+t*2.5)*0.4+0.55
-            rr=min(255,int(0x14+sh*0x28)); gg=min(255,int(0x18+sh*0x14)); bb=min(255,int(0x0c+sh*0x10))
-            c.create_line(0,river_y+i,W,river_y+i,fill=f"#{rr:02x}{gg:02x}{bb:02x}")
-
+        sun_y=int(H*0.43+math.sin(t*0.15)*4)
+        for r in range(72,4,-10):
+            frac=(72-r)/72; rr=min(255,int(0xa0*frac+0x28)); gg=min(255,int(0x48*frac+0x0c))
+            c.create_oval(W//2-r,sun_y-r,W//2+r,sun_y+r,fill=f"#{rr:02x}{gg:02x}00",outline="")
+        for ray in range(18):
+            ang=ray*20; length=82+math.sin(t*3+ray)*14
+            rx9=W//2+math.cos(math.radians(ang))*length; ry9=sun_y+math.sin(math.radians(ang))*length
+            c.create_line(W//2,sun_y,rx9,ry9,fill="#5a3008",width=1)
+        # River — shimmering gold
+        for ri in range(int(H*0.47),H):
+            sh=math.sin(ri*0.08+t*2.8)*0.45+0.52
+            rr=min(255,int(0x18+sh*0x28)); gg=min(255,int(0x14+sh*0x18)); bb=min(255,int(0x0a+sh*0x0e))
+            c.create_line(0,ri,W,ri,fill=f"#{rr:02x}{gg:02x}{bb:02x}")
         # Shore treeline
         tree_pts=[0,H]
-        for tx2 in range(0,W+6,6):
-            ty2=int(H*0.50+math.sin(tx2*0.025)*8+math.sin(tx2*0.07)*4)
-            tree_pts.extend([tx2,ty2])
-        tree_pts.extend([W,H])
-        c.create_polygon(tree_pts,fill="#060a05",outline="")
+        for tx10 in range(0,W+6,6):
+            ty10=int(H*0.47+math.sin(tx10*0.02)*7+math.sin(tx10*0.07)*3)
+            tree_pts.extend([tx10,ty10])
+        tree_pts.extend([W,H]); c.create_polygon(tree_pts,fill="#060806",outline="")
+        # Three boats moving right
+        for bi2,(bx_s,bsc,bsize2) in enumerate([(W*0.08,0,1.0),(W*0.30,20,0.85),(W*0.52,40,0.75)]):
+            bx10=bx_s+int(t*14)+bsc*2; by10=int(H*0.51+bi2*7)
+            if bx10>W+80: bx10=(bx10%(W+180))-80
+            scale=bsize2; hw10=int(60*scale); hh10=int(12*scale)
+            c.create_polygon(bx10-hw10,by10,bx10-int(42*scale),by10-hh10,bx10+hw10,by10-hh10,bx10+int(66*scale),by10,fill="#0a0c08",outline="#1a1808",width=1)
+            if bi2==0:
+                c.create_rectangle(bx10-15,by10-int(26*scale),bx10+32,by10-hh10,fill="#141008",outline="")
+            c.create_line(bx10+4,by10-hh10,bx10+4,by10-hh10-int(48*scale),fill="#181008",width=int(2*scale))
+            for fi3 in range(4):
+                fx10=bx10+4+fi3*int(8*scale)
+                fy10=by10-hh10-int(48*scale)+fi3*3+int(math.sin(t*4+fi3*0.8)*3*scale)
+                c.create_line(fx10,by10-hh10-int(48*scale),fx10+int(8*scale),fy10,fill="#7a0c0e" if fi3%2==0 else "#c0a870",width=2)
+        # Waving crowd on south bank
+        crowd_y=int(H*0.47)
+        for pi2 in range(22):
+            px10=pi2*58+15; wave10=math.sin(t*3+pi2)*7
+            col10="#080c06"
+            c.create_oval(px10-4,crowd_y-22,px10+4,crowd_y-14,fill=col10,outline="")
+            c.create_rectangle(px10-5,crowd_y-14,px10+5,crowd_y,fill=col10,outline="")
+            c.create_line(px10,crowd_y-10,px10+int(12*math.sin(t*3+pi2+1)),crowd_y-10-int(wave10),fill=col10,width=3)
+        # Date label
+        c.create_text(W//2,H*0.86,text="May 14, 1804  ·  4 o'clock in the afternoon",
+                      font=("Georgia",9,"italic"),fill=C["parch3"],anchor="center")
 
-        # Three boats moving right with current
-        for bi,(bx_start,bsc,bsize) in enumerate([(W*0.15,0,1.0),(W*0.38,30,0.85),(W*0.58,60,0.75)]):
-            bx=bx_start+int(t*12)+bsc*2; by=int(H*0.54+bi*8)
-            scale=bsize
-            # Hull
-            hw=int(75*scale); hh=int(14*scale)
-            pts=[bx-hw,by,bx-int(50*scale),by-hh,bx+int(68*scale),by-hh,bx+hw,by]
-            c.create_polygon(pts,fill="#0c0e08",outline="#1e1808",width=1)
-            # Cabin (keelboat only)
-            if bi==0:
-                c.create_rectangle(bx-20,by-int(28*scale),bx+40,by-hh,fill="#181008",outline="#281808")
-            # Mast
-            mx2=bx+int(5*scale); mh=int(52*scale)
-            c.create_line(mx2,by-hh,mx2,by-hh-mh,fill="#1c1208",width=int(3*scale))
-            # Flag
-            for fi in range(4):
-                fx2=mx2+fi*int(8*scale)
-                fy2=by-hh-mh+fi*3+int(math.sin(t*4+fi*0.8)*3*scale)
-                col2="#7a0c0e" if fi%2==0 else "#c0b888"
-                c.create_line(fx2,by-hh-mh,fx2+int(8*scale),fy2,fill=col2,width=2)
-
-        # Crowd on south bank waving
-        crowd_y=int(H*0.50)
-        for pi in range(18):
-            px2=pi*65+20; wave=math.sin(t*3+pi)*6
-            self._draw_figure(c,px2,crowd_y,C["bg"],C["parch2"],seated=False,facing="right",small=True,wave=wave)
-
-    # ── SHARED: Draw a stylized cartoon human figure ───────────────────────────
     def _draw_figure(self,c,x,y,body_col,skin_col,seated=False,facing="right",small=False,wave=0):
-        s=0.6 if small else 1.0
-        d=1 if facing=="right" else -1
-        # Head
+        s=0.6 if small else 1.0; d=1 if facing=="right" else -1
         hx=x; hy=y-int(28*s)
         c.create_oval(hx-int(8*s),hy-int(8*s),hx+int(8*s),hy+int(8*s),fill=skin_col,outline="")
-        # Hat
         c.create_rectangle(hx-int(10*s),hy-int(8*s),hx+int(10*s),hy-int(6*s),fill=body_col,outline="")
         c.create_rectangle(hx-int(6*s),hy-int(20*s),hx+int(6*s),hy-int(8*s),fill=body_col,outline="")
-        # Torso
         if seated:
             c.create_rectangle(hx-int(8*s),hy+int(8*s),hx+int(8*s),hy+int(24*s),fill=body_col,outline="")
             c.create_rectangle(hx+d*int(2*s),hy+int(24*s),hx+d*int(22*s),hy+int(28*s),fill=body_col,outline="")
@@ -830,14 +920,12 @@ class SceneRenderer:
             c.create_rectangle(hx-int(8*s),hy+int(8*s),hx+int(8*s),hy+int(28*s),fill=body_col,outline="")
             c.create_line(hx-int(4*s),hy+int(28*s),hx-int(4*s),hy+int(48*s),fill=body_col,width=int(5*s))
             c.create_line(hx+int(4*s),hy+int(28*s),hx+int(4*s),hy+int(48*s),fill=body_col,width=int(5*s))
-        # Arm (waving if requested)
         arm_y=hy+int(14*s); arm_end_y=arm_y-int(wave*s)
         c.create_line(hx,arm_y,hx+d*int(18*s),arm_end_y,fill=body_col,width=int(4*s))
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  MAIN GAME CLASS
-# ═══════════════════════════════════════════════════════════════════════════════
+
+
 class LewisClarkGame:
     W,H = 1280,830
 
