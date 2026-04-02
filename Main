@@ -317,16 +317,33 @@ TERR_FILLS = {
 }
 
 WAYPOINTS = [
-    {"id":0,"name":"Camp Dubois",    "x":0.88,"y":0.62,"region":"Illinois","month":5, "year":1804,"desc":"Mouth of the Missouri River"},
-    {"id":1,"name":"Fort Osage",     "x":0.73,"y":0.57,"region":"Missouri","month":6, "year":1804,"desc":"First major fort on the Missouri"},
-    {"id":2,"name":"Council Bluffs", "x":0.63,"y":0.47,"region":"Iowa",    "month":7, "year":1804,"desc":"Council with the Otoe-Missouria"},
-    {"id":3,"name":"Calumet Bluff",  "x":0.56,"y":0.41,"region":"Nebraska","month":8, "year":1804,"desc":"Spirit Mound and Sioux lands"},
-    {"id":4,"name":"Fort Mandan",    "x":0.39,"y":0.30,"region":"Dakota",  "month":10,"year":1804,"desc":"Winter quarters with the Mandan"},
-    {"id":5,"name":"Yellowstone Jct.","x":0.28,"y":0.32,"region":"Montana","month":4, "year":1805,"desc":"Confluence of Yellowstone"},
-    {"id":6,"name":"Great Falls",    "x":0.22,"y":0.27,"region":"Montana", "month":6, "year":1805,"desc":"Five cataracts — 18-mile portage"},
-    {"id":7,"name":"Lemhi Pass",     "x":0.17,"y":0.34,"region":"Idaho",   "month":8, "year":1805,"desc":"Continental Divide crossing"},
-    {"id":8,"name":"Travelers' Rest","x":0.14,"y":0.29,"region":"Montana", "month":9, "year":1805,"desc":"Nez Perce country"},
-    {"id":9,"name":"Fort Clatsop",   "x":0.05,"y":0.31,"region":"Oregon",  "month":11,"year":1805,"desc":"Pacific Ocean — the goal"},
+    # ── HISTORICAL LEWIS & CLARK ROUTE (correct path) ─────────────────────────
+    {"id": 0,"name":"Camp Dubois",        "x":0.88,"y":0.62,"region":"Illinois", "month":5, "year":1804,"desc":"Mouth of the Missouri River — expedition begins","type":"start",    "revealed":True},
+    {"id": 1,"name":"Fort Osage",         "x":0.73,"y":0.57,"region":"Missouri", "month":6, "year":1804,"desc":"First major American fort on the Missouri","type":"fort",      "revealed":False},
+    {"id": 2,"name":"Council Bluffs",     "x":0.63,"y":0.47,"region":"Iowa",     "month":7, "year":1804,"desc":"Council with the Otoe-Missouria people","type":"camp",      "revealed":False},
+    {"id": 3,"name":"Calumet Bluff",      "x":0.56,"y":0.41,"region":"Nebraska", "month":8, "year":1804,"desc":"Spirit Mound — Sioux territory begins","type":"camp",      "revealed":False},
+    {"id": 4,"name":"Fort Mandan",        "x":0.39,"y":0.30,"region":"Dakota",   "month":10,"year":1804,"desc":"Winter quarters — Sacagawea joins here","type":"fort",      "revealed":False},
+    {"id": 5,"name":"Yellowstone Jct.",   "x":0.28,"y":0.32,"region":"Montana",  "month":4, "year":1805,"desc":"Confluence of the Yellowstone River","type":"junction",  "revealed":False},
+    {"id": 6,"name":"Great Falls",        "x":0.22,"y":0.27,"region":"Montana",  "month":6, "year":1805,"desc":"Five cataracts — an 18-mile portage","type":"landmark",  "revealed":False},
+    {"id": 7,"name":"Lemhi Pass",         "x":0.17,"y":0.34,"region":"Idaho",    "month":8, "year":1805,"desc":"Continental Divide — the Shoshone homeland","type":"pass",      "revealed":False},
+    {"id": 8,"name":"Travelers' Rest",    "x":0.14,"y":0.29,"region":"Montana",  "month":9, "year":1805,"desc":"Nez Perce country — last rest before Columbia","type":"camp",      "revealed":False},
+    {"id": 9,"name":"Fort Clatsop",       "x":0.05,"y":0.31,"region":"Oregon",   "month":11,"year":1805,"desc":"Pacific Ocean — the goal of the expedition","type":"fort",      "revealed":False},
+
+    # ── SOUTHERN PLATTE ROUTE (wrong — leads to Spanish territory) ─────────────
+    {"id":10,"name":"Fort Leavenworth",   "x":0.72,"y":0.63,"region":"Kansas",   "month":6, "year":1804,"desc":"Kansas garrison — soldiers warn of Comanche to the south","type":"fort",      "revealed":False},
+    {"id":11,"name":"Platte River Fork",  "x":0.60,"y":0.55,"region":"Nebraska", "month":7, "year":1804,"desc":"The Platte runs west — wide and shallow, easy going","type":"junction",  "revealed":False},
+    {"id":12,"name":"Grand Island",       "x":0.50,"y":0.53,"region":"Nebraska", "month":8, "year":1804,"desc":"A large island — Pawnee hunting grounds","type":"camp",      "revealed":False},
+    {"id":13,"name":"Fort Atkinson",      "x":0.42,"y":0.50,"region":"Nebraska", "month":9, "year":1804,"desc":"Army outpost — soldiers have heard of mountains ahead","type":"fort",      "revealed":False},
+    {"id":14,"name":"Spanish Borderlands","x":0.33,"y":0.55,"region":"Kansas",   "month":11,"year":1804,"desc":"Spanish patrols challenge your right to be here","type":"dead_end",  "revealed":False},
+
+    # ── NORTHERN FUR TRADE ROUTE (wrong — British territory, no Pacific access) ─
+    {"id":15,"name":"Pembina Post",       "x":0.38,"y":0.16,"region":"Dakota",   "month":11,"year":1804,"desc":"British-Canadian fur trade post — friendly but far north","type":"fort",      "revealed":False},
+    {"id":16,"name":"Assiniboine River",  "x":0.28,"y":0.12,"region":"Dakota",   "month":12,"year":1804,"desc":"The great northern river — leads into British Rupert's Land","type":"junction",  "revealed":False},
+    {"id":17,"name":"British Territory",  "x":0.20,"y":0.10,"region":"Dakota",   "month":2, "year":1805,"desc":"You have crossed into territory claimed by the Crown","type":"dead_end",  "revealed":False},
+
+    # ── SOUTHERN ROCKY MOUNTAIN DEAD END (Spanish Pass — looks promising) ───────
+    {"id":18,"name":"Arkansas Headwaters","x":0.30,"y":0.44,"region":"Kansas",   "month":5, "year":1805,"desc":"Pike's country — the mountains loom but no pass is known","type":"camp",      "revealed":False},
+    {"id":19,"name":"Spanish Pass",       "x":0.24,"y":0.40,"region":"Colorado", "month":7, "year":1805,"desc":"A Spanish mule path — leads south into New Mexico, not west","type":"dead_end",  "revealed":False},
 ]
 
 def get_season(m):
@@ -334,6 +351,220 @@ def get_season(m):
     if m in (6,7,8):  return "Summer"
     if m in (9,10,11):return "Autumn"
     return "Winter"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  HEX GRID SYSTEM — 32×20 pointy-top offset hexagons
+#  Col 0 = Pacific coast (west)   Col 31 = Illinois (east)
+#  Row 0 = north                  Row 19 = south
+# ═══════════════════════════════════════════════════════════════════════════════
+HEX_COLS = 32
+HEX_ROWS = 20
+
+# Waypoint hex positions — all 20 locations
+WP_HEX = {
+    # Historical route
+    0: (27,12),  # Camp Dubois
+    1: (23,11),  # Fort Osage
+    2: (20, 9),  # Council Bluffs
+    3: (17, 8),  # Calumet Bluff
+    4: (12, 6),  # Fort Mandan
+    5: ( 9, 6),  # Yellowstone Jct.
+    6: ( 7, 5),  # Great Falls
+    7: ( 5, 7),  # Lemhi Pass
+    8: ( 4, 6),  # Travelers' Rest
+    9: ( 2, 6),  # Fort Clatsop
+    # Southern Platte route
+    10:(23,13),  # Fort Leavenworth
+    11:(19,11),  # Platte River Fork
+    12:(16,11),  # Grand Island
+    13:(13,10),  # Fort Atkinson
+    14:( 9,12),  # Spanish Borderlands
+    # Northern fur trade route
+    15:(12, 3),  # Pembina Post
+    16:( 9, 2),  # Assiniboine River
+    17:( 6, 1),  # British Territory
+    # Southern Rockies dead end
+    18:(10,10),  # Arkansas Headwaters
+    19:( 8, 9),  # Spanish Pass
+}
+HEX_WP = {v: k for k, v in WP_HEX.items()}
+
+# Generic label shown before a location is visited (preserves mystery)
+WP_GENERIC = {
+    "fort":     "Fortified Settlement",
+    "camp":     "River Camp",
+    "junction": "River Confluence",
+    "landmark": "Natural Landmark",
+    "pass":     "Mountain Pass",
+    "start":    "Camp Dubois",
+    "dead_end": "Unknown Territory",
+}
+
+def wp_display_name(wp_id, visited_hexes):
+    """Return display name — generic until visited."""
+    wp = WAYPOINTS[wp_id]
+    hk = WP_HEX[wp_id]
+    if wp["revealed"] or tuple(hk) in [tuple(h) for h in visited_hexes]:
+        return wp["name"]
+    return WP_GENERIC.get(wp["type"], "Unknown Settlement")
+
+# ── Terrain ───────────────────────────────────────────────────────────────────
+def _seg_dist(px, py, ax, ay, bx, by):
+    dx, dy = bx-ax, by-ay
+    if dx == 0 and dy == 0:
+        return ((px-ax)**2 + (py-ay)**2)**0.5
+    t = max(0.0, min(1.0, ((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy)))
+    return ((px-ax-t*dx)**2+(py-ay-t*dy)**2)**0.5
+
+# River corridors — each is a list of (col,row) waypoint anchors
+# Paths are geographically separated to avoid visual crossing
+RIVER_PATHS = [
+    # Missouri River — goes northwest, row 12 down to row 5-6
+    [(27,12),(23,11),(20,9),(17,8),(12,6),(9,6),(7,5),(5,7),(4,6),(2,6)],
+    # Platte River — stays south, row 13-15, diverges well below Missouri
+    [(27,12),(24,14),(21,14),(18,14),(15,13),(12,13),(9,14)],
+    # Yellowstone — northern fork from Fort Mandan, rows 2-4
+    [(12,6),(11,4),(9,3),(6,2),(3,2)],
+    # Arkansas / southern mountains — row 15-17, deep south
+    [(23,13),(20,15),(17,16),(13,15),(10,15),(8,14)],
+]
+
+def hex_terrain(col, row):
+    """Return terrain string for hex (col, row)."""
+    if col <= 2:                          return "coast"
+    if col <= 8 and 3 <= row <= 9:        return "mountain"
+    if row <= 2:                          return "plains"   # far north
+    if row >= 15:                         return "plains"   # far south
+    # River corridors
+    for path in RIVER_PATHS:
+        for i in range(len(path)-1):
+            ac,ar = path[i]; bc,br = path[i+1]
+            if _seg_dist(col,row,ac,ar,bc,br) <= 0.85:
+                return "river"
+    if col <= 11 and 4 <= row <= 8:       return "forest"
+    if col >= 18 and 10 <= row <= 15:     return "plains"  # southern plains
+    return "plains"
+
+TERRAIN_DATA = {
+    "plains":   {"food":1,  "health": 0, "morale": 0, "days":2, "label":"Open Prairie",    "symbol":"·", "col":(204,192,128)},
+    "river":    {"food":0,  "health": 0, "morale": 1, "days":2, "label":"River Route",      "symbol":"≈", "col":( 96,136,176)},
+    "mountain": {"food":3,  "health":-2, "morale":-1, "days":3, "label":"Mountain Terrain", "symbol":"▲", "col":(128, 96, 56)},
+    "forest":   {"food":2,  "health": 0, "morale": 1, "days":2, "label":"Dense Forest",     "symbol":"♣", "col":( 48,100, 40)},
+    "coast":    {"food":1,  "health": 1, "morale": 2, "days":2, "label":"Pacific Coast",    "symbol":"~", "col":( 80,140,160)},
+}
+
+# ── Hex contents ──────────────────────────────────────────────────────────────
+HEX_CONTENTS = {}
+
+def _build_hex_contents():
+    """Populate hex contents — settlements, tribes, resources."""
+
+    # All waypoints as landmarks
+    for wp_id, (col, row) in WP_HEX.items():
+        wp = WAYPOINTS[wp_id]
+        HEX_CONTENTS[(col, row)] = {
+            "type":    "waypoint",
+            "wp_id":   wp_id,
+            "name":    wp["name"],
+            "generic": WP_GENERIC.get(wp["type"], "Settlement"),
+            "desc":    wp["desc"],
+            "wp_type": wp["type"],
+        }
+
+    # Tribes — on or near historical route
+    TRIBE_LOCS = {
+        "Missouri": (25,11), "Otoe":    (21,10), "Sioux":   (18, 8),
+        "Mandan":   (11, 6), "Shoshone":( 6, 7), "NezPerce":( 4, 5),
+        "Clatsop":  ( 3, 6),
+    }
+    for tribe_key, (col, row) in TRIBE_LOCS.items():
+        if (col, row) not in HEX_CONTENTS:
+            HEX_CONTENTS[(col, row)] = {
+                "type":      "tribe",
+                "tribe_key": tribe_key,
+                "name":      TRIBES[tribe_key]["name"],
+                "desc":      f"A {TRIBES[tribe_key]['name']} village.",
+            }
+
+    # Resources scattered across all routes
+    RESOURCES = [
+        # Missouri / historical
+        ((22,10),"buffalo", "Vast Buffalo Herd",       "Meat enough for weeks.",                {"food":+20,"morale":+8}),
+        ((19, 8),"spring",  "Fresh Water Spring",      "Clean water — health restored.",         {"health":+10}),
+        ((15, 7),"cache",   "Fur Trader Cache",        "Abandoned supplies.",                    {"food":+10,"inventory":{"Furs":2}}),
+        ((13, 6),"bison",   "Bison Crossing",          "Prime hunting ground.",                  {"food":+15,"morale":+5}),
+        ((10, 6),"elk",     "Elk in the Timber",       "Drouillard spots a large herd.",         {"food":+12,"morale":+6}),
+        (( 8, 5),"springs", "Mineral Springs",         "The men drink deep.",                    {"health":+8,"morale":+10}),
+        (( 6, 6),"pass",    "Shoshone Trail Marker",   "A cairn — someone knows this pass.",     {"health":+5,"morale":+8}),
+        (( 3, 6),"salmon",  "Salmon Run",              "The river is thick with fish.",          {"food":+18,"morale":+12}),
+        # Platte route
+        ((21,12),"trading", "French Trading Post",     "A lonely trader shares news.",           {"food":+8,"morale":+5}),
+        ((17,11),"buffalo", "Southern Buffalo Herd",   "Enormous herd blocks the trail.",        {"food":+22,"morale":+6}),
+        ((14,11),"water",   "Sand Hills Spring",       "Brackish but drinkable.",                {"health":+6}),
+        ((11,10),"ruins",   "Abandoned Pawnee Village","Empty lodges — left in a hurry.",        {"morale":-5}),
+        # Northern route
+        ((13, 4),"cache",   "Hudson's Bay Cache",      "British trappers left winter stores.",   {"food":+14}),
+        ((10, 3),"post",    "Métis Settlement",        "Mixed-blood traders, friendly.",         {"food":+8,"morale":+4}),
+        # Southern mountains
+        ((11,10),"ruins2",  "Comanche Warning Signs",  "Skulls on poles — turn back.",           {"morale":-12,"health":-4}),
+        ((9, 10),"spring2", "Desert Spring",           "Barely enough for the men.",             {"health":+4}),
+    ]
+    for (col, row), rtype, name, desc, effect in RESOURCES:
+        if (col, row) not in HEX_CONTENTS:
+            HEX_CONTENTS[(col, row)] = {
+                "type":   "resource",
+                "rtype":  rtype,
+                "name":   name,
+                "desc":   desc,
+                "effect": effect,
+                "used":   False,
+            }
+
+    # Rumours — hexes that give directional hints when visited
+    # These give clues to the correct route without spelling it out
+    RUMOURS = [
+        ((24,11), "A trapper tells you the Missouri bends northwest for a thousand miles — a great highway."),
+        ((22,12), "A Missouri warrior gestures west — 'River long, very long. Goes to mountains.'"),
+        ((19,10), "Otoe elders say the Platte River leads to Pawnee, then Spanish soldiers. Turn north."),
+        ((16,10), "Pawnee hunters warn of Spanish cavalry patrolling the Arkansas headwaters."),
+        ((14, 9), "A lone fur trader coming east says the Mandan know the way to the Pacific."),
+        ((11, 5), "The Mandan chief draws a map in the dirt showing a great river beyond the mountains."),
+        (( 8, 4), "An old Hidatsa warrior describes the Shining Mountains and a pass to the west."),
+        ((11, 4), "A British trader warns that the northern route leads only to frozen tundra."),
+    ]
+    for (col, row), text in RUMOURS:
+        if (col, row) not in HEX_CONTENTS:
+            HEX_CONTENTS[(col, row)] = {
+                "type":  "rumour",
+                "name":  "Local Knowledge",
+                "desc":  text,
+            }
+
+
+def hex_neighbours(col, row):
+    """Return valid (col, row) neighbours for pointy-top offset hexes."""
+    if row % 2 == 0:
+        dirs = [(1,0),(-1,0),(0,-1),(0,1),(1,-1),(1,1)]
+    else:
+        dirs = [(1,0),(-1,0),(0,-1),(0,1),(-1,-1),(-1,1)]
+    result = []
+    for dc, dr in dirs:
+        nc, nr = col+dc, row+dr
+        if 0 <= nc < HEX_COLS and 0 <= nr < HEX_ROWS:
+            result.append((nc, nr))
+    return result
+
+def hex_to_world(col, row):
+    """Convert hex (col, row) to normalised world coords (0-1)."""
+    wx = col / (HEX_COLS - 1)
+    wy = row / (HEX_ROWS - 1)
+    return wx, wy
+
+def world_to_hex(wx, wy):
+    """Convert world coords to nearest hex."""
+    col = max(0, min(HEX_COLS-1, round(wx * (HEX_COLS-1))))
+    row = max(0, min(HEX_ROWS-1, round(wy * (HEX_ROWS-1))))
+    return col, row
 
 ROUTE_OPTIONS = {
     (0,1):[{"name":"Missouri River","tag":"river","desc":"Follow the current north. Safe, steady progress on the river highway.","food":-8,"health":0,"morale":3,"days":18,"risk":"low"},
@@ -376,6 +607,9 @@ TRIBES = {
     "Clatsop": {"name":"Clatsop",    "relation":60,"wants":["Trade Beads","Mirrors"],         "offers":["Salmon","Furs"],            "region":"coastal"},
 }
 TRIBE_AT_WAYPOINT = {1:"Missouri",2:"Otoe",3:"Sioux",4:"Mandan",7:"Shoshone",8:"NezPerce",9:"Clatsop"}
+
+# Build hex contents now that TRIBES, WAYPOINTS etc. are all defined
+_build_hex_contents()
 
 SPECIAL_CHARACTERS = {
     "york":{"name":"York","title":"Clark's Manservant — Frontiersman",
@@ -621,6 +855,12 @@ class GameState:
     events_seen:          List[str] = field(default_factory=list)
     game_over:            bool = False
     victory:              bool = False
+    # Hex movement
+    hex_col:              int  = 27   # start at Camp Dubois hex
+    hex_row:              int  = 12
+    hex_trail:            List = field(default_factory=list)   # [(col,row), ...]
+    visited_hexes:        List = field(default_factory=list)   # all visited (col,row)
+    used_resources:       List = field(default_factory=list)   # (col,row) of spent caches
 
     def __post_init__(self):
         if not self.tribe_relations:
@@ -629,6 +869,10 @@ class GameState:
             self.inventory = copy.copy(STARTING_INVENTORY)
         if not self.characters:
             self.characters = copy.deepcopy(SPECIAL_CHARACTERS)
+        if not self.hex_trail:
+            self.hex_trail = [(self.hex_col, self.hex_row)]
+        if not self.visited_hexes:
+            self.visited_hexes = [(self.hex_col, self.hex_row)]
 
     @property
     def season(self): return get_season(self.current_month)
@@ -681,6 +925,9 @@ class GameState:
                 "traded_tribes":self.traded_tribes,"route_taken":self.route_taken,
                 "events_seen":self.events_seen,"game_over":self.game_over,
                 "victory":self.victory,
+                "hex_col":self.hex_col,"hex_row":self.hex_row,
+                "hex_trail":self.hex_trail,"visited_hexes":self.visited_hexes,
+                "used_resources":self.used_resources,
                 "characters":{k:{"active":v["active"]} for k,v in self.characters.items()}}
 
     @classmethod
@@ -691,8 +938,13 @@ class GameState:
                      "discoveries","peaceful_tribes","traded_tribes","route_taken",
                      "game_over","victory"]:
             setattr(s, attr, d[attr])
-        s.events_seen = d.get("events_seen",[])
-        s.characters  = copy.deepcopy(SPECIAL_CHARACTERS)
+        s.events_seen    = d.get("events_seen",[])
+        s.hex_col        = d.get("hex_col", WP_HEX[d.get("current_wp",0)][0])
+        s.hex_row        = d.get("hex_row", WP_HEX[d.get("current_wp",0)][1])
+        s.hex_trail      = d.get("hex_trail", [(s.hex_col, s.hex_row)])
+        s.visited_hexes  = d.get("visited_hexes", [(s.hex_col, s.hex_row)])
+        s.used_resources = d.get("used_resources", [])
+        s.characters     = copy.deepcopy(SPECIAL_CHARACTERS)
         for k,v in d.get("characters",{}).items():
             if k in s.characters: s.characters[k]["active"] = v["active"]
         return s
@@ -863,473 +1115,582 @@ class ScrollPanel:
 #  MAP VIEW — renders cached map surface + hex grid overlay + waypoints
 # ═══════════════════════════════════════════════════════════════════════════════
 class MapView:
-    MAP_RECT = pygame.Rect(0, 50, 920, SH-50)
+    MAP_RECT  = pygame.Rect(0, 50, 920, SH-50)
+    HEX_SIZE  = 80      # circumradius in pixels on the large canvas
+    CANVAS_W  = 4600    # pre-rendered map canvas width
+    CANVAS_H  = 2500    # pre-rendered map canvas height
+
+    # Terrain colours — rich parchment palette per terrain type
+    TERR_FILL = {
+        "plains":   (212, 200, 140),
+        "river":    (168, 196, 220),
+        "mountain": (176, 152, 112),
+        "forest":   (148, 176, 120),
+        "coast":    (160, 200, 210),
+    }
+    TERR_BORDER = {
+        "plains":   (160, 148,  96),
+        "river":    (100, 140, 170),
+        "mountain": (120, 100,  72),
+        "forest":   ( 96, 128,  80),
+        "coast":    (100, 152, 168),
+    }
+    TERR_ICON = {
+        "plains":  "·",
+        "river":   "≈",
+        "mountain":"▲",
+        "forest":  "♣",
+        "coast":   "~",
+    }
 
     def __init__(self):
-        self.zoom       = 1.0
-        self.pan_x      = 0.0
-        self.pan_y      = 0.0
-        self.hover_wp   = None
-        self._drag_start= None
-        self._drag_pan  = None
-        self.frame      = 0
-        self._particles = []   # list of [x, y, vx, vy, life, size]
+        # Start zoomed to show full map
+        self.zoom        = 0.22
+        self.pan_x       = 0    # pixel offset into canvas
+        self.pan_y       = 0
+        self.hover_hex   = None
+        self.hover_wp    = None
+        self._drag_start = None
+        self._drag_pan   = None
+        self.frame       = 0
+        self._particles  = []
+        self._canvas     = None   # lazily built
+        self._canvas_dirty = True # rebuild when state changes
 
-    # ── coordinate transforms ──────────────────────────────────────────────────
-    def ws(self, wx, wy):
-        """World (0-1 normalized) → screen pixel within MAP_RECT."""
+    # ── hex pixel geometry ────────────────────────────────────────────────────
+    @staticmethod
+    def hex_center(col, row, size=None):
+        """Pixel centre of hex on the large canvas."""
+        s = size or MapView.HEX_SIZE
+        x = int(s * math.sqrt(3) * (col + 0.5*(row % 2))) + int(s * math.sqrt(3) * 0.5)
+        y = int(s * 1.5 * row) + s
+        return x, y
+
+    @staticmethod
+    def hex_poly_abs(col, row, size=None, shrink=0):
+        """Absolute pixel corners of hex on large canvas."""
+        s = (size or MapView.HEX_SIZE) - shrink
+        cx, cy = MapView.hex_center(col, row, size or MapView.HEX_SIZE)
+        pts = []
+        for i in range(6):
+            a = math.radians(60*i - 30)
+            pts.append((int(cx + s*math.cos(a)), int(cy + s*math.sin(a))))
+        return pts
+
+    def canvas_to_screen(self, cx, cy):
+        """Canvas pixel → screen pixel."""
         R = self.MAP_RECT
-        W, H = R.w, R.h
-        sx = int((wx + self.pan_x) * self.zoom * W) + R.x
-        sy = int((wy + self.pan_y) * self.zoom * H) + R.y
+        sx = int((cx - self.pan_x) * self.zoom) + R.x
+        sy = int((cy - self.pan_y) * self.zoom) + R.y
         return sx, sy
 
-    def sw(self, sx, sy):
-        """Screen pixel → world (0-1)."""
+    def screen_to_canvas(self, sx, sy):
+        """Screen pixel → canvas pixel."""
         R = self.MAP_RECT
-        W, H = R.w, R.h
-        wx = (sx - R.x) / (self.zoom * W) - self.pan_x
-        wy = (sy - R.y) / (self.zoom * H) - self.pan_y
-        return wx, wy
+        cx = (sx - R.x) / self.zoom + self.pan_x
+        cy = (sy - R.y) / self.zoom + self.pan_y
+        return cx, cy
 
-    # ── particles (embers at current position) ────────────────────────────────
-    def _tick_particles(self, cx, cy):
-        # Spawn
-        if random.random() < 0.38:
-            ang = random.uniform(0, math.pi*2)
-            spd = random.uniform(0.3, 1.2)
-            self._particles.append([cx, cy, math.cos(ang)*spd,
-                                    math.sin(ang)*spd - 1.2,
-                                    random.uniform(0.6, 1.0),
-                                    random.uniform(1.5, 3.5)])
-        # Update
-        alive = []
+    def screen_hex(self, sx, sy):
+        """Screen pixel → which hex (col, row)."""
+        cx, cy = self.screen_to_canvas(sx, sy)
+        s = self.HEX_SIZE
+        # Invert hex_center: approximate then refine
+        best = None; best_d = 1e9
+        # Estimate
+        row_est = int(cy / (s * 1.5))
+        col_est = int((cx - s*math.sqrt(3)*0.5) / (s*math.sqrt(3)) - 0.5*(row_est%2))
+        for dr in range(-2, 3):
+            for dc in range(-2, 3):
+                c2 = col_est+dc; r2 = row_est+dr
+                if 0<=c2<HEX_COLS and 0<=r2<HEX_ROWS:
+                    hx, hy = self.hex_center(c2, r2)
+                    d = (cx-hx)**2 + (cy-hy)**2
+                    if d < best_d: best_d=d; best=(c2,r2)
+        return best or (0,0)
+
+    def hex_screen_pos(self, col, row):
+        """Screen pixel centre of hex (convenience)."""
+        cx, cy = self.hex_center(col, row)
+        return self.canvas_to_screen(cx, cy)
+
+    def hex_radius_screen(self):
+        """Hex radius in screen pixels at current zoom."""
+        return max(4, int(self.HEX_SIZE * self.zoom))
+
+    # ── canvas build ──────────────────────────────────────────────────────────
+    def _build_canvas(self, state):
+        """Render the full hex map to a large Surface. Called once, cached."""
+        s = state
+        visited_set = set(tuple(h) for h in s.visited_hexes)
+
+        surf = pygame.Surface((self.CANVAS_W, self.CANVAS_H))
+
+        # Background — deep water / blank parchment
+        surf.fill((168, 188, 208))
+
+        # ── Draw every hex ────────────────────────────────────────────────────
+        for row in range(HEX_ROWS):
+            for col in range(HEX_COLS):
+                terr  = hex_terrain(col, row)
+                pts   = self.hex_poly_abs(col, row)
+                pts_inner = self.hex_poly_abs(col, row, shrink=2)
+                fill  = self.TERR_FILL[terr]
+                border= self.TERR_BORDER[terr]
+
+                # Base fill
+                pygame.draw.polygon(surf, fill, pts)
+
+                # Texture — subtle noise per terrain
+                cx, cy = self.hex_center(col, row)
+                if terr == "plains":
+                    # Grass tufts — small dots
+                    rng = random.Random(col*100+row)
+                    for _ in range(6):
+                        dx = rng.randint(-28,28); dy = rng.randint(-16,16)
+                        r_dot = rng.randint(2,4)
+                        c_dot = (fill[0]-12, fill[1]-8, fill[2]-6)
+                        pygame.draw.circle(surf, c_dot, (cx+dx,cy+dy), r_dot)
+                elif terr == "river":
+                    # Water lines
+                    for wl in range(-20, 22, 8):
+                        wave_y = cy + wl + int(math.sin((col+row)*0.8)*3)
+                        pygame.draw.line(surf, (140,172,200),
+                                         (cx-30,wave_y),(cx+30,wave_y),1)
+                elif terr == "mountain":
+                    # Mountain hachure triangles
+                    for mi in range(3):
+                        mx = cx + (mi-1)*22; my = cy+8
+                        sz = 16
+                        pygame.draw.polygon(surf,(196,172,128),[(mx-sz,my+sz),(mx,my-sz),(mx+sz,my+sz)])
+                        pygame.draw.polygon(surf,(140,116,80),[(mx-sz,my+sz),(mx,my-sz),(mx+sz,my+sz)],2)
+                        pygame.draw.polygon(surf,(230,226,218),[(mx-6,my-sz+6),(mx,my-sz-2),(mx+6,my-sz+6)])
+                elif terr == "forest":
+                    # Tree symbols
+                    for ti in range(4):
+                        tx = cx + (ti%2)*26-13; ty = cy + (ti//2)*22-11
+                        pygame.draw.polygon(surf,(96,140,80),[(tx-10,ty+8),(tx,ty-12),(tx+10,ty+8)])
+                        pygame.draw.line(surf,(72,52,24),(tx,ty+8),(tx,ty+16),3)
+                elif terr == "coast":
+                    # Wave pattern
+                    for wl in range(-18,20,9):
+                        pygame.draw.arc(surf,(120,168,188),
+                                        (cx-22,cy+wl-4,44,12),0,math.pi,2)
+
+                # Hex border
+                pygame.draw.polygon(surf, border, pts, 2)
+
+                # Terrain icon — centre of hex
+                try:
+                    fi = pygame.font.SysFont("Georgia", 18, bold=True)
+                    icon = self.TERR_ICON[terr]
+                    ts = fi.render(icon, True, (max(0,border[0]-20),max(0,border[1]-20),max(0,border[2]-20)))
+                    surf.blit(ts, ts.get_rect(center=(cx, cy+2)))
+                except: pass
+
+        # ── River corridors — blue ink lines over hex grid ────────────────────
+        INK_RIVER = (80, 120, 168)
+        for path in RIVER_PATHS:
+            pts_r = [self.hex_center(c,r) for c,r in path]
+            if len(pts_r)>=2:
+                pygame.draw.lines(surf,(180,208,228),False,pts_r,14)
+                pygame.draw.lines(surf,INK_RIVER,    False,pts_r,5)
+                pygame.draw.lines(surf,(200,220,240),False,pts_r,2)
+
+        # ── Mountain ridge symbols on map ─────────────────────────────────────
+        ridge = [(0.13,0.48),(0.14,0.40),(0.15,0.34),(0.16,0.28),(0.17,0.22),
+                 (0.18,0.26),(0.19,0.20),(0.20,0.24),(0.21,0.17),(0.22,0.21),
+                 (0.23,0.26),(0.24,0.30),(0.25,0.36),(0.26,0.42)]
+        for wx,wy in ridge[::2]:
+            col_r,row_r = world_to_hex(wx,wy)
+            rx,ry = self.hex_center(col_r,row_r)
+            for mi in [-1,0,1]:
+                mx = rx+mi*26; sz=18
+                pygame.draw.polygon(surf,(160,136,96),[(mx-sz,ry+sz//2),(mx,ry-sz),(mx+sz,ry+sz//2)])
+                pygame.draw.polygon(surf,(100,78,52),[(mx-sz,ry+sz//2),(mx,ry-sz),(mx+sz,ry+sz//2)],2)
+                pygame.draw.polygon(surf,(240,238,232),[(mx-5,ry-sz+6),(mx,ry-sz-3),(mx+5,ry-sz+6)])
+
+        # ── Territory labels ──────────────────────────────────────────────────
+        TERR_LABEL_POS = {
+            "Illinois":(0.875,0.62),"Missouri":(0.755,0.62),"Iowa":(0.655,0.445),
+            "Nebraska":(0.540,0.445),"Kansas":(0.540,0.570),"Dakota":(0.430,0.295),
+            "Montana":(0.290,0.265),"Idaho":(0.158,0.405),"Oregon":(0.070,0.345),
+            "Washington":(0.062,0.185),
+        }
+        for name,(lx_n,ly_n) in TERR_LABEL_POS.items():
+            c_n,r_n = world_to_hex(lx_n,ly_n)
+            px_n,py_n = self.hex_center(c_n,r_n)
+            try:
+                fn = pygame.font.SysFont("Georgia",22,italic=True)
+                ts_sh = fn.render(name.upper(),True,(180,160,110))
+                ts_lbl= fn.render(name.upper(),True,(80,58,24))
+                surf.blit(ts_sh,ts_sh.get_rect(center=(px_n+1,py_n+1)))
+                surf.blit(ts_lbl,ts_lbl.get_rect(center=(px_n,py_n)))
+            except: pass
+
+        # ── Coord grid ────────────────────────────────────────────────────────
+        GRID_COL = (154,140,100)
+        for col in range(0,HEX_COLS,4):
+            cx2,_ = self.hex_center(col,0)
+            pygame.draw.line(surf,GRID_COL,(cx2,0),(cx2,self.CANVAS_H),1)
+        for row in range(0,HEX_ROWS,4):
+            _,ry2 = self.hex_center(0,row)
+            pygame.draw.line(surf,GRID_COL,(0,ry2),(self.CANVAS_W,ry2),1)
+
+        # ── Visited trail — drawn on canvas so it persists ────────────────────
+        if len(s.hex_trail) >= 2:
+            trail_pts = [self.hex_center(c,r) for c,r in s.hex_trail]
+            pygame.draw.lines(surf,(160,56,20),False,trail_pts,8)
+            pygame.draw.lines(surf,(220,180,140),False,trail_pts,3)
+
+        # ── Static waypoint markers on canvas ────────────────────────────────
+        for i,wp in enumerate(WAYPOINTS):
+            wc,wr = WP_HEX[i]
+            wx2,wy2 = self.hex_center(wc,wr)
+            wp_type = wp.get("type","camp")
+            # Draw settlement icon based on type
+            if wp_type in ("fort","start"):
+                # Square fort symbol
+                sq = 22
+                pygame.draw.rect(surf,(210,190,140),(wx2-sq,wy2-sq,sq*2,sq*2))
+                pygame.draw.rect(surf,(80,58,24),(wx2-sq,wy2-sq,sq*2,sq*2),3)
+                # Bastions at corners
+                for bx2,by2 in [(wx2-sq,wy2-sq),(wx2+sq,wy2-sq),(wx2-sq,wy2+sq),(wx2+sq,wy2+sq)]:
+                    pygame.draw.circle(surf,(80,58,24),(bx2,by2),6)
+                    pygame.draw.circle(surf,(210,190,140),(bx2,by2),4)
+            elif wp_type == "pass":
+                # Diamond pass symbol
+                sz_p=20
+                pygame.draw.polygon(surf,(210,190,140),
+                    [(wx2,wy2-sz_p),(wx2+sz_p,wy2),(wx2,wy2+sz_p),(wx2-sz_p,wy2)])
+                pygame.draw.polygon(surf,(80,58,24),
+                    [(wx2,wy2-sz_p),(wx2+sz_p,wy2),(wx2,wy2+sz_p),(wx2-sz_p,wy2)],2)
+            elif wp_type == "dead_end":
+                # X mark
+                pygame.draw.line(surf,(140,60,60),(wx2-18,wy2-18),(wx2+18,wy2+18),4)
+                pygame.draw.line(surf,(140,60,60),(wx2+18,wy2-18),(wx2-18,wy2+18),4)
+            else:
+                # Circle camp marker
+                pygame.draw.circle(surf,(210,190,140),(wx2,wy2),18)
+                pygame.draw.circle(surf,(80,58,24),(wx2,wy2),18,3)
+                pygame.draw.circle(surf,(80,58,24),(wx2,wy2),6)
+
+            # Generic name label below marker (revealed or not)
+            try:
+                fl_w = pygame.font.SysFont("Georgia",16,italic=True)
+                generic = WP_GENERIC.get(wp_type,"Settlement")
+                ts_g = fl_w.render(generic,True,(100,78,40))
+                surf.blit(ts_g,ts_g.get_rect(centerx=wx2,top=wy2+26))
+            except: pass
+
+        # ── Cartouche bottom-left ─────────────────────────────────────────────
+        cart_x2=20; cart_y2=self.CANVAS_H-150; cart_w2=340; cart_h2=120
+        pygame.draw.rect(surf,(200,180,120),(cart_x2,cart_y2,cart_w2,cart_h2))
+        pygame.draw.rect(surf,(60,44,16),(cart_x2,cart_y2,cart_w2,cart_h2),4)
+        pygame.draw.rect(surf,(80,60,20),(cart_x2+6,cart_y2+6,cart_w2-12,cart_h2-12),2)
+        try:
+            fc_t = pygame.font.SysFont("Georgia",13,italic=True)
+            fc_b = pygame.font.SysFont("Georgia",18,bold=True)
+            for cy2_off,txt2,fn2 in [
+                (16,"MAP of the",fc_t),(36,"LOUISIANA TERRITORY",fc_b),
+                (58,"Explored by Capts LEWIS & CLARK",fc_t),
+                (76,"By order of President Jefferson",fc_t),
+                (96,"Anno Domini MDCCCIV",fc_t),
+            ]:
+                col2 = (40,28,8) if fn2==fc_b else (70,52,18)
+                ts2 = fn2.render(txt2,True,col2)
+                surf.blit(ts2,ts2.get_rect(centerx=cart_x2+cart_w2//2,top=cart_y2+cy2_off))
+        except: pass
+
+        self._canvas = surf
+        self._canvas_dirty = False
+        return surf
+
+    # ── particles ─────────────────────────────────────────────────────────────
+    def _tick_particles(self, sx, sy):
+        if random.random() < 0.35:
+            ang = random.uniform(0,math.pi*2); spd=random.uniform(0.4,1.4)
+            self._particles.append([sx,sy,math.cos(ang)*spd,math.sin(ang)*spd-1.4,
+                                    random.uniform(0.6,1.0),random.uniform(1.5,3.5)])
+        alive=[]
         for p in self._particles:
-            p[0] += p[2]; p[1] += p[3]; p[4] -= 0.018
-            p[3] -= 0.04   # gravity up
-            if p[4] > 0: alive.append(p)
-        self._particles = alive
+            p[0]+=p[2];p[1]+=p[3];p[4]-=0.018;p[3]-=0.04
+            if p[4]>0: alive.append(p)
+        self._particles=alive
 
-    def _draw_particles(self, surf):
+    def _draw_particles(self,surf):
         for p in self._particles:
-            t = p[4]
-            r = min(255, int(200 + t*55))
-            g = min(255, int(t * 180))
-            b = min(255, int(t * 40))
-            sz = max(1, int(p[5] * t))
-            pygame.draw.circle(surf, (r, g, b), (int(p[0]), int(p[1])), sz)
+            t=p[4]
+            pygame.draw.circle(surf,(min(255,int(200+t*55)),min(255,int(t*180)),min(255,int(t*40))),
+                               (int(p[0]),int(p[1])),max(1,int(p[5]*t)))
 
-    # ── map drawing ───────────────────────────────────────────────────────────
+    # ── main draw ─────────────────────────────────────────────────────────────
     def draw(self, surf, state):
-        R   = self.MAP_RECT
-        z   = self.zoom
-        s   = state
-        W, H= R.w, R.h
+        R  = self.MAP_RECT
+        z  = self.zoom
+        s  = state
         self.frame += 1
 
-        # Clip all drawing to map rect
+        # Rebuild canvas if trail changed (first move)
+        if self._canvas is None or self._canvas_dirty:
+            self._build_canvas(state)
+
         clip_save = surf.get_clip()
         surf.set_clip(R)
 
-        # Local map colour aliases matching tkinter exactly
-        PARCH_BASE  = (232, 216, 168)
-        PARCH_DARK  = (200, 176, 120)
-        PARCH_EDGE  = (168, 144,  88)
-        INK_C       = ( 58,  40,   8)
-        INK_LIGHT   = (106,  72,  32)
-        INK_FAINT   = (154, 120,  72)
-        WATER_WASH  = (184, 204, 216)
-        WATER_DEEP  = (136, 152, 168)
-        LAND_WASH   = (200, 176, 120)
-        LAND_HATCH  = (168, 152,  88)
-        MTN_INK     = ( 90,  56,  24)
-        RIVER_INK   = (104, 136, 168)
-        PATH_INK    = (136,  48,  16)
-        RED_INK_C   = (138,  32,  16)
+        # ── Blit zoomed canvas window ─────────────────────────────────────────
+        # Calculate which portion of the canvas is visible
+        vis_w = int(R.w / z)
+        vis_h = int(R.h / z)
+        # Clamp pan
+        self.pan_x = max(0, min(self.CANVAS_W - vis_w, self.pan_x))
+        self.pan_y = max(0, min(self.CANVAS_H - vis_h, self.pan_y))
 
-        def lw(base): return max(1, int(base * z))
-
-        # ── 1. Water fill ─────────────────────────────────────────────────────
-        surf.fill(WATER_WASH, R)
-
-        # Water texture — horizontal dashed lines
-        rng = random.Random(7)
-        for wi in range(0, H, 6):
-            dc = (max(0, WATER_WASH[i]-12) for i in range(3))
-            pygame.draw.line(surf, WATER_DEEP, (R.x, R.y+wi), (R.x+W, R.y+wi), 1)
-
-        # ── 2. Parchment base ─────────────────────────────────────────────────
-        # Re-fill parchment on top so water shows only outside territory polys
-        surf.fill(PARCH_BASE, R)
-
-        # Diagonal cross-hatch texture (linen)
-        hatch = (max(0, PARCH_BASE[i]-18) for i in range(3))
-        HATCH_COL = (PARCH_BASE[0]-14, PARCH_BASE[1]-14, PARCH_BASE[2]-10)
-        for i in range(0, W+H, 18):
-            pygame.draw.line(surf, HATCH_COL,
-                             (R.x+i, R.y), (R.x+max(0,i-H), R.y+min(H,i)), 1)
-        for i in range(-H, W, 18):
-            pygame.draw.line(surf, HATCH_COL,
-                             (R.x+max(0,i), R.y), (R.x+min(W,i+H), R.y+H), 1)
-
-        # ── 3. Lat/lon grid ───────────────────────────────────────────────────
-        GRID_COL = (INK_FAINT[0], INK_FAINT[1], INK_FAINT[2])
-        step_x = max(20, W//10); step_y = max(20, H//8)
-        for gx in range(0, W, step_x):
-            for dy4 in range(0, H, 8):
-                surf.set_at((R.x+gx, R.y+dy4), GRID_COL)
-        for gy5 in range(0, H, step_y):
-            for dx4 in range(0, W, 8):
-                surf.set_at((R.x+dx4, R.y+gy5), GRID_COL)
-
-        # ── 4. Territory land polygons ────────────────────────────────────────
-        TERR_WASHES = {
-            "Illinois": (212,200,136), "Missouri": (204,192,128),
-            "Iowa":     (200,188,120), "Nebraska": (196,184,112),
-            "Kansas":   (192,180,104), "Dakota":   (188,176, 96),
-            "Montana":  (184,172, 88), "Idaho":    (180,168, 80),
-            "Oregon":   (176,164, 72), "Washington":(180,168, 80),
-        }
-        for terr in TERRITORIES:
-            poly = terr["poly"]
-            pts  = [self.ws(poly[i], poly[i+1]) for i in range(0, len(poly), 2)]
-            if len(pts) >= 3:
-                wash = TERR_WASHES.get(terr["name"], LAND_WASH)
-                pygame.draw.polygon(surf, wash, pts)
-                pygame.draw.polygon(surf, INK_LIGHT, pts, lw(1))
-                # Alternate hatching
-                if TERRITORIES.index(terr) % 2 == 0:
-                    pygame.draw.polygon(surf, LAND_HATCH, pts, 1)
-
-            # Territory name label
-            if z >= 0.7:
-                lx, ly = self.ws(terr["label_x"], terr["label_y"])
-                fsz = max(6, int(8*z))
-                try:
-                    f_lbl = pygame.font.SysFont("Georgia", fsz, italic=True)
-                    tname = terr["name"].upper()
-                    ts_sh = f_lbl.render(tname, True, PARCH_BASE)
-                    surf.blit(ts_sh, ts_sh.get_rect(center=(lx+1, ly+1)))
-                    ts_lbl = f_lbl.render(tname, True, INK_LIGHT)
-                    surf.blit(ts_lbl, ts_lbl.get_rect(center=(lx, ly)))
-                except: pass
-
-        # ── 5. Rocky Mountains hachure ────────────────────────────────────────
-        ridge = [
-            (0.13,0.48),(0.14,0.40),(0.15,0.34),(0.16,0.28),(0.17,0.22),
-            (0.18,0.26),(0.19,0.20),(0.20,0.24),(0.21,0.17),(0.22,0.21),
-            (0.23,0.26),(0.24,0.30),(0.25,0.36),(0.26,0.42),(0.26,0.50),
-        ]
-        for mx6, my6 in ridge[::2]:
-            sx6, sy6 = self.ws(mx6, my6)
-            sz6 = max(6, int(10*z))
-            # Back shadow mountain
-            pts_b = [(sx6-sz6+3, sy6+sz6//2+3),
-                     (sx6+sz6//3+3, sy6-sz6//3+3),
-                     (sx6+sz6+5, sy6+sz6//2+3)]
-            pygame.draw.polygon(surf, PARCH_EDGE, pts_b)
-            # Main mountain symbol
-            pts_m = [(sx6-sz6, sy6+sz6//2), (sx6, sy6-sz6), (sx6+sz6, sy6+sz6//2)]
-            pygame.draw.polygon(surf, PARCH_BASE, pts_m)
-            pygame.draw.polygon(surf, MTN_INK, pts_m, lw(1))
-            # Secondary peak
-            pts_s = [(sx6-sz6//2, sy6+sz6//2), (sx6+sz6//3, sy6-sz6//3),
-                     (sx6+int(sz6*1.2), sy6+sz6//2)]
-            pygame.draw.polygon(surf, PARCH_BASE, pts_s)
-            pygame.draw.polygon(surf, MTN_INK, pts_s, 1)
-            # Snow cap
-            pygame.draw.circle(surf, PARCH_BASE, (sx6, sy6-sz6), 3)
-            pygame.draw.circle(surf, MTN_INK, (sx6, sy6-sz6), 3, 1)
-
-        if z >= 0.8:
-            rx6, ry6 = self.ws(0.20, 0.38)
-            fsz2 = max(5, int(7*z))
+        src_rect = pygame.Rect(int(self.pan_x), int(self.pan_y), vis_w, vis_h)
+        # Scale the visible portion to screen size
+        if vis_w > 0 and vis_h > 0:
             try:
-                fm = pygame.font.SysFont("Georgia", fsz2, italic=True)
-                ts_sh = fm.render("ROCKY MOUNTAINS", True, PARCH_BASE)
-                surf.blit(ts_sh, ts_sh.get_rect(center=(rx6+1, ry6+1)))
-                ts_lbl = fm.render("ROCKY MOUNTAINS", True, MTN_INK)
-                surf.blit(ts_lbl, ts_lbl.get_rect(center=(rx6, ry6)))
-            except: pass
+                sub = self._canvas.subsurface(
+                    src_rect.clip(pygame.Rect(0,0,self.CANVAS_W,self.CANVAS_H)))
+                scaled = pygame.transform.scale(sub, (R.w, R.h))
+                surf.blit(scaled, R.topleft)
+            except Exception as _blit_e:
+                surf.fill((80,70,50), R)
+                print('MapView blit error:', _blit_e)
 
-        # ── 6. Pacific NW forest symbols ──────────────────────────────────────
-        for tx7, ty7 in [(0.07,0.25),(0.09,0.28),(0.11,0.26),(0.06,0.30),(0.08,0.32)]:
-            sx7, sy7 = self.ws(tx7, ty7)
-            sz7 = max(4, int(7*z))
-            pygame.draw.line(surf, INK_LIGHT, (sx7, sy7), (sx7, sy7+int(sz7*1.4)), lw(1))
-            pts_t = [(sx7-sz7, sy7), (sx7, sy7-int(sz7*1.6)), (sx7+sz7, sy7)]
-            pygame.draw.polygon(surf, LAND_WASH, pts_t)
-            pygame.draw.polygon(surf, INK_LIGHT, pts_t, lw(1))
+        # ── Dynamic overlay — drawn every frame on screen coords ──────────────
+        visited_set = set(tuple(h) for h in s.visited_hexes)
+        cur_hex     = (s.hex_col, s.hex_row)
+        neighbours  = set(hex_neighbours(s.hex_col, s.hex_row))
+        pulse       = abs(math.sin(self.frame * 0.07))
+        r_sc        = self.hex_radius_screen()
 
-        # ── 7. Missouri River — double blue ink line ───────────────────────────
-        rp = [self.ws(wp["x"], wp["y"]) for wp in WAYPOINTS]
-        rw = max(2, int(4*z))
-        if len(rp) >= 2:
-            pygame.draw.lines(surf, WATER_WASH,  False, rp, rw+6)
-            pygame.draw.lines(surf, RIVER_INK,   False, rp, rw+2)
-            pygame.draw.lines(surf, WATER_DEEP,  False, rp, max(1,rw-2))
+        for row in range(HEX_ROWS):
+            for col in range(HEX_COLS):
+                sx9, sy9 = self.hex_screen_pos(col, row)
+                if not R.inflate(r_sc*4,r_sc*4).collidepoint(sx9,sy9): continue
 
-        if z >= 0.8:
-            mid = WAYPOINTS[len(WAYPOINTS)//2]
-            rlx7, rly7 = self.ws(mid["x"]-0.04, mid["y"]-0.04)
-            fsz3 = max(6, int(8*z))
-            try:
-                fr = pygame.font.SysFont("Georgia", fsz3, italic=True)
-                ts_sh = fr.render("Missouri R.", True, PARCH_BASE)
-                surf.blit(ts_sh, (rlx7+1, rly7+1))
-                ts_r = fr.render("Missouri R.", True, RIVER_INK)
-                surf.blit(ts_r, (rlx7, rly7))
-            except: pass
+                hkey = (col,row)
+                is_cur      = hkey == cur_hex
+                is_visited  = hkey in visited_set
+                is_reachable= hkey in neighbours and not s.game_over
+                is_hover    = hkey == self.hover_hex
+                pts_sc      = [self.canvas_to_screen(*p)
+                               for p in self.hex_poly_abs(col,row)]
+                pts_inner_sc= [self.canvas_to_screen(*p)
+                               for p in self.hex_poly_abs(col,row,shrink=4)]
 
-        # ── 8. Expedition route — red ink dashed ──────────────────────────────
-        pw = max(2, int(3*z))
-        for i in range(s.current_wp):
-            p1 = self.ws(WAYPOINTS[i]["x"],   WAYPOINTS[i]["y"])
-            p2 = self.ws(WAYPOINTS[i+1]["x"], WAYPOINTS[i+1]["y"])
-            pygame.draw.line(surf, PATH_INK, p1, p2, pw+1)
-            # Dashes
-            dx8 = p2[0]-p1[0]; dy8 = p2[1]-p1[1]
-            dist8 = max(1, int(math.hypot(dx8, dy8)))
-            dash_on = max(4, int(6*z)); dash_off = max(3, int(4*z))
-            d = 0; on = True
-            while d < dist8:
-                chunk = dash_on if on else dash_off
-                if on:
-                    ex8 = p1[0]+int(dx8*(d+chunk)/dist8)
-                    ey8 = p1[1]+int(dy8*(d+chunk)/dist8)
-                    bx8 = p1[0]+int(dx8*d/dist8)
-                    by8 = p1[1]+int(dy8*d/dist8)
-                    pygame.draw.line(surf, PARCH_BASE, (bx8,by8), (ex8,ey8), 1)
-                d += chunk; on = not on
+                if is_cur:
+                    # Solid amber hex fill
+                    hs = pygame.Surface((r_sc*4+4,r_sc*4+4),pygame.SRCALPHA)
+                    local_pts=[(p[0]-sx9+r_sc*2+2,p[1]-sy9+r_sc*2+2) for p in pts_sc]
+                    pygame.draw.polygon(hs,(220,155,20,200),local_pts)
+                    surf.blit(hs,(sx9-r_sc*2-2,sy9-r_sc*2-2))
+                    # Thick bright border
+                    pygame.draw.polygon(surf,(255,200,40),pts_sc,max(3,int(4*z)))
+                    # Multiple pulsing rings
+                    for ring_r_off,ring_w,ring_col in [
+                        (int(8+pulse*8),  2, (220,80,20)),
+                        (int(16+pulse*6), 2, (220,120,20)),
+                        (int(24+pulse*4), 1, (180,100,20)),
+                    ]:
+                        pygame.draw.circle(surf,ring_col,(sx9,sy9),r_sc+ring_r_off,ring_w)
+                    # Bold crosshair lines
+                    ch_len = r_sc+18
+                    for dx_c,dy_c in [(ch_len,0),(-ch_len,0),(0,ch_len),(0,-ch_len)]:
+                        pygame.draw.line(surf,(220,80,20),(sx9,sy9),(sx9+dx_c,sy9+dy_c),3)
+                    # Central dot
+                    pygame.draw.circle(surf,(255,255,200),(sx9,sy9),max(4,int(6*z)))
+                    pygame.draw.circle(surf,(180,60,10),(sx9,sy9),max(4,int(6*z)),1)
+                    self._tick_particles(sx9,sy9)
 
-        # ── 9. Waypoints — cartographic markers ───────────────────────────────
-        pulse = abs(math.sin(self.frame * 0.06))
-        for i, wp in enumerate(WAYPOINTS):
-            sx9, sy9 = self.ws(wp["x"], wp["y"])
-            if not R.collidepoint(sx9, sy9): continue
-            sz9 = max(5, int(8*z))
-            is_cur = i == s.current_wp
-            is_vis = i <  s.current_wp
-            is_hov = i == self.hover_wp
+                elif is_reachable:
+                    # Gold highlight on reachable hexes
+                    hs = pygame.Surface((r_sc*4,r_sc*4),pygame.SRCALPHA)
+                    local_pts=[(p[0]-sx9+r_sc*2,p[1]-sy9+r_sc*2) for p in pts_sc]
+                    a_val = 120 if is_hover else 60
+                    c_val = (220,180,40,a_val) if is_hover else (180,150,30,a_val)
+                    pygame.draw.polygon(hs,c_val,local_pts)
+                    surf.blit(hs,(sx9-r_sc*2,sy9-r_sc*2))
+                    border_col = (240,200,60) if is_hover else (160,128,40)
+                    pygame.draw.polygon(surf,border_col,pts_sc,
+                                        max(2,int(3*z)) if is_hover else max(1,int(2*z)))
 
-            if is_cur:
-                pr = int(sz9 + 4 + pulse*5)
-                pygame.draw.circle(surf, PARCH_BASE, (sx9,sy9), pr)
-                pygame.draw.circle(surf, RED_INK_C,  (sx9,sy9), pr, 2)
-                pygame.draw.circle(surf, RED_INK_C,  (sx9,sy9), sz9)
-                pygame.draw.line(surf, RED_INK_C, (sx9-sz9-6,sy9),(sx9+sz9+6,sy9), 2)
-                pygame.draw.line(surf, RED_INK_C, (sx9,sy9-sz9-6),(sx9,sy9+sz9+6), 2)
-                # Particle emitter at current position
-                self._tick_particles(sx9, sy9)
-            elif is_vis:
-                pygame.draw.circle(surf, INK_C, (sx9,sy9), sz9-1)
-            else:
-                col9 = INK_C if is_hov else INK_FAINT
-                pygame.draw.circle(surf, PARCH_BASE, (sx9,sy9), sz9-1)
-                pygame.draw.circle(surf, col9, (sx9,sy9), sz9-1, lw(1))
+                    # Hover tooltip
+                    if is_hover:
+                        terr  = hex_terrain(col,row)
+                        tdata = TERRAIN_DATA[terr]
+                        content = HEX_CONTENTS.get(hkey)
+                        parts=[]
+                        if tdata["food"]:   parts.append(f"food {tdata['food']:+d}")
+                        if tdata["health"]: parts.append(f"hp {tdata['health']:+d}")
+                        if tdata["morale"]: parts.append(f"mor {tdata['morale']:+d}")
+                        parts.append(f"{tdata['days']}d")
+                        tip_lines=[tdata["label"], "  ".join(parts)]
+                        if content and content["type"]!="waypoint":
+                            tip_lines.append(f"↳ {content.get('name','?')[:28]}")
+                        try:
+                            ft=pygame.font.SysFont("Georgia",max(9,int(10*z)))
+                            tw=max(ft.size(l)[0] for l in tip_lines)+16
+                            th=len(tip_lines)*15+10
+                            tip_r=pygame.Rect(sx9-tw//2,sy9-r_sc-th-6,tw,th)
+                            tip_r.x=max(R.x+2,min(R.right-tw-2,tip_r.x))
+                            tip_r.y=max(R.y+2,tip_r.y)
+                            pygame.draw.rect(surf,(200,180,120),tip_r,border_radius=3)
+                            pygame.draw.rect(surf,(120,90,30),tip_r,1,border_radius=3)
+                            for ti2,tl2 in enumerate(tip_lines):
+                                col_t2=(58,40,8) if ti2==0 else (100,72,32)
+                                ts_t2=ft.render(tl2,True,col_t2)
+                                surf.blit(ts_t2,(tip_r.x+7,tip_r.y+5+ti2*15))
+                        except: pass
 
-            # Labels
-            ly9 = sy9 - int(14*z) if sy9 > R.y+50 else sy9 + int(16*z)
-            fsz4 = max(6, int(7*z))
-            fsz4b = max(6, int(6*z))
-            if is_hov or is_cur or z >= 1.8:
-                lw9 = max(55, len(wp["name"])*max(4,int(5*z))+10)
-                box9 = pygame.Rect(sx9-lw9//2, ly9-9, lw9, 16)
-                pygame.draw.rect(surf, PARCH_BASE, box9)
-                pygame.draw.rect(surf, RED_INK_C if is_cur else INK_LIGHT, box9, 1)
+                elif is_visited:
+                    # Faint ink border on visited
+                    pygame.draw.polygon(surf,(100,80,40),pts_sc,max(1,int(1.5*z)))
+
+                # Content markers on visited hexes (drawn dynamically in case used)
+                if is_visited or is_cur:
+                    content=HEX_CONTENTS.get(hkey)
+                    if content:
+                        ctype=content["type"]
+                        if ctype=="tribe":
+                            pygame.draw.circle(surf,(60,140,80),(sx9,sy9),max(4,int(7*z)))
+                            pygame.draw.circle(surf,(30,90,50),(sx9,sy9),max(4,int(7*z)),1)
+                        elif ctype=="resource":
+                            already=any(tuple(u)==(col,row) for u in s.used_resources)
+                            if not already:
+                                pygame.draw.circle(surf,(200,160,30),(sx9,sy9),max(3,int(5*z)))
+                        elif ctype=="rumour":
+                            pygame.draw.circle(surf,(160,100,160),(sx9,sy9),max(3,int(4*z)))
+
+        # ── Waypoint markers — dynamic overlay (show revealed names etc.) ─────
+        for i,wp in enumerate(WAYPOINTS):
+            wc,wr = WP_HEX[i]
+            sx9,sy9 = self.hex_screen_pos(wc,wr)
+            if not R.collidepoint(sx9,sy9): continue
+            sz9 = max(8,int(22*z))
+            is_cur_wp  = i==s.current_wp
+            is_vis_wp  = i<s.current_wp or tuple(WP_HEX[i]) in visited_set
+            is_hov_wp  = (wc,wr)==self.hover_hex
+            wp_type    = wp.get("type","camp")
+            is_dead    = wp_type=="dead_end" and wp["revealed"]
+
+            # Pulsing ring for current
+            if is_cur_wp:
+                pr2=int(sz9+5+pulse*7)
+                pygame.draw.circle(surf,(200,60,20),(sx9,sy9),pr2,3)
+            elif is_hov_wp and is_vis_wp:
+                pygame.draw.circle(surf,(220,180,40),(sx9,sy9),sz9+4,2)
+
+            # Name label — revealed or generic
+            show_lbl = is_hov_wp or is_cur_wp or is_vis_wp or z>=0.4
+            if show_lbl:
+                disp = wp_display_name(i, s.visited_hexes)
                 try:
-                    fb = pygame.font.SysFont("Georgia", fsz4, bold=True)
-                    tl = fb.render(wp["name"], True, INK_C)
-                    surf.blit(tl, tl.get_rect(center=(sx9, ly9)))
-                except: pass
-                if z >= 1.4 or is_cur:
-                    try:
-                        fi2 = pygame.font.SysFont("Georgia", fsz4b, italic=True)
-                        td = fi2.render(wp["desc"][:28], True, INK_FAINT)
-                        surf.blit(td, td.get_rect(centerx=sx9, top=ly9+8))
-                    except: pass
-            elif z >= 0.7:
-                try:
-                    fn2 = pygame.font.SysFont("Georgia", fsz4)
-                    col9b = INK_C if is_vis else INK_FAINT
-                    ts_sh = fn2.render(wp["name"], True, PARCH_BASE)
-                    surf.blit(ts_sh, ts_sh.get_rect(center=(sx9+1, ly9+1)))
-                    ts_lbl = fn2.render(wp["name"], True, col9b)
-                    surf.blit(ts_lbl, ts_lbl.get_rect(center=(sx9, ly9)))
+                    fw = pygame.font.SysFont("Georgia",max(8,int(12*z)),bold=is_cur_wp)
+                    lbl_col=(180,40,20) if is_cur_wp else ((120,40,40) if is_dead else (58,40,8))
+                    box_w=fw.size(disp)[0]+14
+                    lbl_y=sy9-sz9-20 if sy9>R.y+50 else sy9+sz9+6
+                    box_r=pygame.Rect(sx9-box_w//2,lbl_y-4,box_w,fw.get_height()+8)
+                    pygame.draw.rect(surf,(230,215,170),box_r,border_radius=3)
+                    border_c=(180,40,20) if is_cur_wp else ((100,30,30) if is_dead else (100,75,30))
+                    pygame.draw.rect(surf,border_c,box_r,1,border_radius=3)
+                    ts_lbl=fw.render(disp,True,lbl_col)
+                    surf.blit(ts_lbl,ts_lbl.get_rect(center=(sx9,lbl_y+fw.get_height()//2+2)))
                 except: pass
 
-        # ── 10. Particles ─────────────────────────────────────────────────────
+        # ── Particles ─────────────────────────────────────────────────────────
         self._draw_particles(surf)
 
-        # ── 11. Compass rose ──────────────────────────────────────────────────
-        cr = max(32, int(44*min(z,1.5)))
-        cx9 = R.right - cr - 14
-        cy9 = R.bottom - cr - 14
-        pygame.draw.circle(surf, PARCH_BASE,  (cx9,cy9), cr+4)
-        pygame.draw.circle(surf, INK_LIGHT,   (cx9,cy9), cr+4, 2)
-        pygame.draw.circle(surf, PARCH_DARK,  (cx9,cy9), cr)
+        # ── Compass rose (screen-space, bottom right) ─────────────────────────
+        cr=42; crx=R.right-cr-12; cry=R.bottom-cr-12
+        pygame.draw.circle(surf,(220,205,160),(crx,cry),cr+4)
+        pygame.draw.circle(surf,(100,78,32),(crx,cry),cr+4,2)
+        pygame.draw.circle(surf,(196,178,128),(crx,cry),cr)
         for pt9 in range(16):
-            ang9 = math.radians(pt9*22.5)
-            length9 = (cr-4) if pt9%4==0 else ((cr-8) if pt9%2==0 else cr-14)
-            ex9 = cx9+int(math.sin(ang9)*length9)
-            ey9 = cy9-int(math.cos(ang9)*length9)
-            pygame.draw.line(surf, INK_C, (cx9,cy9), (ex9,ey9), 2 if pt9%4==0 else 1)
-        for lb9, ag9 in [("N",0),("E",90),("S",180),("W",270)]:
-            lx9 = cx9+int(math.sin(math.radians(ag9))*(cr-10))
-            ly9b = cy9-int(math.cos(math.radians(ag9))*(cr-10))
+            ang9=math.radians(pt9*22.5)
+            ln=(cr-3) if pt9%4==0 else ((cr-7) if pt9%2==0 else cr-13)
+            pygame.draw.line(surf,(58,40,8),(crx,cry),(crx+int(math.sin(ang9)*ln),cry-int(math.cos(ang9)*ln)),
+                             2 if pt9%4==0 else 1)
+        for lb9,ag9 in [("N",0),("E",90),("S",180),("W",270)]:
+            lxc=crx+int(math.sin(math.radians(ag9))*(cr-10))
+            lyc=cry-int(math.cos(math.radians(ag9))*(cr-10))
             try:
-                fc9 = pygame.font.SysFont("Georgia", max(7,int(9*z)), bold=True)
-                tsh9 = fc9.render(lb9, True, PARCH_BASE)
-                surf.blit(tsh9, tsh9.get_rect(center=(lx9+1, ly9b+1)))
-                tc9 = fc9.render(lb9, True, RED_INK_C if lb9=="N" else INK_C)
-                surf.blit(tc9, tc9.get_rect(center=(lx9, ly9b)))
+                fc9=pygame.font.SysFont("Georgia",10,bold=True)
+                surf.blit(fc9.render(lb9,True,(200,60,20) if lb9=="N" else (58,40,8)),
+                          fc9.render(lb9,True,(200,60,20) if lb9=="N" else (58,40,8)).get_rect(center=(lxc,lyc)))
             except: pass
-        pygame.draw.circle(surf, INK_C, (cx9,cy9), 3)
+        pygame.draw.circle(surf,(58,40,8),(crx,cry),3)
 
-        # ── 12. Legend box ────────────────────────────────────────────────────
-        leg_x = R.x+6; leg_y = R.y+6; leg_w = 160; leg_h = 80
-        pygame.draw.rect(surf, PARCH_DARK,  (leg_x,leg_y,leg_w,leg_h))
-        pygame.draw.rect(surf, INK_C,       (leg_x,leg_y,leg_w,leg_h), 2)
-        pygame.draw.rect(surf, INK_LIGHT,   (leg_x+3,leg_y+3,leg_w-6,leg_h-6), 1)
+        # ── Zoom badge ────────────────────────────────────────────────────────
         try:
-            fl = pygame.font.SysFont("Georgia", max(6,int(7*z)), bold=True, italic=True)
-            tl2 = fl.render("REFERENCES", True, INK_C)
-            surf.blit(tl2, tl2.get_rect(centerx=leg_x+leg_w//2, top=leg_y+4))
+            fz=pygame.font.SysFont("Georgia",9)
+            tz=fz.render(f"×{z:.2f}  pan({int(self.pan_x)},{int(self.pan_y)})",True,(154,120,72))
+            surf.blit(tz,(R.x+4,R.bottom-16))
         except: pass
-        try:
-            fe = pygame.font.SysFont("Georgia", max(6,int(7*z)))
-            for dy9, fill9, txt9 in [
-                (22, RED_INK_C,  "Present Camp"),
-                (36, INK_C,      "Camp Visited"),
-                (50, INK_FAINT,  "Camp Ahead"),
-                (64, PATH_INK,   "Route of Expedition"),
-            ]:
-                if txt9 == "Route of Expedition":
-                    pygame.draw.line(surf, PATH_INK,
-                                     (leg_x+10, leg_y+dy9), (leg_x+26, leg_y+dy9), 2)
-                else:
-                    pygame.draw.circle(surf, fill9, (leg_x+18, leg_y+dy9), 5)
-                    pygame.draw.circle(surf, INK_C,  (leg_x+18, leg_y+dy9), 5, 1)
-                tleg = fe.render(txt9, True, INK_C)
-                surf.blit(tleg, (leg_x+30, leg_y+dy9-6))
-        except: pass
-
-        # ── 13. Scale bar ─────────────────────────────────────────────────────
-        sc_x = R.x + W//2-60; sc_y = R.y+H-18
-        pygame.draw.line(surf, INK_C, (sc_x,sc_y), (sc_x+120,sc_y), 2)
-        pygame.draw.line(surf, INK_C, (sc_x,sc_y-5), (sc_x,sc_y+5), 2)
-        pygame.draw.line(surf, INK_C, (sc_x+60,sc_y-3), (sc_x+60,sc_y+3), 1)
-        pygame.draw.line(surf, INK_C, (sc_x+120,sc_y-5), (sc_x+120,sc_y+5), 2)
-        try:
-            fs = pygame.font.SysFont("Georgia", max(5,int(6*z)), italic=True)
-            ts2 = fs.render("SCALE OF MILES", True, INK_FAINT)
-            surf.blit(ts2, ts2.get_rect(centerx=sc_x+60, bottom=sc_y-2))
-            t0 = fs.render("0",   True, INK_FAINT)
-            t5 = fs.render("500", True, INK_FAINT)
-            surf.blit(t0, t0.get_rect(centerx=sc_x, top=sc_y+3))
-            surf.blit(t5, t5.get_rect(centerx=sc_x+120, top=sc_y+3))
-        except: pass
-
-        # ── 14. Cartouche box ─────────────────────────────────────────────────
-        cart_x = R.x+6; cart_y = R.y+H-88; cart_w = 186; cart_h = 76
-        pygame.draw.rect(surf, PARCH_DARK, (cart_x,cart_y,cart_w,cart_h))
-        pygame.draw.rect(surf, INK_C,      (cart_x,cart_y,cart_w,cart_h), 2)
-        pygame.draw.rect(surf, INK_LIGHT,  (cart_x+4,cart_y+4,cart_w-8,cart_h-8), 1)
-        for ccx, ccy, ddx, ddy in [
-            (cart_x+4,cart_y+4,8,0),(cart_x+4,cart_y+4,0,8),
-            (cart_x+cart_w-4,cart_y+4,-8,0),(cart_x+cart_w-4,cart_y+4,0,8),
-            (cart_x+4,cart_y+cart_h-4,8,0),(cart_x+4,cart_y+cart_h-4,0,-8),
-            (cart_x+cart_w-4,cart_y+cart_h-4,-8,0),(cart_x+cart_w-4,cart_y+cart_h-4,0,-8),
-        ]:
-            pygame.draw.line(surf, INK_C, (ccx,ccy), (ccx+ddx,ccy+ddy), 2)
-        ccx9 = cart_x+cart_w//2
-        try:
-            for cy_off, txt_c, bold_c, col_c in [
-                (12, "MAP of the",                        False, INK_LIGHT),
-                (26, "LOUISIANA TERRITORY",               True,  INK_C),
-                (42, "Explored by Capts LEWIS & CLARK",   False, INK_FAINT),
-                (56, "By order of the President  MDCCCIV",False, INK_FAINT),
-                (70, f"Season: {s.season}   {s.date_str}", False, INK_LIGHT),
-            ]:
-                fsz_c = max(5,int(9*z)) if bold_c else max(5,int(6*z))
-                fc2 = pygame.font.SysFont("Georgia", fsz_c, bold=bold_c, italic=not bold_c)
-                tc2 = fc2.render(txt_c, True, col_c)
-                surf.blit(tc2, tc2.get_rect(centerx=ccx9, top=cart_y+cy_off))
-        except: pass
-
-        # ── 15. Vignette edges ────────────────────────────────────────────────
-        for vi in range(20):
-            t3 = vi/20; alpha = int(t3*t3*70)
-            r3 = max(0, PARCH_BASE[0]-alpha*2)
-            g3 = max(0, PARCH_BASE[1]-alpha*2)
-            b3 = max(0, PARCH_BASE[2]-alpha*3)
-            pygame.draw.rect(surf, (r3,g3,b3),
-                             (R.x+vi*4, R.y+vi*4, W-vi*8, H-vi*8), 4)
-
-        # ── 16. Zoom badge ────────────────────────────────────────────────────
-        if z != 1.0:
-            try:
-                fz = pygame.font.SysFont("Georgia", max(6,int(7*z)))
-                tz = fz.render(f"×{z:.1f}", True, INK_FAINT)
-                surf.blit(tz, tz.get_rect(topright=(R.right-6, R.y+4)))
-            except: pass
 
         surf.set_clip(clip_save)
-        pygame.draw.rect(surf, UI_BORDER, R, 2)
+        pygame.draw.rect(surf,UI_BORDER,R,2)
 
-    def handle(self, event, state, on_move):
-        R = self.MAP_RECT
+    # ── handle ────────────────────────────────────────────────────────────────
+    def handle(self, event, state, on_hex_click):
+        R    = self.MAP_RECT
         mpos = pygame.mouse.get_pos()
-        z = self.zoom
-        W, H = R.w, R.h
+        z    = self.zoom
 
         if event.type == pygame.MOUSEMOTION:
-            self.hover_wp = None
+            self.hover_hex=None; self.hover_wp=None
             if R.collidepoint(mpos):
-                for wp in WAYPOINTS:
-                    sx, sy = self.ws(wp["x"], wp["y"])
-                    r = max(12, int(12*z))
-                    if abs(mpos[0]-sx)<r and abs(mpos[1]-sy)<r:
-                        self.hover_wp = wp["id"]; break
+                hc=self.screen_hex(*mpos)
+                if hc and 0<=hc[0]<HEX_COLS and 0<=hc[1]<HEX_ROWS:
+                    self.hover_hex=hc
                 if self._drag_start:
-                    dx = (mpos[0]-self._drag_start[0]) / (z*W)
-                    dy = (mpos[1]-self._drag_start[1]) / (z*H)
-                    self.pan_x = self._drag_pan[0]+dx
-                    self.pan_y = self._drag_pan[1]+dy
+                    dx=(mpos[0]-self._drag_start[0])/z
+                    dy=(mpos[1]-self._drag_start[1])/z
+                    self.pan_x=max(0,self._drag_pan[0]-dx)
+                    self.pan_y=max(0,self._drag_pan[1]-dy)
 
-        if event.type == pygame.MOUSEBUTTONDOWN and R.collidepoint(mpos):
-            if event.button == 3:
-                self._drag_start = mpos
-                self._drag_pan   = (self.pan_x, self.pan_y)
-            elif event.button == 1:
-                # Click a waypoint → trigger movement
-                for wp in WAYPOINTS:
-                    sx, sy = self.ws(wp["x"], wp["y"])
-                    r = max(14, int(14*z))
-                    if abs(mpos[0]-sx)<r and abs(mpos[1]-sy)<r:
-                        on_move(wp["id"])
-                        return
+        if event.type==pygame.MOUSEBUTTONDOWN and R.collidepoint(mpos):
+            if event.button==3:
+                self._drag_start=mpos; self._drag_pan=(self.pan_x,self.pan_y)
+            elif event.button==1:
+                hc=self.screen_hex(*mpos)
+                if hc: on_hex_click(*hc)
 
-        if event.type == pygame.MOUSEBUTTONUP and event.button == 3:
-            self._drag_start = None
+        if event.type==pygame.MOUSEBUTTONUP and event.button==3:
+            self._drag_start=None
 
-        if event.type == pygame.MOUSEWHEEL and R.collidepoint(mpos):
-            factor = 1.25 if event.y > 0 else 0.8
-            wx0, wy0 = self.sw(*mpos)
-            self.zoom = max(0.5, min(4.0, self.zoom * factor))
-            # Re-anchor so mouse stays over same world point
-            nx = mpos[0] - R.x; ny = mpos[1] - R.y
-            self.pan_x = nx/(self.zoom*W) - wx0
-            self.pan_y = ny/(self.zoom*H) - wy0
+        if event.type==pygame.MOUSEWHEEL and R.collidepoint(mpos):
+            # Zoom toward mouse cursor
+            wx0,wy0=self.screen_to_canvas(*mpos)
+            factor=1.2 if event.y>0 else 1/1.2
+            self.zoom=max(0.12,min(3.0,z*factor))
+            # Re-anchor
+            sx_off=mpos[0]-R.x; sy_off=mpos[1]-R.y
+            self.pan_x=wx0-sx_off/self.zoom
+            self.pan_y=wy0-sy_off/self.zoom
 
-        # Zoom with +/- keys handled by GameScreen
-    def zoom_in(self):  self.zoom = min(4.0, self.zoom*1.25)
-    def zoom_out(self): self.zoom = max(0.5, self.zoom/1.25)
-    def zoom_reset(self): self.zoom=1.0; self.pan_x=0.0; self.pan_y=0.0
+    def zoom_in(self):  self.zoom=min(3.0,self.zoom*1.2)
+    def zoom_out(self): self.zoom=max(0.12,self.zoom/1.2)
+    def zoom_reset(self):
+        self.zoom=0.22
+        # Centre on starting hex
+        sx,sy=self.hex_center(27,12)
+        R=self.MAP_RECT
+        self.pan_x=max(0, sx - (R.w/self.zoom)/2)
+        self.pan_y=max(0, sy - (R.h/self.zoom)/2)
 
+    def invalidate(self):
+        """Call after trail/visited changes to rebuild canvas."""
+        self._canvas_dirty=True
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  CINEMATIC SCREEN
+    def centre_on_hex(self, col, row):
+        """Pan map so hex (col,row) is centred in the viewport."""
+        R = self.MAP_RECT
+        cx, cy = self.hex_center(col, row)
+        self.pan_x = max(0, cx - (R.w / self.zoom) / 2)
+        self.pan_y = max(0, cy - (R.h / self.zoom) / 2)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 class CinematicScreen:
     ART_W = int(SW * 0.60)
@@ -2768,9 +3129,12 @@ class GameScreen:
         self.on_menu  = on_menu
         self.map_view = MapView()
         self.mode     = "travel"   # travel | event | trade | inventory | end
-        self.pending_event  = None
-        self.pending_route_choices = []  # list of Button
-        self.action_btns    = []
+        self.pending_event      = None
+        self.pending_route_choices = []
+        self.action_btns        = []
+        self._last_hover_hex    = None
+        self._trade_tribe       = None
+        self._next_wp_hint      = ""
         self.scroll_panel   = ScrollPanel(
             pygame.Rect(self.PANEL_X+8, self.BTN_Y_EVENT-10, self.PANEL_W-16, 110))
         self.journal_panel  = ScrollPanel(
@@ -2778,6 +3142,8 @@ class GameScreen:
         self._build_travel_ui()
         self._update_journal()
         self._check_objectives()
+        # Centre map on starting hex
+        self.map_view.zoom_reset()
 
     # ── Journal ───────────────────────────────────────────────────────────────
     def _update_journal(self):
@@ -2802,49 +3168,133 @@ class GameScreen:
         self.journal_panel.set_lines(lines)
 
     # ── Travel actions UI ─────────────────────────────────────────────────────
-    def _build_travel_ui(self):
+    def _build_travel_ui(self, hover_hex=None):
         self.mode = "travel"
         self.action_btns = []
-        s = self.state; wp = s.current_wp
-        if wp >= len(WAYPOINTS)-1:
-            self._start_end_game(); return
-
-        routes = ROUTE_OPTIONS.get((wp, wp+1), [])
+        s = self.state
         PX = self.PANEL_X+8; BW = self.PANEL_W-16; by = self.BTN_Y_TRAVEL
 
-        RISK_COLS = {"low":GREEN2,"medium":GOLD,"high":AMBER,"very_high":RED2}
-        TAG_ICONS = {"river":"≈ ","land":"~ ","mountain":"▲ "}
-        for i, route in enumerate(routes):
-            rc = RISK_COLS.get(route["risk"],GOLD)
-            lbl = TAG_ICONS.get(route["tag"],"  ") + route["name"]
-            sub = f'{route["days"]}d  food{route["food"]:+d}  hp{route["health"]:+d}  moral{route["morale"]:+d}  [{route["risk"]}]'
-            btn = Button((PX, by+i*52, BW, 44), lbl,
-                         fill=UI_CARD, fill_h=darken(rc,0.4), text_col=PARCH,
-                         sub=sub)
-            btn._route = route
-            self.action_btns.append(btn)
+        if s.current_wp >= 9:
+            self._start_end_game(); return
 
-        by2 = by + len(routes)*52 + 8
-        # Hunt
-        hunt_sub = "Drouillard leads (+15 food)" if s.characters.get("drouillard",{}).get("active") else "3-4hrs · +8-18 food · risk injury"
-        b_hunt = Button((PX, by2, BW//2-2, 36), "Hunt",fill=darken(GREEN2,0.5),
-                        fill_h=GREEN2, text_col=PARCH, sub=hunt_sub)
+        TERR_COLS = {"plains":GOLD, "river":BLUE2, "mountain":AMBER,
+                     "forest":GREEN2, "coast":TEAL2}
+        TERR_ICONS = {"plains":"~ ", "river":"≈ ", "mountain":"▲ ",
+                      "forest":"♣ ", "coast":"≋ "}
+        RISK_COLS  = {"low":GREEN2, "medium":GOLD, "high":AMBER, "very_high":RED2}
+
+        # Section header
+        draw_text_lbl = "MOVE  ·  click hex on map or button"
+
+        # Build move buttons for every reachable adjacent hex
+        neighbours = hex_neighbours(s.hex_col, s.hex_row)
+
+        # Sort: waypoint hexes first, then by terrain cost
+        def sort_key(hk):
+            c, r = hk
+            wp_here = HEX_WP.get((c, r))
+            is_goal = (wp_here is not None and wp_here == s.current_wp + 1)
+            terr = hex_terrain(c, r)
+            cost = TERRAIN_DATA[terr]["food"] + abs(TERRAIN_DATA[terr]["health"])
+            return (0 if is_goal else 1, cost)
+
+        neighbours_sorted = sorted(neighbours, key=sort_key)
+
+        from_col, from_row = s.hex_col, s.hex_row
+        for (col, row) in neighbours_sorted:
+            terr   = hex_terrain(col, row)
+            tdata  = TERRAIN_DATA[terr]
+            content = HEX_CONTENTS.get((col, row))
+            tc     = TERR_COLS.get(terr, GOLD)
+            icon   = TERR_ICONS.get(terr, "· ")
+            is_hov = hover_hex == (col, row)
+
+            # Direction label
+            if from_row % 2 == 0:
+                dir_map = {(1,0):"E",(-1,0):"W",(0,-1):"N",(0,1):"S",(1,-1):"NE",(1,1):"SE"}
+            else:
+                dir_map = {(1,0):"E",(-1,0):"W",(0,-1):"N",(0,1):"S",(-1,-1):"NW",(-1,1):"SW"}
+            direction = dir_map.get((col - from_col, row - from_row), "?")
+
+            # Build label
+            wp_there = HEX_WP.get((col, row))
+            if wp_there is not None:
+                wp_name = WAYPOINTS[wp_there]["name"]
+                lbl = f"{direction}  {icon}{wp_name}"
+                tc  = RED2 if wp_there == s.current_wp+1 else GOLD
+            elif content and content["type"] != "waypoint":
+                lbl = f"{direction}  {icon}{content['name'][:24]}"
+            else:
+                lbl = f"{direction}  {icon}{tdata['label']}"
+
+            # Cost sub-label
+            parts = []
+            if tdata["food"]:   parts.append(f"food {tdata['food']:+d}")
+            if tdata["health"]: parts.append(f"hp {tdata['health']:+d}")
+            if tdata["morale"]: parts.append(f"mor {tdata['morale']:+d}")
+            parts.append(f"{tdata['days']}d")
+            sub = "  ".join(parts)
+
+            fill_col = tc if is_hov else darken(tc, 0.45)
+            btn = Button((PX, by, BW, 42), lbl,
+                         fill=fill_col, fill_h=tc,
+                         text_col=PARCH, text_h=INK,
+                         font=F["btn"], sub=sub)
+            btn._hex_move = (col, row)
+            btn.hovered   = is_hov
+            self.action_btns.append(btn)
+            by += 50
+
+        # Divider
+        by += 6
+
+        # Hunt / Camp
+        has_d = s.characters.get("drouillard", {}).get("active", False)
+        b_hunt = Button((PX, by, BW//2-2, 34), "Hunt",
+                        fill=darken(GREEN2,0.5), fill_h=GREEN2, text_col=PARCH,
+                        sub="Drouillard leads" if has_d else "+8–18 food")
         b_hunt._action = "hunt"; self.action_btns.append(b_hunt)
-        # Camp
-        b_camp = Button((PX+BW//2+2, by2, BW//2-2, 36), "Make Camp",
-                        fill=darken(BLUE2,0.5),fill_h=BLUE2,text_col=PARCH,
-                        sub="+10hp +8mor -10food · may trigger camp event")
+
+        b_camp = Button((PX+BW//2+2, by, BW//2-2, 34), "Make Camp",
+                        fill=darken(BLUE2,0.5), fill_h=BLUE2, text_col=PARCH,
+                        sub="+10hp +8mor -10food")
         b_camp._action = "camp"; self.action_btns.append(b_camp)
-        # Trade council if tribe present
-        tk_key = TRIBE_AT_WAYPOINT.get(wp)
-        if tk_key:
-            tribe = TRIBES[tk_key]; rel=s.tribe_relations.get(tk_key,50)
-            rt = "Friendly" if rel>=60 else "Neutral" if rel>=40 else "Tense"
-            b_trade = Button((PX, by2+42, BW, 34), f"Council — {tribe['name']} Nation",
-                             fill=darken(TEAL2,0.5),fill_h=TEAL2,text_col=PARCH,
+        by += 42
+
+        # Tribe council if standing on a tribe hex
+        cur_content = HEX_CONTENTS.get((s.hex_col, s.hex_row))
+        if cur_content and cur_content["type"] == "tribe":
+            tk_key = cur_content["tribe_key"]
+            tribe  = TRIBES[tk_key]
+            rel    = s.tribe_relations.get(tk_key, 50)
+            rt     = "Friendly" if rel>=60 else "Neutral" if rel>=40 else "Tense"
+            b_trade = Button((PX, by, BW, 34),
+                             f"Council — {tribe['name']} Nation",
+                             fill=darken(TEAL2,0.5), fill_h=TEAL2, text_col=PARCH,
                              sub=f"Relations: {rt} ({rel}/100)")
             b_trade._action = "trade"; b_trade._tribe = tk_key
             self.action_btns.append(b_trade)
+            by += 42
+
+        # Next waypoint hint
+        next_wp_id = s.current_wp + 1
+        if next_wp_id < 10:  # only historical route waypoints
+            nwp = WAYPOINTS[next_wp_id]
+            nwc, nwr = WP_HEX[next_wp_id]
+            # Simple hex distance
+            def cube_dist(c1,r1,c2,r2):
+                def to_cube(c,r):
+                    x=c-(r-(r&1))//2; z=r; return x,-x-z,z
+                x1,y1,z1=to_cube(c1,r1); x2,y2,z2=to_cube(c2,r2)
+                return max(abs(x1-x2),abs(y1-y2),abs(z1-z2))
+            dist = cube_dist(s.hex_col, s.hex_row, nwc, nwr)
+            draw_text(self._panel_surf if hasattr(self,'_panel_surf') else pygame.display.get_surface(),
+                      f"Goal: {nwp['name']}  ({dist} hexes away)",
+                      F["tiny"], GOLD_DIM, (PX, by+4)) if False else None  # deferred to draw()
+            self._next_wp_hint = f"Goal: {nwp['name']}  ·  {dist} hexes away"
+        else:
+            self._next_wp_hint = ""
+
         # Inventory
         b_inv = Button((PX, SH-40, BW, 34), "View Inventory",
                        fill=UI_CARD2, text_col=DIM2, font=F["small"])
@@ -2962,6 +3412,10 @@ class GameScreen:
         if s.current_wp>=9 and 2 not in s.completed_objectives:
             s.completed_objectives.append(2)
             s.add_journal("OBJECTIVE COMPLETE: Reached the Pacific Ocean!")
+            # Victory — Fort Clatsop reached
+            self._update_journal()
+            self._start_end_game()
+            return
         if s.peaceful_tribes>=3 and 3 not in s.completed_objectives:
             s.completed_objectives.append(3)
             s.add_journal("OBJECTIVE COMPLETE: Peaceful relations with 3 tribes.")
@@ -3110,6 +3564,10 @@ class GameScreen:
         draw_separator(surf, PX, mode_y+6, PW, darken(mc,0.5))
         draw_text(surf, ml, F["subhead"], mc, (PX, mode_y))
 
+        # Goal hint under mode label
+        if self.mode == "travel" and getattr(self, '_next_wp_hint', ''):
+            draw_text(surf, self._next_wp_hint, F["tiny"], GOLD_DIM, (PX, mode_y+16))
+
         # ── Scroll panel (event / trade) ──────────────────────────────────────
         if self.mode in ("event", "trade"):
             sp_y = mode_y + 18
@@ -3189,7 +3647,29 @@ class GameScreen:
         if self.mode in ("event","trade"):
             self.scroll_panel.handle(event)
 
-        self.map_view.handle(event, self.state, self._on_hex_move)
+        self.map_view.handle(event, self.state, self._on_hex_click)
+
+        # Update move button highlights when hover hex changes
+        if self.mode == "travel" and event.type == pygame.MOUSEMOTION:
+            hh = self.map_view.hover_hex
+            if hh != self._last_hover_hex:
+                self._last_hover_hex = hh
+                # Highlight the matching move button, rebuild only if needed
+                rebuilt = False
+                for btn in self.action_btns:
+                    if hasattr(btn, '_hex_move'):
+                        was_hov = btn.hovered
+                        btn.hovered = (btn._hex_move == hh)
+                        if btn.hovered != was_hov:
+                            # Update fill to reflect new hover state
+                            if btn.hovered:
+                                btn.fill = btn.fill_h
+                            else:
+                                terr = hex_terrain(*btn._hex_move)
+                                TERR_COLS = {"plains":GOLD,"river":BLUE2,"mountain":AMBER,
+                                             "forest":GREEN2,"coast":TEAL2}
+                                tc = TERR_COLS.get(terr, GOLD)
+                                btn.fill = darken(tc, 0.45)
 
         for btn in self.action_btns:
             if btn.handle(event):
@@ -3199,64 +3679,144 @@ class GameScreen:
             if event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 on_save()
 
-    def _on_hex_move(self, wp_id):
-        """Player clicked a waypoint on the map."""
+    def _on_hex_click(self, col, row):
+        """Player clicked a hex on the map."""
         s = self.state
-        if wp_id == s.current_wp + 1:
-            routes = ROUTE_OPTIONS.get((s.current_wp, wp_id), [])
-            if routes:
-                self._show_route_choices(routes)
+        neighbours = hex_neighbours(s.hex_col, s.hex_row)
+
+        if (col, row) == (s.hex_col, s.hex_row):
+            # Clicked current hex — trigger action/event if content
+            content = HEX_CONTENTS.get((col, row))
+            if content and content["type"] == "tribe":
+                self._build_trade_ui(content["tribe_key"])
             else:
-                self._do_travel({"name":"Overland","tag":"land","food":-10,"health":-5,"morale":0,"days":14})
-        elif wp_id == s.current_wp:
+                event = self._pick_event()
+                if event:
+                    self.pending_event = event
+                    self._build_event_ui(event)
+            return
+
+        if (col, row) not in neighbours or s.game_over:
+            return  # Not adjacent — ignore
+
+        # ── Move into hex ──────────────────────────────────────────────────────
+        terr  = hex_terrain(col, row)
+        tdata = TERRAIN_DATA[terr]
+
+        # Apply terrain costs
+        s.food   = max(0, s.food   + tdata["food"])
+        s.health = max(0, s.health + tdata["health"])
+        s.morale = max(0, s.morale + tdata["morale"])
+        s.advance_date(tdata["days"])
+
+        # Season modifier
+        mods = {"Winter":{"health":-3,"food":-2},"Summer":{"food":-2},"Spring":{"morale":1}}
+        for k, v in mods.get(s.season, {}).items():
+            setattr(s, k, max(0, getattr(s, k)+v))
+
+        # Sacagawea mountain bonus
+        if terr == "mountain" and s.characters.get("sacagawea",{}).get("active"):
+            s.health = min(100, s.health + 4)
+
+        # Update position and trail
+        s.hex_col = col; s.hex_row = row
+        s.hex_trail.append((col, row))
+        if (col, row) not in [tuple(h) for h in s.visited_hexes]:
+            s.visited_hexes.append((col, row))
+
+        s.clamp()
+        self.map_view.invalidate()  # rebuild canvas with new trail
+        self.map_view.centre_on_hex(col, row)  # follow the player
+
+        # Log movement with terrain flavour
+        TERR_FLAVOUR = {
+            "plains":   "marched across the open prairie",
+            "river":    "followed the river upstream",
+            "mountain": "pushed through the mountain terrain",
+            "forest":   "cut through dense forest",
+            "coast":    "moved along the Pacific coast",
+        }
+        s.add_journal(f"The corps {TERR_FLAVOUR.get(terr,'moved forward')}.")
+
+        # Check for waypoint arrival
+        arrived_wp = HEX_WP.get((col, row))
+        if arrived_wp is not None and arrived_wp > s.current_wp:
+            wp = WAYPOINTS[arrived_wp]
+            # Mark as revealed now that player is here
+            wp["revealed"] = True
+            wp_type = wp.get("type","camp")
+            if wp_type == "dead_end":
+                # Penalty and forced turn-back hint
+                s.morale = max(0, s.morale - 15)
+                s.food   = max(0, s.food   - 10)
+                s.add_journal(f"★ {wp['name']}: {wp['desc']} — this is not the way to the Pacific.")
+                s.add_journal("The corps must reconsider. The Pacific lies to the northwest.")
+            else:
+                s.current_wp = arrived_wp
+                s.add_journal(f"★ Reached {wp['name']} — {wp['desc']}")
+            self._check_objectives()
+
+        # Check hex content
+        content = HEX_CONTENTS.get((col, row))
+        if content:
+            if content["type"] == "resource":
+                rc_key = (col, row)
+                already_used = any(tuple(u)==(col,row) for u in s.used_resources)
+                if not already_used:
+                    self._show_resource_popup(content, col, row)
+                    return
+            elif content["type"] == "tribe":
+                # Auto-show tribe info in panel
+                pass  # will show in travel UI
+
+        self._update_journal()
+        self._check_objectives()
+
+        # Starvation / death check
+        if s.food <= 0:
+            s.add_journal("The corps has run out of food."); self._start_end_game(); return
+        if s.health <= 0:
+            s.add_journal("Too many men have been lost."); self._start_end_game(); return
+
+        # Random event chance on movement
+        if random.random() < 0.35:
             event = self._pick_event()
             if event:
                 self.pending_event = event
                 self._build_event_ui(event)
+                return
 
-    def _show_route_choices(self, routes):
-        """Show route selection in action panel."""
-        self.mode = "travel"
+        self._build_travel_ui()
+
+    def _show_resource_popup(self, content, col, row):
+        """Show resource content in panel with take/pass options."""
+        self.mode = "event"
         self.action_btns = []
-        PX = self.PANEL_X+8; BW = self.PANEL_W-16; by = self.BTN_Y_TRAVEL
-        RISK_C={"low":GREEN2,"medium":GOLD,"high":AMBER,"very_high":RED2}
-        TAG_I={"river":"≈ ","land":"~ ","mountain":"▲ "}
-        for route in routes:
-            rc = RISK_C.get(route["risk"],GOLD)
-            lbl = TAG_I.get(route["tag"],"  ") + route["name"]
-            sub = f'{route["days"]}d  food{route["food"]:+d}  hp{route["health"]:+d}  mor{route["morale"]:+d}  [{route["risk"]}]'
-            btn = Button((PX, by, BW, 44), lbl, fill=UI_CARD,
-                         fill_h=darken(rc,0.4), text_col=PARCH, sub=sub)
-            btn._route=route; self.action_btns.append(btn); by+=52
-        back=Button((PX,by,BW,34),"Cancel",fill=UI_PANEL,text_col=DIM2)
-        back._action="cancel_route"; self.action_btns.append(back)
-
-    def _do_travel(self, route):
         s = self.state
-        s.route_taken.append(route["name"])
-        s.current_wp += 1
-        s.advance_date(route.get("days",14))
-        s.food   += route["food"]
-        s.health += route["health"]
-        s.morale += route["morale"]
-        # Season modifiers
-        mods={"Winter":{"health":-8,"food":-5},"Summer":{"food":-4},"Spring":{"morale":3}}
-        for k,v in mods.get(s.season,{}).items(): setattr(s,k,getattr(s,k)+v)
-        # Sacagawea mountain bonus
-        if route.get("tag")=="mountain" and s.characters.get("sacagawea",{}).get("active"):
-            s.health += 8
-        wp2 = WAYPOINTS[s.current_wp]
-        s.add_journal(f"Arrived at {wp2['name']} via {route['name']}.")
-        s.clamp()
-        self._check_objectives()
-        self._update_journal()
-        # Maybe trigger event
-        event = self._pick_event()
-        if event:
-            self.pending_event = event
-            self._build_event_ui(event)
-        else:
-            self._build_travel_ui()
+        eff = content.get("effect", {})
+
+        lines = [
+            (content["name"], F["header"], GOLD2),
+            ("", F["tiny"], DIM),
+            (content["desc"], F["body"], PARCH_DARK),
+            ("", F["tiny"], DIM),
+        ]
+        if eff:
+            eff_str = "  ·  ".join(f"{k.capitalize()} {v:+d}" for k,v in eff.items()
+                                    if isinstance(v, int))
+            if eff_str:
+                lines.append((eff_str, F["small"], GREEN2))
+        self.scroll_panel.set_lines(lines)
+
+        PX = self.PANEL_X+8; BW = self.PANEL_W-16; by = self.BTN_Y_EVENT
+        b_take = Button((PX, by, BW, 42), "▶  Gather & Continue",
+                        fill=darken(GREEN2,0.5), fill_h=GREEN2, text_col=PARCH)
+        b_take._resource_take = (col, row, content)
+        self.action_btns.append(b_take)
+        b_pass = Button((PX, by+50, BW, 34), "Pass By",
+                        fill=UI_PANEL, text_col=DIM2)
+        b_pass._action = "pass_resource"
+        self.action_btns.append(b_pass)
 
     def _pick_event(self):
         s = self.state; season = s.season
@@ -3365,8 +3925,25 @@ class GameScreen:
         s.clamp(); self._check_objectives(); self._update_journal(); self._build_travel_ui()
 
     def _button_clicked(self, btn, on_new_game, on_save):
+        if hasattr(btn, '_hex_move'):
+            self._on_hex_click(*btn._hex_move)
+            return
+        if hasattr(btn, '_resource_take'):
+            col, row, content = btn._resource_take
+            s = self.state
+            eff = content.get("effect", {})
+            s.food   = min(100, max(0, s.food   + eff.get("food",0)))
+            s.health = min(100, max(0, s.health + eff.get("health",0)))
+            s.morale = min(100, max(0, s.morale + eff.get("morale",0)))
+            for item, qty in eff.get("inventory", {}).items():
+                s.inventory[item] = s.inventory.get(item,0) + qty
+            s.used_resources.append((col, row))
+            s.add_journal(f"Gathered: {content['name']}.")
+            self._update_journal()
+            self._build_travel_ui()
+            return
         if hasattr(btn,'_route') and not hasattr(btn,'_action'):
-            self._do_travel(btn._route)
+            pass  # legacy, unused
         elif hasattr(btn,'_choice'):
             self._resolve_event(btn._choice)
         elif hasattr(btn,'_trade_action'):
@@ -3375,9 +3952,10 @@ class GameScreen:
             act = btn._action
             if act=="hunt":   self._do_hunt()
             elif act=="camp": self._do_camp()
-            elif act=="trade":self._build_trade_ui(btn._tribe)
+            elif act=="trade": self._trade_tribe=btn._tribe; self._build_trade_ui(btn._tribe)
             elif act=="inventory": self.mode="inventory"  # TODO: inventory screen
             elif act=="cancel_route": self._build_travel_ui()
+            elif act=="pass_resource": self._build_travel_ui()
             elif act=="new":  on_new_game()
             elif act=="save": on_save()
 
