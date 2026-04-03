@@ -8,8 +8,12 @@ import sys
 import pygame
 
 from lewis_clark import assets
-from lewis_clark.app import App
 from lewis_clark.config import load_all
+
+# Populate assets before importing App (screens/ui use assets.* in defaults/class attrs).
+load_all(assets)
+
+from lewis_clark.app import App
 from lewis_clark.fonts import load_fonts
 from lewis_clark.hex_grid import _build_hex_contents
 
@@ -19,7 +23,6 @@ def main() -> None:
         "SDL_VIDEODRIVER", "windib" if sys.platform == "win32" else "x11"
     )
 
-    load_all(assets)
     pygame.init()
     pygame.font.init()
     load_fonts(assets)
