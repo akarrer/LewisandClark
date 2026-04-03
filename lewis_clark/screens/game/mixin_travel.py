@@ -7,6 +7,7 @@ import random
 from lewis_clark import assets
 from lewis_clark.drawing import darken
 from lewis_clark.hex_grid import hex_neighbours, hex_terrain
+from lewis_clark.screens.game import layout as game_layout
 from lewis_clark.ui.button import Button
 
 
@@ -51,9 +52,14 @@ class TravelMixin:
             return (0 if is_goal else 1, cost)
 
         neighbours_sorted = sorted(neighbours, key=sort_key)
+        n_nb = len(neighbours_sorted)
+        use_2col = n_nb > 3
+        col_w = (BW // 2 - 6) if use_2col else BW
+        travel_row_h = 33 if n_nb > 5 else 36
+        travel_gap = 7 if n_nb > 5 else 8
 
         from_col, from_row = s.hex_col, s.hex_row
-        for col, row in neighbours_sorted:
+        for ni, (col, row) in enumerate(neighbours_sorted):
             terr = hex_terrain(col, row)
             tdata = assets.TERRAIN_DATA[terr]
             content = assets.HEX_CONTENTS.get((col, row))
@@ -102,8 +108,16 @@ class TravelMixin:
             sub = "  ".join(parts)
 
             fill_col = tc if is_hov else darken(tc, 0.45)
+            if use_2col:
+                col_ix = ni % 2
+                row_ix = ni // 2
+                bx = PX + col_ix * (col_w + 10)
+                b_row_y = by + row_ix * (travel_row_h + travel_gap)
+            else:
+                bx = PX
+                b_row_y = by + ni * (travel_row_h + travel_gap)
             btn = Button(
-                (PX, by, BW, 42),
+                (bx, b_row_y, col_w, travel_row_h),
                 lbl,
                 fill=fill_col,
                 fill_h=tc,
@@ -115,9 +129,12 @@ class TravelMixin:
             btn._hex_move = (col, row)
             btn.hovered = is_hov
             self.action_btns.append(btn)
-            by += 50
 
-        by += 6
+        if use_2col:
+            rows = (n_nb + 1) // 2
+            by = by + rows * (travel_row_h + travel_gap) + 6
+        else:
+            by = by + n_nb * (travel_row_h + travel_gap) + 6
 
         has_d = s.characters.get("drouillard", {}).get("active", False)
         b_hunt = Button(
@@ -182,8 +199,10 @@ class TravelMixin:
         else:
             self._next_wp_hint = ""
 
+        inv_y = min(by + 6, assets.SH - game_layout.OBJECTIVES_TOP_MARGIN - 40)
+        inv_y = max(inv_y, self.BTN_Y_TRAVEL + 8)
         b_inv = Button(
-            (PX, assets.SH - 40, BW, 34),
+            (PX, inv_y, BW, 32),
             "View Inventory",
             fill=assets.UI_CARD2,
             text_col=assets.DIM2,

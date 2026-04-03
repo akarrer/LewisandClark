@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pygame
 from lewis_clark import assets
+from lewis_clark.screens.game import layout as game_layout
 from lewis_clark.drawing import (
     darken,
     draw_panel,
@@ -43,20 +44,30 @@ class DrawMixin:
         hdr_r = pygame.Rect(0, 0, assets.SW, self.HEADER_H)
         pygame.draw.rect(surf, assets.UI_BG, hdr_r)
         _hdr_grain = tuple(max(0, v + 3) for v in assets.UI_BG)
-        for i in range(0, assets.SW + assets.SH, 20):
+        for i in range(0, assets.SW + assets.SH, 14):
             pygame.draw.line(
                 surf, _hdr_grain, (i, 0), (max(0, i - self.HEADER_H), self.HEADER_H)
             )
+
         pygame.draw.line(surf, assets.GOLD, (0, 1), (assets.SW, 1), 2)
         pygame.draw.line(
-            surf,
-            assets.GOLD_DIM,
-            (0, self.HEADER_H - 2),
-            (assets.SW, self.HEADER_H - 2),
-            1,
+            surf, darken(assets.GOLD, 0.4), (0, 3), (assets.SW, 3), 1,
+        )
+
+        tooling_y = self.HEADER_H - 6
+        for tx in range(0, assets.SW, 16):
+            pygame.draw.polygon(
+                surf, assets.GOLD_DIM,
+                [(tx + 4, tooling_y), (tx + 8, tooling_y - 3),
+                 (tx + 12, tooling_y), (tx + 8, tooling_y + 3)],
+            )
+        pygame.draw.line(
+            surf, assets.GOLD_DIM,
+            (0, self.HEADER_H - 3), (assets.SW, self.HEADER_H - 3), 1,
         )
         pygame.draw.line(
-            surf, assets.GOLD, (0, self.HEADER_H - 1), (assets.SW, self.HEADER_H - 1), 2
+            surf, assets.GOLD,
+            (0, self.HEADER_H - 1), (assets.SW, self.HEADER_H - 1), 2,
         )
         title_txt = "LEWIS & CLARK EXPEDITION  ·  CORPS OF DISCOVERY"
         ts_sh = assets.F["title"].render(title_txt, True, (0, 0, 0))
@@ -93,6 +104,9 @@ class DrawMixin:
         )
 
         self.map_view.draw(surf, s)
+
+        self.weather.update(s.season, self.map_view.MAP_RECT)
+        self.weather.draw(surf, self.map_view.MAP_RECT)
 
         PX = self.PANEL_X + 8
         PW = self.PANEL_W - 16
@@ -134,8 +148,8 @@ class DrawMixin:
             "◈ ",
         )
 
-        char_y = self.HEADER_H + 68
-        char_h = 72
+        char_y = game_layout.CHAR_AREA_TOP
+        char_h = game_layout.CHAR_H
         CHAR_ACCENTS = {
             "york": assets.AMBER,
             "drouillard": assets.GREEN2,
@@ -148,6 +162,8 @@ class DrawMixin:
             "sacagawea": (186, 150, 96),
         }
         cw = (PW - 4) // 3
+        portraits = getattr(assets, "IMG_PORTRAITS", None) or {}
+        port_src_w = 44
         for ci, (key, cdata) in enumerate(s.characters.items()):
             cx2 = PX + ci * (cw + 2)
             active = cdata["active"]
@@ -164,29 +180,74 @@ class DrawMixin:
                 border=acc2 if active else assets.UI_BORDER,
                 corners=active,
             )
-            port_r = pygame.Rect(cx2 + 3, char_y + 3, 28, char_h - 6)
+            port_r = pygame.Rect(cx2 + 3, char_y + 3, port_src_w, char_h - 6)
             pygame.draw.rect(surf, darken(cf, 0.7), port_r, border_radius=2)
-            if active:
-                pygame.draw.circle(surf, skin, (cx2 + 17, char_y + 18), 9)
-                pygame.draw.rect(
-                    surf, darken(skin, 0.7), (cx2 + 10, char_y + 28, 14, 16)
-                )
-                pygame.draw.rect(
-                    surf,
-                    darken(acc2, 0.5),
-                    (cx2 + 8, char_y + char_h - 18, 20, 12),
-                    border_radius=2,
-                )
-                ts_ic = assets.F["tiny_b"].render(icon, True, acc2)
-                surf.blit(
-                    ts_ic, ts_ic.get_rect(center=(cx2 + 18, char_y + char_h - 12))
-                )
+            pkey = key if active else "inactive"
+            port_im = portraits.get(pkey) or portraits.get(key)
+            if port_im:
+                scaled = pygame.transform.smoothscale(port_im, port_r.size)
+                surf.blit(scaled, port_r)
+                frame_c = darken(acc2 if active else assets.UI_BORDER, 0.35)
+                pygame.draw.rect(surf, frame_c, port_r, 1, border_radius=2)
+                if active:
+                    pygame.draw.rect(
+                        surf, darken(acc2, 0.5),
+                        (cx2 + 6, char_y + char_h - 18, 22, 12),
+                        border_radius=2,
+                    )
+                    ts_ic = assets.F["tiny_b"].render(icon, True, acc2)
+                    surf.blit(
+                        ts_ic,
+                        ts_ic.get_rect(center=(cx2 + 17, char_y + char_h - 12)),
+                    )
             else:
-                pygame.draw.circle(surf, assets.DIM, (cx2 + 17, char_y + 18), 8)
-                pygame.draw.rect(surf, assets.DIM, (cx2 + 10, char_y + 28, 14, 14))
-                ts_q = assets.F["tiny_b"].render("?", True, assets.DIM2)
-                surf.blit(ts_q, ts_q.get_rect(center=(cx2 + 17, char_y + 48)))
-            tx = cx2 + 34
+                pcx = cx2 + port_r.w // 2 + 3
+                pcy_head = char_y + 16
+                if active:
+                    pygame.draw.circle(surf, skin, (pcx, pcy_head), 9)
+                    pygame.draw.circle(
+                        surf, darken(skin, 0.6), (pcx, pcy_head), 9, 1,
+                    )
+                    hat_av = pcy_head - 9
+                    if key == "york":
+                        pygame.draw.ellipse(
+                            surf, darken(skin, 0.5),
+                            (pcx - 10, hat_av - 3, 20, 6),
+                        )
+                        pygame.draw.rect(
+                            surf, darken(skin, 0.5),
+                            (pcx - 6, hat_av - 8, 12, 6),
+                        )
+                    elif key == "drouillard":
+                        pygame.draw.polygon(
+                            surf, (80, 60, 30),
+                            [(pcx - 10, hat_av + 2), (pcx, hat_av - 7),
+                             (pcx + 10, hat_av + 2)],
+                        )
+                    elif key == "sacagawea":
+                        pygame.draw.arc(
+                            surf, darken(skin, 0.6),
+                            pygame.Rect(pcx - 8, hat_av - 4, 16, 10),
+                            0, 3.14, 2,
+                        )
+                else:
+                    pygame.draw.circle(surf, assets.DIM, (pcx, pcy_head), 8)
+                    ts_q = assets.F["tiny_b"].render("?", True, assets.DIM2)
+                    surf.blit(
+                        ts_q, ts_q.get_rect(center=(pcx, char_y + char_h // 2)),
+                    )
+                if active:
+                    pygame.draw.rect(
+                        surf, darken(acc2, 0.5),
+                        (cx2 + 6, char_y + char_h - 18, 22, 12),
+                        border_radius=2,
+                    )
+                    ts_ic = assets.F["tiny_b"].render(icon, True, acc2)
+                    surf.blit(
+                        ts_ic,
+                        ts_ic.get_rect(center=(cx2 + 17, char_y + char_h - 12)),
+                    )
+            tx = cx2 + port_src_w + 10
             nc2 = assets.CREAM if active else assets.DIM2
             draw_text(surf, base["name"], assets.F["subhead"], nc2, (tx, char_y + 5))
             draw_text(
@@ -195,7 +256,7 @@ class DrawMixin:
                 assets.F["tiny"],
                 assets.DIM2,
                 (tx, char_y + 20),
-                max_w=cw - 36,
+                max_w=cw - port_src_w - 12,
             )
             if active:
                 pygame.draw.line(
@@ -212,7 +273,7 @@ class DrawMixin:
                     assets.F["tiny"],
                     lighten(acc2, 0.8),
                     (tx, char_y + 38),
-                    max_w=cw - 36,
+                    max_w=cw - port_src_w - 12,
                 )
                 draw_text(surf, "● Active", assets.F["tiny_b"], acc2, (tx, char_y + 53))
             else:
@@ -224,7 +285,7 @@ class DrawMixin:
                     (tx, char_y + 38),
                 )
 
-        jy = char_y + char_h + 8
+        jy = char_y + char_h + game_layout.JOURNAL_AFTER_CHAR_GAP
         draw_separator(surf, PX, jy + 6, PW, assets.DIM2)
         draw_text(
             surf,
@@ -233,13 +294,18 @@ class DrawMixin:
             assets.GOLD_DIM,
             (PX, jy - 1),
         )
-        self.journal_panel.rect.y = jy + 14
+        self.journal_panel.rect.y = jy + game_layout.JOURNAL_LABEL_H
         self.journal_panel.rect.x = PX
         self.journal_panel.rect.w = PW
-        self.journal_panel.rect.h = 180
+        self.journal_panel.rect.h = game_layout.JOURNAL_H
         self.journal_panel.draw(surf)
 
-        mode_y = jy + 14 + 180 + 6
+        mode_y = (
+            jy
+            + game_layout.JOURNAL_LABEL_H
+            + game_layout.JOURNAL_H
+            + game_layout.MODE_UNDER_JOURNAL_GAP
+        )
         MODE_LABELS = {
             "travel": ("TRAVEL OPTIONS", assets.GOLD),
             "event": ("EVENT — CHOOSE", assets.AMBER),
@@ -336,7 +402,12 @@ class DrawMixin:
         s = self.state
         PX = self.PANEL_X + 8
         PW = self.PANEL_W - 16
-        obj_r = pygame.Rect(PX, assets.SH - 130, PW, 122)
+        obj_r = pygame.Rect(
+            PX,
+            assets.SH - game_layout.OBJECTIVES_TOP_MARGIN,
+            PW,
+            game_layout.OBJECTIVES_H,
+        )
         draw_panel(
             surf,
             obj_r,
@@ -355,7 +426,7 @@ class DrawMixin:
             (f"5 Discoveries ({s.discoveries}/5)", 5, assets.GOLD2),
         ]
         ox = PX + 6
-        oy = assets.SH - 108
+        oy = obj_r.y + 22
         col_w = (PW - 6) // 2
         for i, (txt, idx, col_o) in enumerate(objs):
             done = idx in s.completed_objectives

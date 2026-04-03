@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import random
+from pathlib import Path
 
 import pygame
 
@@ -14,6 +15,9 @@ from lewis_clark.hex_grid import (
     world_to_hex,
     wp_display_name,
 )
+from lewis_clark.textures import gen_parchment
+
+_FONT_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
 
 
 class MapView:
@@ -47,7 +51,7 @@ class MapView:
 
     def __init__(self):
         # Start zoomed to show full map
-        self.zoom        = 0.22
+        self.zoom        = 0.38
         self.pan_x       = 0    # pixel offset into canvas
         self.pan_y       = 0
         self.hover_hex   = None
@@ -120,6 +124,22 @@ class MapView:
         """Hex radius in screen pixels at current zoom."""
         return max(4, int(self.HEX_SIZE * self.zoom))
 
+    @staticmethod
+    def _map_font(size, bold=False, italic=False):
+        """Load a font for map labels, preferring the bundled EB Garamond."""
+        garamond = _FONT_DIR / (
+            "EBGaramond-Italic.ttf" if italic else "EBGaramond.ttf"
+        )
+        try:
+            if garamond.exists():
+                f = pygame.font.Font(str(garamond), size)
+                if bold:
+                    f.set_bold(True)
+                return f
+        except Exception:
+            pass
+        return pygame.font.SysFont("Georgia", size, bold=bold, italic=italic)
+
     # ── canvas build ──────────────────────────────────────────────────────────
     @staticmethod
     def _catmull_rom(points, steps=14):
@@ -139,92 +159,288 @@ class MapView:
         result.append(points[-1])
         return result
 
+    @staticmethod
+    def _wobble_pts(pts, seed, amount=3):
+        """Add hand-drawn wobble to polygon points."""
+        rng = random.Random(seed)
+        out = []
+        for i, (px, py) in enumerate(pts):
+            dx = rng.gauss(0, amount * 0.4)
+            dy = rng.gauss(0, amount * 0.4)
+            out.append((int(px + dx), int(py + dy)))
+        return out
+
+    @staticmethod
+    def _draw_hachures(surf, cx, cy, peak_x, peak_y, base_w, col, rng, count=7):
+        """Cartographic hachure marks radiating down from a peak."""
+        for i in range(count):
+            t = (i + 0.5) / count
+            bx = peak_x + int((t - 0.5) * base_w * 1.8)
+            by = cy + int(base_w * 0.6)
+            length = rng.uniform(0.4, 0.8)
+            ex = int(peak_x + (bx - peak_x) * length)
+            ey = int(peak_y + (by - peak_y) * length)
+            pygame.draw.line(surf, col, (peak_x, peak_y), (ex, ey), 1)
+
     def _build_canvas(self, state):
         """Render the full hex map to a large Surface. Called once, cached."""
         s = state
 
         surf = pygame.Surface((self.CANVAS_W, self.CANVAS_H))
-        surf.fill((182, 200, 218))   # background water colour
+
+        if assets.TEX_MAP_PARCHMENT is None:
+            assets.TEX_MAP_PARCHMENT = gen_parchment(
+                self.CANVAS_W, self.CANVAS_H, seed=55
+            )
+        surf.blit(assets.TEX_MAP_PARCHMENT, (0, 0))
+
+        water_overlay = pygame.Surface(
+            (self.CANVAS_W, self.CANVAS_H), pygame.SRCALPHA
+        )
+        water_overlay.fill((140, 170, 200, 60))
+        surf.blit(water_overlay, (0, 0))
+
+        edge_dark = 80
+        for i in range(edge_dark):
+            t = 1.0 - i / edge_dark
+            a = int(t * t * 50)
+            if a < 1:
+                continue
+            c = (60, 40, 15, a)
+            W, H = self.CANVAS_W, self.CANVAS_H
+            pygame.draw.line(surf, c, (0, i), (W, i))
+            pygame.draw.line(surf, c, (0, H - 1 - i), (W, H - 1 - i))
+            pygame.draw.line(surf, c, (i, 0), (i, H))
+            pygame.draw.line(surf, c, (W - 1 - i, 0), (W - 1 - i, H))
 
         # ── 1. Hex terrain fills + textures ───────────────────────────────────
+        hex_tiles = getattr(assets, "IMG_TERRAIN_HEX", None) or {}
+
         for row in range(assets.HEX_ROWS):
             for col in range(assets.HEX_COLS):
-                terr  = hex_terrain(col, row)
-                pts   = self.hex_poly_abs(col, row)
-                fill  = self.TERR_FILL[terr]
-                border= self.TERR_BORDER[terr]
+                terr = hex_terrain(col, row)
+                pts = self.hex_poly_abs(col, row)
+                fill = self.TERR_FILL[terr]
+                border = self.TERR_BORDER[terr]
                 cx, cy = self.hex_center(col, row)
 
-                # Base fill
-                pygame.draw.polygon(surf, fill, pts)
+                tile_im = hex_tiles.get(terr)
+                if tile_im is not None:
+                    tw, th = tile_im.get_size()
+                    surf.blit(tile_im, (cx - tw // 2, cy - th // 2))
+                else:
+                    pygame.draw.polygon(surf, fill, pts)
 
-                # Per-terrain texture art
-                rng = random.Random(col*100+row*7)
-                if terr == "plains":
-                    # Scattered grass tufts
-                    for _ in range(8):
-                        gx = cx+rng.randint(-32,32); gy = cy+rng.randint(-20,20)
-                        for blade in range(3):
-                            bx = gx+rng.randint(-4,4)
-                            pygame.draw.line(surf,(fill[0]-18,fill[1]-12,fill[2]-8),
-                                             (bx,gy),(bx+rng.randint(-3,3),gy-rng.randint(4,9)),1)
-                    # Occasional wildflower dot
-                    if rng.random() < 0.3:
-                        fx=cx+rng.randint(-24,24); fy=cy+rng.randint(-18,18)
-                        pygame.draw.circle(surf,(min(255,fill[0]+20),min(255,fill[1]-10),fill[2]-20),(fx,fy),3)
+                rng = random.Random(col * 100 + row * 7)
+                proc = tile_im is None
+                if proc and terr == "plains":
+                    for _ in range(15):
+                        gx = cx + rng.randint(-36, 36)
+                        gy = cy + rng.randint(-24, 24)
+                        ink = (
+                            fill[0] - 25 + rng.randint(-5, 5),
+                            fill[1] - 18 + rng.randint(-5, 5),
+                            fill[2] - 10,
+                        )
+                        ink = tuple(max(0, min(255, c)) for c in ink)
+                        for _ in range(rng.randint(2, 4)):
+                            bx = gx + rng.randint(-3, 3)
+                            angle = rng.uniform(-0.4, 0.4)
+                            blen = rng.randint(5, 12)
+                            ex = bx + int(math.sin(angle) * 2)
+                            ey = gy - blen
+                            pygame.draw.line(surf, ink, (bx, gy), (ex, ey), 1)
 
-                elif terr == "river":
-                    # Layered water shimmer lines
-                    for wl in range(-28,30,7):
-                        wy = cy+wl+int(math.sin((col*1.3+row*0.9)*0.7)*4)
-                        c_w = (130+rng.randint(-6,6),165+rng.randint(-6,6),198+rng.randint(-6,6))
-                        pygame.draw.line(surf,c_w,(cx-34,wy),(cx+34,wy),1)
-                    # Bright highlight lines
-                    for wl2 in range(-14,16,14):
-                        pygame.draw.line(surf,(200,218,235),(cx-20,cy+wl2),(cx+20,cy+wl2),1)
+                    for _ in range(rng.randint(12, 25)):
+                        dx = cx + rng.randint(-34, 34)
+                        dy = cy + rng.randint(-22, 22)
+                        dc = (
+                            fill[0] - 15 + rng.randint(-8, 8),
+                            fill[1] - 10 + rng.randint(-8, 8),
+                            fill[2] - 5,
+                        )
+                        dc = tuple(max(0, min(255, c)) for c in dc)
+                        surf.set_at((dx, dy), dc)
 
-                elif terr == "mountain":
-                    # Multiple overlapping mountain symbols
-                    peaks = [(-26,10),(-4,-8),(18,6)]
-                    for px_m,py_m in peaks:
-                        mx=cx+px_m; my=cy+py_m; sz=20
-                        # Shadow peak
-                        pygame.draw.polygon(surf,(min(255,fill[0]+20),fill[1],fill[2]-10),
-                                            [(mx-sz,my+sz),(mx,my-sz-4),(mx+sz,my+sz)])
-                        # Main peak
-                        pygame.draw.polygon(surf,(fill[0]+10,fill[1]+8,fill[2]+6),
-                                            [(mx-sz+2,my+sz-2),(mx,my-sz),(mx+sz-2,my+sz-2)])
-                        pygame.draw.polygon(surf,border,
-                                            [(mx-sz+2,my+sz-2),(mx,my-sz),(mx+sz-2,my+sz-2)],2)
-                        # Snow cap
-                        pygame.draw.polygon(surf,(238,236,232),
-                                            [(mx-6,my-sz+8),(mx,my-sz-3),(mx+6,my-sz+8)])
+                    if rng.random() < 0.35:
+                        fx = cx + rng.randint(-20, 20)
+                        fy = cy + rng.randint(-14, 14)
+                        fc = rng.choice([
+                            (180, 140, 80), (160, 120, 70), (190, 160, 100),
+                        ])
+                        pygame.draw.circle(surf, fc, (fx, fy), 2)
 
-                elif terr == "forest":
-                    # Dense tree canopy symbols
-                    trees = [(-22,-8),(0,-18),(22,-8),(-11,10),(11,10),(0,22)]
-                    for tx,ty in trees[:rng.randint(3,6)]:
-                        tree_x=cx+tx; tree_y=cy+ty; tsz=10
-                        # Canopy
-                        pygame.draw.polygon(surf,(min(255,fill[0]+8),min(255,fill[1]+12),fill[2]+4),
-                                            [(tree_x-tsz,tree_y+tsz),(tree_x,tree_y-tsz),(tree_x+tsz,tree_y+tsz)])
-                        # Trunk
-                        pygame.draw.line(surf,(100,72,36),(tree_x,tree_y+tsz),(tree_x,tree_y+tsz+8),2)
+                elif proc and terr == "river":
+                    for wl in range(-30, 32, 5):
+                        wy = cy + wl + int(
+                            math.sin((col * 1.3 + row * 0.9) * 0.7) * 5
+                        )
+                        c_w = (
+                            115 + rng.randint(-8, 8),
+                            150 + rng.randint(-8, 8),
+                            185 + rng.randint(-8, 8),
+                        )
+                        pygame.draw.line(surf, c_w, (cx - 38, wy), (cx + 38, wy), 1)
 
-                elif terr == "coast":
-                    # Wave arc pattern
-                    for wl in range(-22,24,11):
-                        r_arc = 26+abs(wl)//3
-                        arc_r = pygame.Rect(cx-r_arc,cy+wl-5,r_arc*2,14)
-                        try: pygame.draw.arc(surf,(140,180,200),arc_r,0,math.pi,2)
-                        except: pass
-                    # Foam dots
-                    for _ in range(4):
-                        fx=cx+rng.randint(-28,28); fy=cy+rng.randint(-16,16)
-                        pygame.draw.circle(surf,(220,232,240),(fx,fy),2)
+                    for wl2 in range(-20, 22, 8):
+                        alpha_s = pygame.Surface((50, 3), pygame.SRCALPHA)
+                        alpha_s.fill((200, 218, 235, 40))
+                        surf.blit(alpha_s, (cx - 25, cy + wl2))
 
-                # Hex border — subtle, doesn't overpower terrain
-                pygame.draw.polygon(surf, border, pts, 2)
+                    for _ in range(3):
+                        wx = cx + rng.randint(-30, 30)
+                        wy = cy + rng.randint(-20, 20)
+                        ww = rng.randint(6, 14)
+                        pygame.draw.line(
+                            surf, (180, 200, 220),
+                            (wx, wy), (wx + ww, wy), 1,
+                        )
+
+                elif proc and terr == "mountain":
+                    peaks = [(-28, 8), (-6, -10), (16, 4), (30, 12)]
+                    for px_m, py_m in peaks[:rng.randint(2, 4)]:
+                        mx = cx + px_m
+                        my = cy + py_m
+                        sz = rng.randint(16, 24)
+
+                        shadow_c = (
+                            min(255, fill[0] + 15), fill[1] - 5,
+                            max(0, fill[2] - 15),
+                        )
+                        pygame.draw.polygon(
+                            surf, shadow_c,
+                            [(mx - sz, my + sz), (mx + 2, my - sz - 6),
+                             (mx + sz + 4, my + sz)],
+                        )
+                        main_c = (
+                            fill[0] + 8, fill[1] + 6,
+                            min(255, fill[2] + 8),
+                        )
+                        main_c = tuple(max(0, min(255, c)) for c in main_c)
+                        pygame.draw.polygon(
+                            surf, main_c,
+                            [(mx - sz + 2, my + sz - 2), (mx, my - sz),
+                             (mx + sz - 2, my + sz - 2)],
+                        )
+                        pygame.draw.polygon(
+                            surf, border,
+                            [(mx - sz + 2, my + sz - 2), (mx, my - sz),
+                             (mx + sz - 2, my + sz - 2)], 2,
+                        )
+
+                        self._draw_hachures(
+                            surf, cx, cy, mx, my - sz, sz,
+                            (border[0] - 10, border[1] - 10, border[2]),
+                            rng, count=rng.randint(5, 9),
+                        )
+
+                        cap_w = rng.randint(5, 8)
+                        cap_h = rng.randint(6, 10)
+                        pygame.draw.polygon(
+                            surf, (240, 238, 234),
+                            [(mx - cap_w, my - sz + cap_h),
+                             (mx, my - sz - 4),
+                             (mx + cap_w, my - sz + cap_h)],
+                        )
+                        pygame.draw.polygon(
+                            surf, (200, 195, 185),
+                            [(mx - cap_w, my - sz + cap_h),
+                             (mx, my - sz - 4),
+                             (mx + cap_w, my - sz + cap_h)], 1,
+                        )
+
+                elif proc and terr == "forest":
+                    tree_positions = [
+                        (-22, -12), (0, -22), (22, -10),
+                        (-14, 6), (14, 8), (0, 18),
+                        (-28, 0), (28, 2),
+                    ]
+                    n_trees = rng.randint(4, 7)
+                    for tx, ty in tree_positions[:n_trees]:
+                        tree_x = cx + tx + rng.randint(-3, 3)
+                        tree_y = cy + ty + rng.randint(-3, 3)
+
+                        trunk_h = rng.randint(6, 10)
+                        pygame.draw.line(
+                            surf, (90, 65, 30),
+                            (tree_x, tree_y + 8),
+                            (tree_x, tree_y + 8 + trunk_h), 2,
+                        )
+
+                        canopy_r = rng.randint(8, 13)
+                        canopy_c = (
+                            min(255, fill[0] + rng.randint(5, 15)),
+                            min(255, fill[1] + rng.randint(8, 18)),
+                            fill[2] + rng.randint(0, 8),
+                        )
+                        canopy_c = tuple(max(0, min(255, c)) for c in canopy_c)
+                        pygame.draw.circle(
+                            surf, canopy_c,
+                            (tree_x, tree_y), canopy_r,
+                        )
+                        for sub in range(rng.randint(2, 4)):
+                            sx = tree_x + rng.randint(-6, 6)
+                            sy = tree_y + rng.randint(-6, 4)
+                            sr = rng.randint(4, 7)
+                            sc = (
+                                canopy_c[0] + rng.randint(-10, 10),
+                                canopy_c[1] + rng.randint(-10, 10),
+                                canopy_c[2] + rng.randint(-5, 5),
+                            )
+                            sc = tuple(max(0, min(255, c)) for c in sc)
+                            pygame.draw.circle(surf, sc, (sx, sy), sr)
+
+                        ink_c = (
+                            max(0, fill[0] - 30),
+                            max(0, fill[1] - 25),
+                            max(0, fill[2] - 15),
+                        )
+                        pygame.draw.circle(
+                            surf, ink_c,
+                            (tree_x, tree_y), canopy_r, 1,
+                        )
+
+                elif proc and terr == "coast":
+                    for wl in range(-24, 26, 8):
+                        r_arc = 24 + abs(wl) // 3
+                        arc_r = pygame.Rect(cx - r_arc, cy + wl - 4, r_arc * 2, 12)
+                        try:
+                            pygame.draw.arc(
+                                surf, (120, 165, 190), arc_r, 0, math.pi, 2,
+                            )
+                        except Exception:
+                            pass
+
+                    for _ in range(rng.randint(8, 15)):
+                        fx = cx + rng.randint(-32, 32)
+                        fy = cy + rng.randint(-20, 20)
+                        pygame.draw.circle(surf, (190, 210, 225), (fx, fy), 1)
+
+                    for _ in range(3):
+                        sx = cx + rng.randint(-28, 28)
+                        sy = cy + rng.randint(-16, 16)
+                        sw = rng.randint(4, 10)
+                        pygame.draw.line(
+                            surf, (140, 175, 195),
+                            (sx, sy), (sx + sw, sy + rng.randint(-2, 2)), 1,
+                        )
+
+                wobbled = self._wobble_pts(pts, col * 31 + row * 97, amount=2)
+                bord_alpha = pygame.Surface(
+                    (self.HEX_SIZE * 3, self.HEX_SIZE * 3), pygame.SRCALPHA,
+                )
+                local_wobbled = [
+                    (p[0] - cx + self.HEX_SIZE * 3 // 2,
+                     p[1] - cy + self.HEX_SIZE * 3 // 2)
+                    for p in wobbled
+                ]
+                pygame.draw.polygon(
+                    bord_alpha, (*border, 100), local_wobbled, 1,
+                )
+                surf.blit(
+                    bord_alpha,
+                    (cx - self.HEX_SIZE * 3 // 2, cy - self.HEX_SIZE * 3 // 2),
+                )
 
         # ── 2. Smooth river overlays ───────────────────────────────────────────
         RIVER_STYLES = [
@@ -248,13 +464,15 @@ class MapView:
             pygame.draw.lines(surf, mn_c, False, smooth, mn_w)
             # Highlight centre
             pygame.draw.lines(surf, hi_c, False, smooth, hi_w)
-            # River name label — placed at midpoint, angled along river
             try:
-                mid = smooth[len(smooth)//2]
-                fn_r = pygame.font.SysFont("Georgia",14,italic=True)
-                ts_r = fn_r.render(rname,True,name_c)
-                surf.blit(ts_r,ts_r.get_rect(center=(mid[0],mid[1]-20)))
-            except: pass
+                mid = smooth[len(smooth) // 2]
+                fn_r = self._map_font(14, italic=True)
+                ts_r = fn_r.render(rname, True, name_c)
+                ts_sh = fn_r.render(rname, True, (180, 195, 215))
+                surf.blit(ts_sh, ts_sh.get_rect(center=(mid[0] + 1, mid[1] - 19)))
+                surf.blit(ts_r, ts_r.get_rect(center=(mid[0], mid[1] - 20)))
+            except Exception:
+                pass
 
         # ── 3. Mountain ridge decorations (extra hachure on mountain terrain) ──
         ridge_wxy = [(0.13,0.48),(0.14,0.40),(0.15,0.34),(0.16,0.28),(0.17,0.22),
@@ -280,29 +498,31 @@ class MapView:
             "WASHINGTON":(0.062,0.185),
         }
         try:
-            fn_terr = pygame.font.SysFont("Georgia",24,italic=True)
-            fn_terr_sm = pygame.font.SysFont("Georgia",18,italic=True)
-            for name,(lx_n,ly_n) in TERR_LABEL_POS.items():
-                c_n,r_n = world_to_hex(lx_n,ly_n)
-                px_n,py_n = self.hex_center(c_n,r_n)
-                fn_use = fn_terr if len(name)<=8 else fn_terr_sm
-                # Drop shadow
-                surf.blit(fn_use.render(name,True,(190,170,120)),
-                          fn_use.render(name,True,(190,170,120)).get_rect(center=(px_n+1,py_n+1)))
-                surf.blit(fn_use.render(name,True,(80,58,24)),
-                          fn_use.render(name,True,(80,58,24)).get_rect(center=(px_n,py_n)))
-        except: pass
+            fn_terr = self._map_font(22, italic=True)
+            fn_terr_sm = self._map_font(16, italic=True)
+            for name, (lx_n, ly_n) in TERR_LABEL_POS.items():
+                c_n, r_n = world_to_hex(lx_n, ly_n)
+                px_n, py_n = self.hex_center(c_n, r_n)
+                fn_use = fn_terr if len(name) <= 8 else fn_terr_sm
+
+                spaced = "  ".join(name)
+                ts_sh = fn_use.render(spaced, True, (190, 170, 120))
+                surf.blit(ts_sh, ts_sh.get_rect(center=(px_n + 1, py_n + 1)))
+                ts_main = fn_use.render(spaced, True, (80, 58, 24))
+                surf.blit(ts_main, ts_main.get_rect(center=(px_n, py_n)))
+        except Exception:
+            pass
 
         # ── 5. Visited trail ──────────────────────────────────────────────────
         if len(s.hex_trail) >= 2:
             trail_pts = [self.hex_center(c,r) for c,r in s.hex_trail]
             smooth_trail = self._catmull_rom(trail_pts, steps=8)
             # Outer glow
-            pygame.draw.lines(surf,(200,120,40),False,smooth_trail,12)
+            pygame.draw.lines(surf,(200,120,40),False,smooth_trail,20)
             # Main red ink line
-            pygame.draw.lines(surf,(168,52,16),False,smooth_trail,7)
+            pygame.draw.lines(surf,(168,52,16),False,smooth_trail,11)
             # Parchment centre
-            pygame.draw.lines(surf,(230,190,150),False,smooth_trail,2)
+            pygame.draw.lines(surf,(230,190,150),False,smooth_trail,4)
             # Footstep dots at each hex centre
             for pt in trail_pts:
                 pygame.draw.circle(surf,(168,52,16),pt,6)
@@ -310,7 +530,7 @@ class MapView:
 
         # ── 6. Waypoint markers ───────────────────────────────────────────────
         try:
-            fn_wp_i = pygame.font.SysFont("Georgia", 13, italic=True)
+            fn_wp_i = self._map_font(12, italic=True)
         except Exception:
             fn_wp_i = None
 
@@ -374,34 +594,132 @@ class MapView:
                 pygame.draw.rect(surf,(218,200,155),pill,border_radius=3)
                 surf.blit(ts_g,g_r)
 
-        # ── 7. Cartouche ──────────────────────────────────────────────────────
-        cx3=24; cy3=self.CANVAS_H-160; cw3=350; ch3=130
-        # Shadow
-        pygame.draw.rect(surf,(0,0,0),(cx3+4,cy3+4,cw3,ch3))
-        pygame.draw.rect(surf,(208,188,128),(cx3,cy3,cw3,ch3))
-        pygame.draw.rect(surf,(62,46,18),(cx3,cy3,cw3,ch3),5)
-        pygame.draw.rect(surf,(90,68,24),(cx3+8,cy3+8,cw3-16,ch3-16),2)
-        # Corner ornaments
-        for ccx4,ccy4,sx4,sy4 in [(cx3+8,cy3+8,14,0),(cx3+8,cy3+8,0,14),
-                                    (cx3+cw3-8,cy3+8,-14,0),(cx3+cw3-8,cy3+8,0,14),
-                                    (cx3+8,cy3+ch3-8,14,0),(cx3+8,cy3+ch3-8,0,-14),
-                                    (cx3+cw3-8,cy3+ch3-8,-14,0),(cx3+cw3-8,cy3+ch3-8,0,-14)]:
-            pygame.draw.line(surf,(62,46,18),(ccx4,ccy4),(ccx4+sx4,ccy4+sy4),3)
+        # ── 7. Cartouche with scrollwork ────────────────────────────────────
+        cx3 = 24
+        cy3 = self.CANVAS_H - 175
+        cw3 = 380
+        ch3 = 150
+
+        sh_s = pygame.Surface((cw3 + 8, ch3 + 8), pygame.SRCALPHA)
+        sh_s.fill((0, 0, 0, 60))
+        surf.blit(sh_s, (cx3 + 4, cy3 + 4))
+
+        pygame.draw.rect(surf, (215, 198, 148), (cx3, cy3, cw3, ch3))
+
+        for i in range(0, cw3 + ch3, 10):
+            pygame.draw.line(
+                surf, (222, 206, 158),
+                (cx3 + i, cy3), (cx3 + max(0, i - ch3), cy3 + ch3), 1,
+            )
+
+        pygame.draw.rect(surf, (62, 46, 18), (cx3, cy3, cw3, ch3), 4)
+        pygame.draw.rect(surf, (90, 68, 24), (cx3 + 6, cy3 + 6, cw3 - 12, ch3 - 12), 2)
+        pygame.draw.rect(surf, (110, 85, 35), (cx3 + 10, cy3 + 10, cw3 - 20, ch3 - 20), 1)
+
+        rope_step = 12
+        for edge in range(4):
+            if edge == 0:
+                pts = [(cx3 + i, cy3 + 3) for i in range(3, cw3 - 3, rope_step)]
+            elif edge == 1:
+                pts = [(cx3 + i, cy3 + ch3 - 3) for i in range(3, cw3 - 3, rope_step)]
+            elif edge == 2:
+                pts = [(cx3 + 3, cy3 + i) for i in range(3, ch3 - 3, rope_step)]
+            else:
+                pts = [(cx3 + cw3 - 3, cy3 + i) for i in range(3, ch3 - 3, rope_step)]
+            for j, (rx, ry) in enumerate(pts):
+                off = 2 if j % 2 == 0 else -2
+                if edge < 2:
+                    pygame.draw.circle(surf, (90, 68, 30), (rx, ry + off), 2)
+                else:
+                    pygame.draw.circle(surf, (90, 68, 30), (rx + off, ry), 2)
+
+        for ccx, ccy, sdx, sdy in [
+            (cx3 + 6, cy3 + 6, 1, 1), (cx3 + cw3 - 6, cy3 + 6, -1, 1),
+            (cx3 + 6, cy3 + ch3 - 6, 1, -1), (cx3 + cw3 - 6, cy3 + ch3 - 6, -1, -1),
+        ]:
+            pygame.draw.line(surf, (62, 46, 18), (ccx, ccy), (ccx + sdx * 18, ccy), 2)
+            pygame.draw.line(surf, (62, 46, 18), (ccx, ccy), (ccx, ccy + sdy * 18), 2)
+            curl_pts = []
+            for t in range(8):
+                a = math.radians(t * 30 * sdx * sdy)
+                curl_pts.append((
+                    ccx + sdx * (20 + int(math.cos(a) * 6)),
+                    ccy + sdy * (2 + int(math.sin(a) * 4)),
+                ))
+            if len(curl_pts) >= 2:
+                pygame.draw.lines(surf, (90, 68, 24), False, curl_pts, 1)
+
         try:
-            fct=pygame.font.SysFont("Georgia",14,italic=True)
-            fcb=pygame.font.SysFont("Georgia",20,bold=True)
-            cxm=cx3+cw3//2
-            for cy3_off,txt3,fn3 in [
-                (16, "MAP of the",                         fct),
-                (36, "LOUISIANA TERRITORY",                fcb),
-                (62, "Explored by Capts LEWIS & CLARK",   fct),
-                (82, "By order of President Jefferson",   fct),
-                (102,"Anno Domini MDCCCIV",                fct),
+            fct = self._map_font(12, italic=True)
+            fcb = self._map_font(16, bold=True)
+            cxm = cx3 + cw3 // 2
+
+            pygame.draw.line(
+                surf, (90, 68, 24),
+                (cx3 + 30, cy3 + 14), (cx3 + cw3 - 30, cy3 + 14), 1,
+            )
+
+            for cy3_off, txt3, fn3 in [
+                (18, "MAP of the", fct),
+                (36, "LOUISIANA TERRITORY", fcb),
+                (60, "Explored by Capts LEWIS & CLARK", fct),
+                (78, "By order of President Jefferson", fct),
+                (96, "Anno Domini MDCCCIV", fct),
             ]:
-                col3=(40,28,8) if fn3==fcb else (78,56,20)
-                surf.blit(fn3.render(txt3,True,col3),
-                          fn3.render(txt3,True,col3).get_rect(centerx=cxm,top=cy3+cy3_off))
-        except: pass
+                col3 = (40, 28, 8) if fn3 == fcb else (78, 56, 20)
+                ts = fn3.render(txt3, True, col3)
+                surf.blit(ts, ts.get_rect(centerx=cxm, top=cy3 + cy3_off))
+
+            pygame.draw.line(
+                surf, (90, 68, 24),
+                (cx3 + 30, cy3 + 56), (cx3 + cw3 - 30, cy3 + 56), 1,
+            )
+
+            scale_y = cy3 + ch3 - 26
+            scale_x = cx3 + 40
+            scale_w = cw3 - 80
+            fs = self._map_font(8)
+            pygame.draw.line(surf, (60, 42, 14), (scale_x, scale_y), (scale_x + scale_w, scale_y), 2)
+            for si in range(5):
+                sx = scale_x + int(si / 4 * scale_w)
+                pygame.draw.line(surf, (60, 42, 14), (sx, scale_y - 4), (sx, scale_y + 4), 1)
+                miles = str(si * 100)
+                ts = fs.render(miles, True, (78, 56, 20))
+                surf.blit(ts, ts.get_rect(centerx=sx, top=scale_y + 5))
+            ts = fs.render("Miles (approx.)", True, (78, 56, 20))
+            surf.blit(ts, ts.get_rect(centerx=scale_x + scale_w // 2, top=scale_y + 16))
+
+        except Exception:
+            pass
+
+        # ── 8. Decorative double-line map border ─────────────────────────────
+        W, H = self.CANVAS_W, self.CANVAS_H
+        pygame.draw.rect(surf, (80, 58, 20), (0, 0, W, H), 5)
+        pygame.draw.rect(surf, (120, 90, 35), (8, 8, W - 16, H - 16), 2)
+        pygame.draw.rect(surf, (60, 42, 14), (14, 14, W - 28, H - 28), 1)
+        for corner_x, corner_y, sx, sy in [
+            (14, 14, 1, 1), (W - 14, 14, -1, 1),
+            (14, H - 14, 1, -1), (W - 14, H - 14, -1, -1),
+        ]:
+            for arm_len in [20, 16]:
+                pygame.draw.line(
+                    surf, (80, 58, 20),
+                    (corner_x, corner_y),
+                    (corner_x + sx * arm_len, corner_y), 2,
+                )
+                pygame.draw.line(
+                    surf, (80, 58, 20),
+                    (corner_x, corner_y),
+                    (corner_x, corner_y + sy * arm_len), 2,
+                )
+            pygame.draw.polygon(
+                surf, (140, 100, 30),
+                [
+                    (corner_x + sx * 3, corner_y + sy * 3),
+                    (corner_x + sx * 8, corner_y + sy * 3),
+                    (corner_x + sx * 3, corner_y + sy * 8),
+                ],
+            )
 
         self._canvas = surf
         self._canvas_dirty = False
@@ -465,6 +783,56 @@ class MapView:
         neighbours  = set(hex_neighbours(s.hex_col, s.hex_row))
         pulse       = abs(math.sin(self.frame * 0.07))
         r_sc        = self.hex_radius_screen()
+
+        # ── Fog of war: sepia wash on unvisited hexes ──────────────────────
+        for row in range(assets.HEX_ROWS):
+            for col in range(assets.HEX_COLS):
+                hkey = (col, row)
+                if hkey in visited_set or hkey == cur_hex:
+                    continue
+                if hkey in neighbours:
+                    continue
+                sx9, sy9 = self.hex_screen_pos(col, row)
+                if not R.inflate(r_sc * 4, r_sc * 4).collidepoint(sx9, sy9):
+                    continue
+                pts_sc = [
+                    self.canvas_to_screen(*p)
+                    for p in self.hex_poly_abs(col, row)
+                ]
+                fog_s = pygame.Surface(
+                    (r_sc * 4 + 4, r_sc * 4 + 4), pygame.SRCALPHA,
+                )
+                local_pts = [
+                    (p[0] - sx9 + r_sc * 2 + 2, p[1] - sy9 + r_sc * 2 + 2)
+                    for p in pts_sc
+                ]
+                shimmer = int(12 * math.sin(self.frame * 0.06 + col * 0.3 + row * 0.2))
+                fog_a = max(120, min(195, 158 + shimmer))
+                pygame.draw.polygon(
+                    fog_s, (180, 165, 130, fog_a), local_pts,
+                )
+                surf.blit(fog_s, (sx9 - r_sc * 2 - 2, sy9 - r_sc * 2 - 2))
+
+        if r_sc > 8:
+            try:
+                fog_font = self._map_font(max(7, int(8 * z)), italic=True)
+                fog_rng = random.Random(777)
+                for row in range(0, assets.HEX_ROWS, 5):
+                    for col in range(0, assets.HEX_COLS, 8):
+                        hkey = (col, row)
+                        if hkey in visited_set or hkey == cur_hex:
+                            continue
+                        sx9, sy9 = self.hex_screen_pos(col, row)
+                        if not R.collidepoint(sx9, sy9):
+                            continue
+                        label = fog_rng.choice([
+                            "Terra Incognita", "Unexplored",
+                            "Parts Unknown", "Uncharted",
+                        ])
+                        ts = fog_font.render(label, True, (150, 130, 95))
+                        surf.blit(ts, ts.get_rect(center=(sx9, sy9)))
+            except Exception:
+                pass
 
         for row in range(assets.HEX_ROWS):
             for col in range(assets.HEX_COLS):
@@ -530,7 +898,7 @@ class MapView:
                         if content and content["type"]!="waypoint":
                             tip_lines.append(f"↳ {content.get('name','?')[:28]}")
                         try:
-                            ft=pygame.font.SysFont("Georgia",max(9,int(10*z)))
+                            ft = self._map_font(max(9, int(10 * z)))
                             tw=max(ft.size(l)[0] for l in tip_lines)+16
                             th=len(tip_lines)*15+10
                             tip_r=pygame.Rect(sx9-tw//2,sy9-r_sc-th-6,tw,th)
@@ -587,7 +955,7 @@ class MapView:
             if show_lbl:
                 disp = wp_display_name(i, s.visited_hexes)
                 try:
-                    fw = pygame.font.SysFont("Georgia",max(8,int(12*z)),bold=is_cur_wp)
+                    fw = self._map_font(max(8, int(12 * z)), bold=is_cur_wp)
                     lbl_col=(180,40,20) if is_cur_wp else ((120,40,40) if is_dead else (58,40,8))
                     box_w=fw.size(disp)[0]+14
                     lbl_y=sy9-sz9-20 if sy9>R.y+50 else sy9+sz9+6
@@ -602,25 +970,90 @@ class MapView:
         # ── Particles ─────────────────────────────────────────────────────────
         self._draw_particles(surf)
 
-        # ── Compass rose (screen-space, bottom right) ─────────────────────────
-        cr=42; crx=R.right-cr-12; cry=R.bottom-cr-12
-        pygame.draw.circle(surf,(220,205,160),(crx,cry),cr+4)
-        pygame.draw.circle(surf,(100,78,32),(crx,cry),cr+4,2)
-        pygame.draw.circle(surf,(196,178,128),(crx,cry),cr)
-        for pt9 in range(16):
-            ang9=math.radians(pt9*22.5)
-            ln=(cr-3) if pt9%4==0 else ((cr-7) if pt9%2==0 else cr-13)
-            pygame.draw.line(surf,(58,40,8),(crx,cry),(crx+int(math.sin(ang9)*ln),cry-int(math.cos(ang9)*ln)),
-                             2 if pt9%4==0 else 1)
-        for lb9,ag9 in [("N",0),("E",90),("S",180),("W",270)]:
-            lxc=crx+int(math.sin(math.radians(ag9))*(cr-10))
-            lyc=cry-int(math.cos(math.radians(ag9))*(cr-10))
+        # ── Ornate compass rose (screen-space, bottom right) ────────────────
+        cr = 48
+        crx = R.right - cr - 14
+        cry = R.bottom - cr - 14
+
+        outer_ring = pygame.Surface((cr * 2 + 20, cr * 2 + 20), pygame.SRCALPHA)
+        oc = cr + 10
+        pygame.draw.circle(outer_ring, (220, 205, 160, 220), (oc, oc), cr + 6)
+        pygame.draw.circle(outer_ring, (160, 140, 90, 200), (oc, oc), cr + 6, 2)
+        pygame.draw.circle(outer_ring, (196, 178, 128, 230), (oc, oc), cr)
+        pygame.draw.circle(outer_ring, (100, 78, 32, 180), (oc, oc), cr, 2)
+        pygame.draw.circle(outer_ring, (180, 160, 110, 160), (oc, oc), cr - 4, 1)
+        for tick in range(32):
+            a = math.radians(tick * 11.25)
+            ln = 4 if tick % 8 == 0 else (3 if tick % 4 == 0 else 2)
+            r_in = cr - 2 - ln
+            r_out = cr - 1
+            pygame.draw.line(
+                outer_ring, (80, 60, 25, 160),
+                (oc + int(math.sin(a) * r_in), oc - int(math.cos(a) * r_in)),
+                (oc + int(math.sin(a) * r_out), oc - int(math.cos(a) * r_out)),
+                1,
+            )
+        surf.blit(outer_ring, (crx - cr - 10, cry - cr - 10))
+
+        cardinal_len = cr - 8
+        inter_len = cr - 18
+        for i in range(8):
+            a = math.radians(i * 45)
+            is_card = i % 2 == 0
+            ln = cardinal_len if is_card else inter_len
+            w = 3 if is_card else 2
+            tip_x = crx + int(math.sin(a) * ln)
+            tip_y = cry - int(math.cos(a) * ln)
+
+            if is_card:
+                perp = math.radians(i * 45 + 90)
+                bw = 8
+                pts_star = [
+                    (tip_x, tip_y),
+                    (crx + int(math.sin(perp) * bw), cry - int(math.cos(perp) * bw)),
+                    (crx, cry),
+                    (crx - int(math.sin(perp) * bw), cry + int(math.cos(perp) * bw)),
+                ]
+                dark = (80, 55, 20) if i in (0, 2) else (120, 90, 40)
+                light = (200, 170, 100) if i in (0, 2) else (230, 210, 160)
+                pygame.draw.polygon(surf, dark, [pts_star[0], pts_star[1], pts_star[2]])
+                pygame.draw.polygon(surf, light, [pts_star[0], pts_star[3], pts_star[2]])
+                pygame.draw.polygon(surf, (60, 42, 14), pts_star, 1)
+            else:
+                pygame.draw.line(surf, (100, 75, 30), (crx, cry), (tip_x, tip_y), w)
+
+        if i == 0:
+            pass
+        fleur_y = cry - cardinal_len - 4
+        pygame.draw.polygon(
+            surf, (180, 40, 20),
+            [(crx, fleur_y - 6), (crx - 4, fleur_y), (crx + 4, fleur_y)],
+        )
+        pygame.draw.circle(surf, (180, 40, 20), (crx, fleur_y - 7), 3)
+
+        for lb9, ag9 in [("N", 0), ("E", 90), ("S", 180), ("W", 270)]:
+            dist = cr - 12
+            lxc = crx + int(math.sin(math.radians(ag9)) * dist)
+            lyc = cry - int(math.cos(math.radians(ag9)) * dist)
             try:
-                fc9=pygame.font.SysFont("Georgia",10,bold=True)
-                surf.blit(fc9.render(lb9,True,(200,60,20) if lb9=="N" else (58,40,8)),
-                          fc9.render(lb9,True,(200,60,20) if lb9=="N" else (58,40,8)).get_rect(center=(lxc,lyc)))
-            except: pass
-        pygame.draw.circle(surf,(58,40,8),(crx,cry),3)
+                fc9 = self._map_font(9, bold=True)
+                lbl_col = (180, 40, 20) if lb9 == "N" else (58, 40, 8)
+                ts9 = fc9.render(lb9, True, lbl_col)
+                bg_pill = pygame.Surface(
+                    (ts9.get_width() + 6, ts9.get_height() + 2), pygame.SRCALPHA,
+                )
+                bg_pill.fill((220, 205, 160, 180))
+                surf.blit(bg_pill, (
+                    lxc - bg_pill.get_width() // 2,
+                    lyc - bg_pill.get_height() // 2,
+                ))
+                surf.blit(ts9, ts9.get_rect(center=(lxc, lyc)))
+            except Exception:
+                pass
+
+        pygame.draw.circle(surf, (140, 100, 30), (crx, cry), 5)
+        pygame.draw.circle(surf, (220, 180, 80), (crx, cry), 3)
+        pygame.draw.circle(surf, (80, 55, 20), (crx, cry), 5, 1)
 
         # ── Zoom indicator (bottom-left of map) ──────────────────────────────
         zoom_pct = int(self.zoom / 1.8 * 100)
@@ -629,12 +1062,17 @@ class MapView:
         pygame.draw.rect(surf, (200,172,100), (zi_x,zi_y,int(zi_w*zoom_pct/100),zi_h), border_radius=2)
         pygame.draw.rect(surf, (140,112,60), (zi_x,zi_y,zi_w,zi_h), 1, border_radius=2)
         try:
-            fz=pygame.font.SysFont("Georgia",9)
-            surf.blit(fz.render("ZOOM  scroll↕  R=reset",True,(154,128,72)),(zi_x,zi_y-13))
-        except: pass
+            fz = self._map_font(9)
+            surf.blit(
+                fz.render("ZOOM  scroll\u2195  R=reset", True, (154, 128, 72)),
+                (zi_x, zi_y - 13),
+            )
+        except Exception:
+            pass
 
         surf.set_clip(clip_save)
-        pygame.draw.rect(surf, assets.UI_BORDER, R, 2)
+        pygame.draw.rect(surf, (60, 42, 14), R.inflate(2, 2), 3)
+        pygame.draw.rect(surf, assets.UI_BORDER, R, 1)
 
     # ── handle ────────────────────────────────────────────────────────────────
     def handle(self, event, state, on_hex_click):
@@ -690,7 +1128,7 @@ class MapView:
         self.pan_y = max(0, cy - (R.h/self.zoom)/2)
 
     def zoom_reset(self):
-        self.zoom = 0.22
+        self.zoom = 0.38
         sx, sy = self.hex_center(*assets.WP_HEX[0])   # Camp Dubois
         R = self.MAP_RECT
         self.pan_x = max(0, sx - (R.w/self.zoom)/2)

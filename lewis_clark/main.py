@@ -16,6 +16,8 @@ load_all(assets)
 from lewis_clark.app import App
 from lewis_clark.fonts import load_fonts
 from lewis_clark.hex_grid import _build_hex_contents
+from lewis_clark.image_assets import load_game_images
+from lewis_clark.textures import generate_all as generate_textures
 
 
 def main() -> None:
@@ -32,6 +34,8 @@ def main() -> None:
     assets.clock = pygame.time.Clock()
 
     _build_hex_contents()
+    generate_textures()
+    load_game_images()
 
     App().run()
 

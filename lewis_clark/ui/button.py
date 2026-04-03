@@ -57,10 +57,18 @@ class Button:
         surf.blit(sh, (r.x + 2, r.y + 2))
         # Main face
         pygame.draw.rect(surf, col, r, border_radius=4)
-        # Wood-grain overlay
+        # Parchment texture + wood-grain overlay
+        tex = getattr(assets, "TEX_PARCHMENT", None)
+        if tex:
+            btn_tex = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
+            for ty in range(0, r.h, tex.get_height()):
+                for tx in range(0, r.w, tex.get_width()):
+                    btn_tex.blit(tex, (tx, ty))
+            btn_tex.set_alpha(12)
+            surf.blit(btn_tex, r.topleft)
         gs = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
-        for i in range(0, r.w + r.h, 12):
-            pygame.draw.line(gs, (255, 255, 255, 8), (i, 0), (max(0, i - r.h), r.h))
+        for i in range(0, r.w + r.h, 10):
+            pygame.draw.line(gs, (255, 255, 255, 6), (i, 0), (max(0, i - r.h), r.h))
         surf.blit(gs, r.topleft)
         # Emboss: bright top edge, dark bottom edge
         pygame.draw.line(

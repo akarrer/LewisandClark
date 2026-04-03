@@ -81,24 +81,51 @@ def draw_panel(
     accent=None,
     corners=True,
 ):
-    """Panel with wood-grain texture, optional title strip, corner brackets."""
+    """Panel with parchment texture, optional title strip, corner brackets."""
     r = pygame.Rect(rect)
-    sh = alpha_surf(r.w + 4, r.h + 4, (0, 0, 0), 80)
-    surf.blit(sh, (r.x + 2, r.y + 2))
+
+    sh = alpha_surf(r.w + 5, r.h + 5, (0, 0, 0), 90)
+    surf.blit(sh, (r.x + 3, r.y + 3))
+
     pygame.draw.rect(surf, fill, r, border_radius=radius)
+
+    tex = getattr(assets, "IMG_PARCHMENT_TILE", None) or getattr(
+        assets, "TEX_PARCHMENT", None
+    )
+    if tex:
+        parch_overlay = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
+        for ty in range(0, r.h, tex.get_height()):
+            for tx in range(0, r.w, tex.get_width()):
+                parch_overlay.blit(tex, (tx, ty))
+        parch_overlay.set_alpha(255)
+        surf.blit(parch_overlay, r.topleft, special_flags=pygame.BLEND_MULT)
+
     grain_s = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
-    for i in range(0, r.w + r.h, 14):
-        pygame.draw.line(grain_s, (255, 255, 255, 6), (i, 0), (max(0, i - r.h), r.h))
+    for i in range(0, r.w + r.h, 10):
+        pygame.draw.line(grain_s, (255, 255, 255, 5), (i, 0), (max(0, i - r.h), r.h))
+    for i in range(0, r.w + r.h, 16):
+        pygame.draw.line(
+            grain_s, (0, 0, 0, 4),
+            (i + 5, 0), (max(0, i + 5 - r.h), r.h),
+        )
     surf.blit(grain_s, r.topleft)
+
     pygame.draw.rect(surf, darken(fill, 0.4), r, border_radius=radius)
     pygame.draw.rect(surf, border, r, 1, border_radius=radius)
     hi_r = pygame.Rect(r.x + 1, r.y + 1, r.w - 2, 1)
     pygame.draw.rect(surf, lighten(fill, 1.6), hi_r)
+    bot_r = pygame.Rect(r.x + 1, r.bottom - 2, r.w - 2, 1)
+    pygame.draw.rect(surf, darken(fill, 0.3), bot_r)
+
     if title:
         strip = pygame.Rect(r.x, r.y, r.w, 20)
         ac = accent or border
         pygame.draw.rect(surf, darken(ac, 0.35), strip, border_radius=radius)
         pygame.draw.line(surf, ac, (r.x, r.y + 20), (r.right, r.y + 20), 1)
+        pygame.draw.line(
+            surf, lighten(ac, 0.6),
+            (r.x + 4, r.y + 21), (r.right - 4, r.y + 21), 1,
+        )
         draw_text(
             surf,
             title,
