@@ -1,0 +1,207 @@
+[
+  [
+    [
+      22,
+      10
+    ],
+    "buffalo",
+    "Vast Buffalo Herd",
+    "Meat enough for weeks.",
+    {
+      "food": 20,
+      "morale": 8
+    }
+  ],
+  [
+    [
+      19,
+      8
+    ],
+    "spring",
+    "Fresh Water Spring",
+    "Clean water — health restored.",
+    {
+      "health": 10
+    }
+  ],
+  [
+    [
+      15,
+      7
+    ],
+    "cache",
+    "Fur Trader Cache",
+    "Abandoned supplies.",
+    {
+      "food": 10,
+      "inventory": {
+        "Furs": 2
+      }
+    }
+  ],
+  [
+    [
+      13,
+      6
+    ],
+    "bison",
+    "Bison Crossing",
+    "Prime hunting ground.",
+    {
+      "food": 15,
+      "morale": 5
+    }
+  ],
+  [
+    [
+      10,
+      6
+    ],
+    "elk",
+    "Elk in the Timber",
+    "Drouillard spots a large herd.",
+    {
+      "food": 12,
+      "morale": 6
+    }
+  ],
+  [
+    [
+      8,
+      5
+    ],
+    "springs",
+    "Mineral Springs",
+    "The men drink deep.",
+    {
+      "health": 8,
+      "morale": 10
+    }
+  ],
+  [
+    [
+      6,
+      6
+    ],
+    "pass",
+    "Shoshone Trail Marker",
+    "A cairn — someone knows this pass.",
+    {
+      "health": 5,
+      "morale": 8
+    }
+  ],
+  [
+    [
+      3,
+      6
+    ],
+    "salmon",
+    "Salmon Run",
+    "The river is thick with fish.",
+    {
+      "food": 18,
+      "morale": 12
+    }
+  ],
+  [
+    [
+      21,
+      12
+    ],
+    "trading",
+    "French Trading Post",
+    "A lonely trader shares news.",
+    {
+      "food": 8,
+      "morale": 5
+    }
+  ],
+  [
+    [
+      17,
+      11
+    ],
+    "buffalo",
+    "Southern Buffalo Herd",
+    "Enormous herd blocks the trail.",
+    {
+      "food": 22,
+      "morale": 6
+    }
+  ],
+  [
+    [
+      14,
+      11
+    ],
+    "water",
+    "Sand Hills Spring",
+    "Brackish but drinkable.",
+    {
+      "health": 6
+    }
+  ],
+  [
+    [
+      11,
+      10
+    ],
+    "ruins",
+    "Abandoned Pawnee Village",
+    "Empty lodges — left in a hurry.",
+    {
+      "morale": -5
+    }
+  ],
+  [
+    [
+      13,
+      4
+    ],
+    "cache",
+    "Hudson's Bay Cache",
+    "British trappers left winter stores.",
+    {
+      "food": 14
+    }
+  ],
+  [
+    [
+      10,
+      3
+    ],
+    "post",
+    "Métis Settlement",
+    "Mixed-blood traders, friendly.",
+    {
+      "food": 8,
+      "morale": 4
+    }
+  ],
+  [
+    [
+      11,
+      10
+    ],
+    "ruins2",
+    "Comanche Warning Signs",
+    "Skulls on poles — turn back.",
+    {
+      "morale": -12,
+      "health": -4
+    }
+  ],
+  [
+    [
+      9,
+      10
+    ],
+    "spring2",
+    "Desert Spring",
+    "Barely enough for the men.",
+    {
+      "health": 4
+    }
+  ]
+]

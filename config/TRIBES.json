@@ -1,0 +1,93 @@
+{
+  "Missouri": {
+    "name": "Missouri",
+    "relation": 50,
+    "wants": [
+      "Tobacco",
+      "Iron Tools"
+    ],
+    "offers": [
+      "Corn",
+      "Dried Meat"
+    ],
+    "region": "plains"
+  },
+  "Otoe": {
+    "name": "Otoe",
+    "relation": 50,
+    "wants": [
+      "Trade Beads",
+      "Mirrors"
+    ],
+    "offers": [
+      "Horses",
+      "Dried Meat"
+    ],
+    "region": "plains"
+  },
+  "Sioux": {
+    "name": "Teton Sioux",
+    "relation": 30,
+    "wants": [
+      "Whiskey",
+      "Gunpowder"
+    ],
+    "offers": [
+      "Buffalo Hides",
+      "Furs"
+    ],
+    "region": "plains"
+  },
+  "Mandan": {
+    "name": "Mandan",
+    "relation": 70,
+    "wants": [
+      "Iron Tools",
+      "Cloth Bolts"
+    ],
+    "offers": [
+      "Corn",
+      "Mountain Maps"
+    ],
+    "region": "plains"
+  },
+  "Shoshone": {
+    "name": "Shoshone",
+    "relation": 55,
+    "wants": [
+      "Jefferson Medals",
+      "Cloth Bolts"
+    ],
+    "offers": [
+      "Horses",
+      "Mountain Maps"
+    ],
+    "region": "mountain"
+  },
+  "NezPerce": {
+    "name": "Nez Perce",
+    "relation": 65,
+    "wants": [
+      "Iron Tools",
+      "Tobacco"
+    ],
+    "offers": [
+      "Canoes",
+      "Salmon"
+    ],
+    "region": "mountain"
+  },
+  "Clatsop": {
+    "name": "Clatsop",
+    "relation": 60,
+    "wants": [
+      "Trade Beads",
+      "Mirrors"
+    ],
+    "offers": [
+      "Salmon",
+      "Furs"
+    ],
+    "region": "coastal"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "fort": "Fortified Settlement",
+  "camp": "River Camp",
+  "junction": "River Confluence",
+  "landmark": "Natural Landmark",
+  "pass": "Mountain Pass",
+  "start": "Camp Dubois",
+  "dead_end": "Unknown Territory"
+}

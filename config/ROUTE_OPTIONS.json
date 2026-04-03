@@ -1,0 +1,200 @@
+{
+  "[0,1]": [
+    {
+      "name": "Missouri River",
+      "tag": "river",
+      "desc": "Follow the current north. Safe, steady progress on the river highway.",
+      "food": -8,
+      "health": 0,
+      "morale": 3,
+      "days": 18,
+      "risk": "low"
+    },
+    {
+      "name": "Overland Trail",
+      "tag": "land",
+      "desc": "Cut across Missouri prairie. Faster march but punishing heat and rough terrain.",
+      "food": -13,
+      "health": -6,
+      "morale": 0,
+      "days": 12,
+      "risk": "medium"
+    }
+  ],
+  "[1,2]": [
+    {
+      "name": "Missouri River",
+      "tag": "river",
+      "desc": "The proven river route continues northward through Otoe lands.",
+      "food": -8,
+      "health": 0,
+      "morale": 3,
+      "days": 16,
+      "risk": "low"
+    },
+    {
+      "name": "Prairie Shortcut",
+      "tag": "land",
+      "desc": "Gamble through open plains. Swift if luck holds — dangerous if it doesn't.",
+      "food": -6,
+      "health": -9,
+      "morale": 5,
+      "days": 10,
+      "risk": "high"
+    }
+  ],
+  "[2,3]": [
+    {
+      "name": "River Route",
+      "tag": "river",
+      "desc": "Steady Missouri progress. Sioux bands may demand toll.",
+      "food": -10,
+      "health": 0,
+      "morale": 2,
+      "days": 14,
+      "risk": "medium"
+    },
+    {
+      "name": "Plains Crossing",
+      "tag": "land",
+      "desc": "March through the tall-grass sea. Remote but Teton Sioux territory is everywhere.",
+      "food": -7,
+      "health": -5,
+      "morale": -5,
+      "days": 11,
+      "risk": "high"
+    }
+  ],
+  "[3,4]": [
+    {
+      "name": "North Fork",
+      "tag": "river",
+      "desc": "A longer but sheltered channel — fewer confrontations, more fuel for fires.",
+      "food": -12,
+      "health": 2,
+      "morale": 2,
+      "days": 20,
+      "risk": "low"
+    },
+    {
+      "name": "Main Channel",
+      "tag": "river",
+      "desc": "The direct Missouri route north toward Mandan country.",
+      "food": -10,
+      "health": 0,
+      "morale": 0,
+      "days": 16,
+      "risk": "medium"
+    }
+  ],
+  "[4,5]": [
+    {
+      "name": "Missouri Headwaters",
+      "tag": "river",
+      "desc": "Follow the river to its mountain origin. Sublime but demanding.",
+      "food": -12,
+      "health": -4,
+      "morale": 5,
+      "days": 18,
+      "risk": "medium"
+    },
+    {
+      "name": "Overland March",
+      "tag": "land",
+      "desc": "Strike cross-country toward the Yellowstone. Hard ground, harder weather.",
+      "food": -15,
+      "health": -9,
+      "morale": 0,
+      "days": 14,
+      "risk": "high"
+    }
+  ],
+  "[5,6]": [
+    {
+      "name": "River Trail",
+      "tag": "river",
+      "desc": "The upper Missouri narrows between canyon walls. Spectacular — and perilous.",
+      "food": -10,
+      "health": 0,
+      "morale": 3,
+      "days": 15,
+      "risk": "medium"
+    },
+    {
+      "name": "Mountain Bypass",
+      "tag": "mountain",
+      "desc": "A rugged shortcut through the Rocky foothills. Saves days, costs health.",
+      "food": -8,
+      "health": -14,
+      "morale": -5,
+      "days": 10,
+      "risk": "high"
+    }
+  ],
+  "[6,7]": [
+    {
+      "name": "Shoshone Pass",
+      "tag": "mountain",
+      "desc": "The Shoshone have crossed this pass for generations. Seek their guidance.",
+      "food": -12,
+      "health": -6,
+      "morale": 2,
+      "days": 14,
+      "risk": "medium"
+    },
+    {
+      "name": "Bitterroot Valley",
+      "tag": "mountain",
+      "desc": "Grueling forest canyons. Beautiful, brutal. The hardest march of the expedition.",
+      "food": -16,
+      "health": -12,
+      "morale": -8,
+      "days": 12,
+      "risk": "very_high"
+    }
+  ],
+  "[7,8]": [
+    {
+      "name": "Nez Perce Trail",
+      "tag": "mountain",
+      "desc": "The Nez Perce know every pass. With their guidance, the crossing is manageable.",
+      "food": -10,
+      "health": 0,
+      "morale": 5,
+      "days": 12,
+      "risk": "low"
+    },
+    {
+      "name": "Ridge Route",
+      "tag": "mountain",
+      "desc": "A high spine traverse with no cover. Ice, altitude, exposure.",
+      "food": -8,
+      "health": -16,
+      "morale": -12,
+      "days": 9,
+      "risk": "very_high"
+    }
+  ],
+  "[8,9]": [
+    {
+      "name": "Columbia River",
+      "tag": "river",
+      "desc": "Ride the great Columbia to tidewater. The river does the work.",
+      "food": -10,
+      "health": 3,
+      "morale": 10,
+      "days": 14,
+      "risk": "low"
+    },
+    {
+      "name": "Coastal Trail",
+      "tag": "land",
+      "desc": "Dense Pacific rainforest — wet, cold, exhausting. But you smell the ocean.",
+      "food": -12,
+      "health": -6,
+      "morale": 4,
+      "days": 11,
+      "risk": "medium"
+    }
+  ]
+}
