@@ -1,0 +1,784 @@
+[
+  {
+    "id": "grizzly",
+    "type": "wildlife",
+    "season": null,
+    "title": "Grizzly Bear Attack",
+    "symbol": "BEAR",
+    "intro": "A massive grizzly bursts from willow thickets at a dead charge. Lewis later writes: 'I had rather fight two Indians than one bear.'",
+    "choices": [
+      {
+        "label": "Stand and volley — drive it off",
+        "text": "Six balls later, the bear finally drops. Private Shannon is clawed badly but will recover. The corps feasts on bear meat.",
+        "effect": {
+          "food": 15,
+          "health": -18,
+          "morale": -5
+        }
+      },
+      {
+        "label": "Scatter into the river",
+        "text": "The men dive in all directions. The bear mauls one man before losing interest. York drags him to safety.",
+        "effect": {
+          "food": 0,
+          "health": -24,
+          "morale": -14
+        },
+        "char_bonus": {
+          "york": {
+            "morale": 10
+          }
+        }
+      },
+      {
+        "label": "Drouillard steps forward",
+        "text": "Drouillard, cool as January ice, draws the bear away and dispatches it with one shot. The corps watches in stunned silence.",
+        "effect": {
+          "food": 20,
+          "health": -4,
+          "morale": 22
+        },
+        "requires_char": "drouillard"
+      }
+    ]
+  },
+  {
+    "id": "buffalo",
+    "type": "wildlife",
+    "season": [
+      "Summer",
+      "Spring"
+    ],
+    "title": "Vast Buffalo Herd",
+    "symbol": "BISON",
+    "intro": "The horizon blackens. Clark estimates ten million buffalo — three days to pass. This is Jefferson's Louisiana in all its wild abundance.",
+    "choices": [
+      {
+        "label": "Lay over and hunt — fill every barrel",
+        "text": "Three days of magnificent hunting. Every container is packed. Drouillard alone brings in eleven.",
+        "effect": {
+          "food": 40,
+          "health": 5,
+          "morale": 22
+        },
+        "char_bonus": {
+          "drouillard": {
+            "food": 15
+          }
+        }
+      },
+      {
+        "label": "Take only what you can carry and press on",
+        "text": "Five animals — enough for a week — and you continue. Time is precious.",
+        "effect": {
+          "food": 20,
+          "health": 2,
+          "morale": 8
+        }
+      },
+      {
+        "label": "Drive a small herd toward camp",
+        "text": "York organizes a clever drive. The corps takes twelve animals in two hours without ranging far.",
+        "effect": {
+          "food": 35,
+          "health": 3,
+          "morale": 18
+        },
+        "requires_char": "york"
+      }
+    ]
+  },
+  {
+    "id": "sioux_confront",
+    "type": "diplomacy",
+    "season": null,
+    "title": "Teton Sioux Confrontation",
+    "symbol": "SWORDS",
+    "intro": "Three Teton Sioux warriors seize the bow rope of a pirogue. Two hundred warriors line the shore. Black Buffalo and The Partisan watch. The captains' hands move to their swords.",
+    "choices": [
+      {
+        "label": "Stand firm — draw weapons",
+        "text": "Both captains draw swords. The swivel gun swings toward shore. A tense hour passes. Black Buffalo intervenes and the warriors withdraw.",
+        "effect": {
+          "health": -5,
+          "morale": 5
+        }
+      },
+      {
+        "label": "Offer gifts and Jefferson Medals",
+        "text": "You present tobacco and medals. The Partisan is unsatisfied but Black Buffalo accepts. Tense — but bloodless.",
+        "effect": {
+          "morale": 3,
+          "inventory": {
+            "Tobacco": -2,
+            "Jefferson Medals": -1
+          }
+        }
+      },
+      {
+        "label": "York walks to the bow",
+        "text": "York addresses the warriors directly. His appearance transfixes them. The confrontation dissolves into astonished, peaceful questions.",
+        "effect": {
+          "health": 0,
+          "morale": 16
+        },
+        "requires_char": "york",
+        "char_bonus": {
+          "york": {
+            "morale": 12
+          }
+        }
+      },
+      {
+        "label": "Sacagawea speaks to a warrior she recognizes",
+        "text": "Sacagawea quietly points out a warrior who is her distant kinsman. The recognition changes the entire atmosphere.",
+        "effect": {
+          "morale": 20
+        },
+        "requires_char": "sacagawea",
+        "relation_bonus": 15
+      }
+    ]
+  },
+  {
+    "id": "river_crossing",
+    "type": "hardship",
+    "season": null,
+    "title": "Dangerous River Crossing",
+    "symbol": "WAVE",
+    "intro": "The Missouri runs wide here — three hundred yards of fast, cold current. The keelboat is heavy with stores. One bad decision and the expedition ends in the mud.",
+    "choices": [
+      {
+        "label": "Ferry everything across systematically",
+        "text": "It takes two full days, but every man, rifle, and barrel makes it safely. Methodical and sure.",
+        "effect": {
+          "food": -12,
+          "health": -4,
+          "morale": -6
+        }
+      },
+      {
+        "label": "Ride the current — attempt a direct crossing",
+        "text": "The keelboat nearly founders twice. A crate of gunpowder goes over. But you cross in four hours.",
+        "effect": {
+          "food": -6,
+          "health": -12,
+          "morale": -4,
+          "inventory": {
+            "Gunpowder": -2
+          }
+        }
+      },
+      {
+        "label": "Find a ford upstream with Drouillard",
+        "text": "Drouillard ranges three miles and finds a natural ford at a gravel bar. The crossing costs nothing.",
+        "effect": {
+          "food": -4,
+          "health": 0,
+          "morale": 8
+        },
+        "requires_char": "drouillard"
+      },
+      {
+        "label": "Hire native guides to show safe passage",
+        "text": "A Mandan family shows you a channel route. You cross safely and part as friends.",
+        "effect": {
+          "food": -5,
+          "health": 2,
+          "morale": 12,
+          "inventory": {
+            "Trade Beads": -2
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "winter_blizzard",
+    "type": "weather",
+    "season": [
+      "Winter",
+      "Autumn"
+    ],
+    "title": "Blizzard on the Plains",
+    "symbol": "SNOW",
+    "intro": "Temperature drops forty below. Men's beards freeze solid. The Mandan warned of winters like this. The thermometer cannot measure it.",
+    "choices": [
+      {
+        "label": "Dig in and build shelters",
+        "text": "Four days lost but the corps is saved. Frostbite claims two toes from Whitehouse.",
+        "effect": {
+          "food": -15,
+          "health": -10,
+          "morale": -10
+        }
+      },
+      {
+        "label": "Push on — generate body heat",
+        "text": "Brutal. Two men collapse and must be carried. But you find timber by nightfall.",
+        "effect": {
+          "food": -10,
+          "health": -20,
+          "morale": -8
+        }
+      },
+      {
+        "label": "Sacagawea negotiates shelter",
+        "text": "She goes alone into the storm and returns with a Hidatsa family who shelter the corps for four days.",
+        "effect": {
+          "food": -5,
+          "health": -3,
+          "morale": 5,
+          "inventory": {
+            "Tobacco": -2
+          }
+        },
+        "requires_char": "sacagawea"
+      }
+    ]
+  },
+  {
+    "id": "snake_bite",
+    "type": "wildlife",
+    "season": [
+      "Summer"
+    ],
+    "title": "Rattlesnake Strikes Lewis",
+    "symbol": "SNAKE",
+    "intro": "Captain Lewis is bitten on the ankle collecting specimens. The leg swells alarmingly. Seaman, his dog, barks frantically.",
+    "choices": [
+      {
+        "label": "Apply Rush's bark and rest two days",
+        "text": "Lewis doses himself and rests. Pale and feverish, he recovers — losing two days of travel.",
+        "effect": {
+          "food": -10,
+          "health": -14,
+          "morale": -8
+        }
+      },
+      {
+        "label": "Sacagawea treats with a poultice",
+        "text": "Sacagawea prepares a remedy from plants gathered within the hour. Lewis is on his feet by morning.",
+        "effect": {
+          "food": -4,
+          "health": -5,
+          "morale": 6
+        },
+        "requires_char": "sacagawea"
+      },
+      {
+        "label": "Keep marching — Lewis refuses to stop",
+        "text": "He marches on between bouts of nausea, dictating journal entries. He survives — barely.",
+        "effect": {
+          "food": -5,
+          "health": -26,
+          "morale": 5
+        }
+      }
+    ]
+  },
+  {
+    "id": "mandan_council",
+    "type": "diplomacy",
+    "season": [
+      "Autumn",
+      "Winter"
+    ],
+    "title": "Grand Council with the Mandan",
+    "symbol": "LODGE",
+    "intro": "The Mandan chiefs invite the captains to a great council. Pipe smoke fills the circular earthlodge. Much can be gained here — or lost by a wrong word.",
+    "choices": [
+      {
+        "label": "Deliver Jefferson's speech of sovereignty",
+        "text": "You read Jefferson's words in translation. The chiefs listen gravely and respond with equal dignity.",
+        "effect": {
+          "morale": 10
+        },
+        "relation_bonus": 15
+      },
+      {
+        "label": "Ask about the route west",
+        "text": "You focus on the mountains ahead. The chiefs produce excellent maps drawn in the dirt.",
+        "effect": {
+          "morale": 5
+        },
+        "inventory_gain": {
+          "Mountain Maps": 2
+        },
+        "relation_bonus": 10
+      },
+      {
+        "label": "York performs and sings",
+        "text": "York dances and sings. The Mandan are delighted beyond measure. Chief Big White promises guides for spring.",
+        "effect": {
+          "morale": 22
+        },
+        "relation_bonus": 22,
+        "requires_char": "york"
+      }
+    ]
+  },
+  {
+    "id": "shoshone_horses",
+    "type": "diplomacy",
+    "season": [
+      "Summer",
+      "Autumn"
+    ],
+    "title": "Shoshone Horse Council",
+    "symbol": "HORSE",
+    "intro": "You have found the Shoshone — and their chief is Sacagawea's brother Cameahwait, whom she has not seen in years. The reunion is profoundly moving.",
+    "choices": [
+      {
+        "label": "Sacagawea negotiates directly",
+        "text": "Sacagawea and Cameahwait speak for hours. Twenty-nine horses and a mountain guide. Lewis weeps openly.",
+        "effect": {
+          "morale": 26
+        },
+        "inventory_gain": {
+          "Horses": 5
+        },
+        "requires_char": "sacagawea"
+      },
+      {
+        "label": "Offer Jefferson Medals and iron goods",
+        "text": "A fair trade. You receive horses and Cameahwait agrees to guide you to the pass.",
+        "effect": {
+          "morale": 14,
+          "inventory": {
+            "Jefferson Medals": -2,
+            "Iron Tools": -2
+          }
+        },
+        "inventory_gain": {
+          "Horses": 3
+        }
+      }
+    ]
+  },
+  {
+    "id": "portage",
+    "type": "hardship",
+    "season": [
+      "Summer"
+    ],
+    "title": "The Great Falls Portage",
+    "symbol": "FALLS",
+    "intro": "Five waterfalls block the Missouri. An eighteen-mile portage under scorching sun. Lewis calls it 'the most laborious business I have ever witnessed.'",
+    "choices": [
+      {
+        "label": "Build cottonwood wagon wheels",
+        "text": "York leads construction. The eighteen-mile portage takes twenty-four days. Men's feet bleed through their moccasins.",
+        "effect": {
+          "food": -20,
+          "health": -20,
+          "morale": -14
+        },
+        "char_bonus": {
+          "york": {
+            "morale": 10
+          }
+        }
+      },
+      {
+        "label": "Cache supplies — carry only essentials",
+        "text": "You bury non-essentials and carry only what you need. Fourteen days. A cache awaits on the return.",
+        "effect": {
+          "food": -10,
+          "health": -15,
+          "morale": -5,
+          "inventory": {
+            "Iron Tools": -2,
+            "Cloth Bolts": -2
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "dysentery",
+    "type": "illness",
+    "season": [
+      "Summer"
+    ],
+    "title": "Dysentery Strikes the Corps",
+    "symbol": "SICKNESS",
+    "intro": "Half the corps is stricken. The captains administer Dr. Rush's famous Thunderclappers. The camp becomes a grim, odorous place.",
+    "choices": [
+      {
+        "label": "Rest for three days — full recovery",
+        "text": "The expedition halts. By the third day most men are recovered, though weakened.",
+        "effect": {
+          "food": -14,
+          "health": -15,
+          "morale": -14
+        }
+      },
+      {
+        "label": "Sacagawea brews medicinal tea",
+        "text": "Sacagawea prepares a tea from dried herbs. The men recover in half the time, astonishing the captains.",
+        "effect": {
+          "food": -7,
+          "health": -8,
+          "morale": -4
+        },
+        "requires_char": "sacagawea"
+      },
+      {
+        "label": "Press on — the strong will endure",
+        "text": "You push the march. Three more men fall ill. The sick are carried on litters. Brutal but you maintain pace.",
+        "effect": {
+          "food": -10,
+          "health": -30,
+          "morale": -20
+        }
+      }
+    ]
+  },
+  {
+    "id": "elk_hunt",
+    "type": "wildlife",
+    "season": [
+      "Autumn",
+      "Summer"
+    ],
+    "title": "Successful Hunt",
+    "symbol": "ELK",
+    "intro": "Drouillard and Colter return from a twelve-mile range in high spirits. The smell of roasting elk fills the camp as stars appear.",
+    "choices": [
+      {
+        "label": "Feast and rest — full morale boost",
+        "text": "You order a full feast. The men sing, tell stories, sleep well for the first time in weeks.",
+        "effect": {
+          "food": 15,
+          "health": 5,
+          "morale": 26
+        }
+      },
+      {
+        "label": "Preserve and cache the surplus",
+        "text": "You spend a day jerking meat and rendering fat. The cache will sustain the return journey.",
+        "effect": {
+          "food": 32,
+          "health": 2,
+          "morale": 10
+        }
+      },
+      {
+        "label": "Drouillard leads a second hunt at dawn",
+        "text": "He ranges again and brings in six more animals. A legendary two-day hunt.",
+        "effect": {
+          "food": 48,
+          "health": 4,
+          "morale": 18
+        },
+        "requires_char": "drouillard"
+      }
+    ]
+  },
+  {
+    "id": "lost_bitterroots",
+    "type": "hardship",
+    "season": [
+      "Autumn",
+      "Summer"
+    ],
+    "title": "Lost in the Bitterroots",
+    "symbol": "MOUNTAINS",
+    "intro": "Snow falls in August. The trail vanishes. Men eat tallow candles and boiled moccasins. This is the moment the expedition nearly dies.",
+    "choices": [
+      {
+        "label": "Push forward on half rations",
+        "text": "Gaunt and hollow-eyed, the corps pushes through eight desperate days. Nez Perce find you on the Weippe Prairie.",
+        "effect": {
+          "food": -30,
+          "health": -26,
+          "morale": -20
+        }
+      },
+      {
+        "label": "Sacagawea recognizes a childhood landmark",
+        "text": "She leads the party through a Shoshone pass unknown to any map. You emerge two days sooner.",
+        "effect": {
+          "food": -15,
+          "health": -10,
+          "morale": -5
+        },
+        "requires_char": "sacagawea"
+      },
+      {
+        "label": "Send Drouillard ahead to find the Nez Perce",
+        "text": "He ranges far and returns with a Nez Perce elder willing to guide the party.",
+        "effect": {
+          "food": -20,
+          "health": -14,
+          "morale": 6
+        },
+        "requires_char": "drouillard"
+      }
+    ]
+  },
+  {
+    "id": "discovery_species",
+    "type": "discovery",
+    "season": null,
+    "title": "New Species Discovered",
+    "symbol": "LEAF",
+    "intro": "Lewis spends the day in barely contained scientific ecstasy — prairie dogs, magpies, strange cacti, plants unknown to any botanist.",
+    "choices": [
+      {
+        "label": "Document everything — spend two days",
+        "text": "Lewis fills three notebooks. The specimens are carefully preserved. This will astonish Philadelphia.",
+        "effect": {
+          "food": -10,
+          "morale": 16
+        },
+        "discovery": true
+      },
+      {
+        "label": "Sketch quickly and keep marching",
+        "text": "Lewis sketches rapidly as the corps moves. Rougher notes, but the expedition maintains pace.",
+        "effect": {
+          "food": -5,
+          "morale": 8
+        },
+        "discovery": true
+      }
+    ]
+  },
+  {
+    "id": "discovery_vista",
+    "type": "discovery",
+    "season": null,
+    "title": "Vista Beyond Reckoning",
+    "symbol": "VISTA",
+    "intro": "The corps crests a ridge and stops dead. Mountains, valleys, rivers — all stretching to every horizon. No American has ever described this country.",
+    "choices": [
+      {
+        "label": "Camp here — absorb the sublime sight",
+        "text": "Men who haven't spoken in days grow animated. Clark begins a new map. Morale is transformed.",
+        "effect": {
+          "food": -5,
+          "health": 3,
+          "morale": 32
+        },
+        "discovery": true
+      },
+      {
+        "label": "Descend at once — daylight is precious",
+        "text": "The sight sustains every man through the descent. Lewis writes: 'I felt rewarded for every difficulty.'",
+        "effect": {
+          "food": -5,
+          "health": 0,
+          "morale": 18
+        },
+        "discovery": true
+      }
+    ]
+  },
+  {
+    "id": "spring_flood",
+    "type": "weather",
+    "season": [
+      "Spring"
+    ],
+    "title": "Missouri in Spring Flood",
+    "symbol": "FLOOD",
+    "intro": "The winter snowmelt has turned the Missouri into a brown monster. Entire trees wheel past in the current. The keelboat is nearly swamped three times in an hour.",
+    "choices": [
+      {
+        "label": "Make for shore and wait out the flood",
+        "text": "You lose five days camped on high ground, watching the river rage. When it recedes the going is easier.",
+        "effect": {
+          "food": -12,
+          "health": -4,
+          "morale": -8
+        }
+      },
+      {
+        "label": "Pole hard — push through the high water",
+        "text": "The men labor at the poles for sixteen hours straight. Three are swept overboard but recovered.",
+        "effect": {
+          "food": -8,
+          "health": -16,
+          "morale": -10
+        }
+      },
+      {
+        "label": "Sacagawea points to a calmer side channel",
+        "text": "She grew up reading rivers like this. Her shortcut avoids the worst of the current entirely.",
+        "effect": {
+          "food": -6,
+          "health": -2,
+          "morale": 6
+        },
+        "requires_char": "sacagawea"
+      }
+    ]
+  },
+  {
+    "id": "prairie_dogs",
+    "type": "discovery",
+    "season": [
+      "Spring",
+      "Summer"
+    ],
+    "title": "The Prairie Dog Town",
+    "symbol": "BURROW",
+    "intro": "Lewis and Clark discover an enormous colony of small barking squirrels unlike anything in American natural history.",
+    "choices": [
+      {
+        "label": "Spend a day trapping a live specimen",
+        "text": "The men pour barrel after barrel of water down the burrows. A dazed animal emerges — it will eventually reach Jefferson alive.",
+        "effect": {
+          "food": -8,
+          "morale": 14
+        },
+        "discovery": true
+      },
+      {
+        "label": "Document and sketch — keep moving",
+        "text": "Lewis sketches furiously. His notes are meticulous. Science will be delighted.",
+        "effect": {
+          "food": -3,
+          "morale": 9
+        },
+        "discovery": true
+      },
+      {
+        "label": "Let Seaman investigate",
+        "text": "Lewis's Newfoundland dog plunges headfirst into a burrow. He emerges muddy, baffled, and tremendously pleased. The corps howls with laughter.",
+        "effect": {
+          "food": -2,
+          "morale": 18
+        },
+        "discovery": true
+      }
+    ]
+  },
+  {
+    "id": "arikara_hostile",
+    "type": "diplomacy",
+    "season": null,
+    "title": "Hostile Arikara Villages",
+    "symbol": "WARNING",
+    "intro": "Three Arikara villages line the bank. Warriors watch from the shore with rifles. The Arikara have been hostile to all river traffic this season.",
+    "choices": [
+      {
+        "label": "Anchor mid-river and hail them peacefully",
+        "text": "Lewis reads Jefferson's speech of friendship. The Arikara chief rows out, suspicious but listening. Uneasy peace holds.",
+        "effect": {
+          "food": -5,
+          "morale": -4
+        },
+        "relation_bonus": 8
+      },
+      {
+        "label": "Pass by without stopping — show no fear",
+        "text": "Both captains stand at the bow in full uniform. The warriors watch but do not fire.",
+        "effect": {
+          "morale": 6,
+          "health": -2
+        }
+      },
+      {
+        "label": "Drouillard speaks in sign language from the bow",
+        "text": "His calm, respectful signs lower the tension. Warriors begin laughing. Crisis averted.",
+        "effect": {
+          "morale": 12
+        },
+        "requires_char": "drouillard",
+        "relation_bonus": 14
+      },
+      {
+        "label": "Offer tobacco and trade goods",
+        "text": "You send gifts across in a small pirogue. The chief accepts and allows passage.",
+        "effect": {
+          "morale": 4,
+          "inventory": {
+            "Tobacco": -3,
+            "Trade Beads": -3
+          }
+        },
+        "relation_bonus": 10
+      }
+    ]
+  },
+  {
+    "id": "cruzatte_fiddle",
+    "type": "discovery",
+    "season": null,
+    "title": "Cruzatte Plays the Fiddle",
+    "symbol": "MUSIC",
+    "intro": "Pierre Cruzatte — one-eyed, half-Omaha, the finest boatman on the river — produces his fiddle at dusk. He plays for two hours straight.",
+    "choices": [
+      {
+        "label": "Dance and celebrate — full evening of rest",
+        "text": "The men dance themselves to exhaustion. Private Potts does a jig that brings the house down. Everyone sleeps magnificently.",
+        "effect": {
+          "food": -4,
+          "health": 5,
+          "morale": 28
+        }
+      },
+      {
+        "label": "Keep it short — early march tomorrow",
+        "text": "An hour of music and then to bed. The men are grateful and rested.",
+        "effect": {
+          "food": -2,
+          "health": 3,
+          "morale": 14
+        }
+      }
+    ]
+  },
+  {
+    "id": "horses_stolen",
+    "type": "hardship",
+    "season": [
+      "Autumn"
+    ],
+    "title": "Horses Stolen in the Night",
+    "symbol": "THEFT",
+    "intro": "Dawn reveals disaster: the picket pins pulled free in the night. Three horses are gone — likely taken by Crow raiders.",
+    "choices": [
+      {
+        "label": "Pursue the raiders — Drouillard tracks them",
+        "text": "Drouillard follows the trail for eight miles and negotiates the return of two horses.",
+        "effect": {
+          "food": -10,
+          "health": -6,
+          "morale": -8
+        },
+        "requires_char": "drouillard",
+        "inventory_gain": {
+          "Horses": 2
+        }
+      },
+      {
+        "label": "Accept the loss and redistribute loads",
+        "text": "Bitter. The remaining horses are burdened heavier. Progress slows.",
+        "effect": {
+          "food": -5,
+          "health": -8,
+          "morale": -18
+        }
+      },
+      {
+        "label": "Trade for replacement horses",
+        "text": "A nearby Shoshone family agrees to trade. You pay well but cannot afford to march horseless.",
+        "effect": {
+          "food": -5,
+          "morale": -8,
+          "inventory": {
+            "Jefferson Medals": -1,
+            "Cloth Bolts": -2
+          }
+        },
+        "inventory_gain": {
+          "Horses": 2
+        }
+      }
+    ]
+  }
+]

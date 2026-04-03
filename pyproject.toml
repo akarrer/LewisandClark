@@ -1,0 +1,10 @@
+[tool.ruff]
+target-version = "py311"
+src = ["lewis_clark", "tests"]
+
+[tool.ruff.lint]
+# F: pyflakes (unused imports / undefined names); I: isort. Skip pycodestyle (E/W) on legacy UI code.
+select = ["F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"

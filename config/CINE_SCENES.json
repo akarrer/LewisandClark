@@ -1,0 +1,128 @@
+[
+  {
+    "id": "secret_message",
+    "title": "Jefferson's Secret Message",
+    "year": "January 18, 1803",
+    "location": "Washington City, D.C.",
+    "fact": "Jefferson sent Congress a CONFIDENTIAL message — the word underlined twice. He asked for $2,500 for a 'literary expedition.' The real mission: map the entire continent.",
+    "narration": [
+      "President Jefferson sits alone at his writing desk. He is composing the most important letter of his presidency — and it must be secret.",
+      "Spain still controls Louisiana. Jefferson writes to Congress requesting funds for a 'literary expedition' — a deliberate cover story. The real mission: find a water route to the Pacific.",
+      "His private secretary, Captain Meriwether Lewis, 28 years old, has been living in the White House for two years — precisely so Jefferson could prepare him for this moment.",
+      "Congress approves in secret. The expedition is authorized before anyone knows there is a territory to explore."
+    ],
+    "accent": [
+      218,
+      158,
+      32
+    ]
+  },
+  {
+    "id": "napoleon",
+    "title": "Napoleon Sells a Continent",
+    "year": "April 11–30, 1803",
+    "location": "Paris, France",
+    "fact": "Napoleon offered Louisiana to the Americans before they asked. Talleyrand made the offer at 8am on April 11th, 1803. The Americans had only been sent to buy New Orleans.",
+    "narration": [
+      "Napoleon Bonaparte has just lost Haiti — his Caribbean empire destroyed by disease and the revolution of enslaved people under Toussaint Louverture.",
+      "Without Haiti, Louisiana is worthless. He needs money for war with Britain. On April 11th, his foreign minister offers to sell the entire Louisiana Territory — without being asked.",
+      "Robert Livingston and James Monroe have no authority to buy a continent. They have been sent to buy New Orleans alone. But they say yes anyway.",
+      "April 30, 1803: The Louisiana Purchase is signed. 828,000 square miles. Fifteen million dollars. Three cents per acre. The United States doubles overnight."
+    ],
+    "accent": [
+      190,
+      46,
+      46
+    ]
+  },
+  {
+    "id": "lewis_prepares",
+    "title": "Lewis Prepares",
+    "year": "June–October 1803",
+    "location": "Philadelphia & Harpers Ferry",
+    "fact": "Lewis carried 193 pounds of portable soup, 30 gallons of whiskey, 15 rifles, and a collapsible iron-frame boat he designed himself. It will sink immediately.",
+    "narration": [
+      "Lewis spends the summer in Philadelphia studying botany, astronomy, medicine, and zoology with the finest scientists in America — cramming four university degrees into four months.",
+      "At Harpers Ferry Arsenal he oversees construction of his iron-frame boat — a collapsible vessel he has designed himself. It will fail spectacularly. He doesn't know this yet.",
+      "He orders 193 pounds of portable soup, 30 gallons of whiskey, 15 rifles, tomahawks, knives, oilskin bags for journals, mathematical instruments, and 4,600 needles for trade.",
+      "In Pittsburgh he waits six weeks for a drunken boatbuilder to finish the keelboat. He uses the time to write letters, study maps, and practice celestial navigation."
+    ],
+    "accent": [
+      28,
+      126,
+      96
+    ]
+  },
+  {
+    "id": "clark_recruited",
+    "title": "Clark is Recruited",
+    "year": "June 19, 1803",
+    "location": "Clarksville, Indiana Territory",
+    "fact": "Clark said yes the same day he received Lewis's letter. He had been living quietly on a farm, largely retired, after a difficult military service record.",
+    "narration": [
+      "Lewis writes to his old army friend William Clark in Indiana. Clark is 33, living quietly on a farm, largely retired from military life.",
+      "Lewis offers him equal command — not as a subordinate but as a true partner. 'There is no man on earth with whom I should feel equal pleasure in sharing them as with yourself,' Lewis writes.",
+      "Clark accepts immediately. He begins recruiting men from the Kentucky and Indiana frontier — hunters, blacksmiths, carpenters, men who can handle a rifle and an oar.",
+      "The two men will spend the next three years in the wilderness together, never once having a serious argument. History has rarely seen a partnership like it."
+    ],
+    "accent": [
+      26,
+      94,
+      144
+    ]
+  },
+  {
+    "id": "corps_assembled",
+    "title": "The Corps of Discovery",
+    "year": "Winter 1803–1804",
+    "location": "Camp Dubois, Illinois",
+    "fact": "The Corps included York (enslaved, Black), Drouillard (half-Shawnee), Sacagawea (Shoshone, ~16 years old, eight months pregnant), and her infant son.",
+    "narration": [
+      "At Camp Dubois, forty-five men train through a brutal winter. Only thirty-three will make the permanent journey. Lewis and Clark drill them daily — shooting, rowing, discipline.",
+      "York is William Clark's enslaved man. Native peoples the Corps encounters will be transfixed by him. Clark will eventually refuse to grant him freedom after the expedition.",
+      "George Drouillard, half-Shawnee, speaks English, French, and the sign language of the plains. He is the finest hunter and scout on the frontier. Without him, the Corps would starve.",
+      "At Fort Mandan they will meet Sacagawea — perhaps sixteen, eight months pregnant. She will prove worth more than any soldier on the entire expedition."
+    ],
+    "accent": [
+      234,
+      156,
+      48
+    ]
+  },
+  {
+    "id": "the_river",
+    "title": "The Missouri River",
+    "year": "Spring 1804",
+    "location": "The Louisiana Territory",
+    "fact": "The Missouri runs 2,341 miles. Lewis and Clark's complete route was approximately 3,700 miles each way — through country no American had mapped.",
+    "narration": [
+      "The Missouri River is nothing like any river in the eastern United States. It is brown, wide, violent, and alive. Entire forests wheel past in the current. Sandbars appear and vanish overnight.",
+      "The Teton Sioux — the most powerful nation on the upper Missouri — have blocked all river traffic for years. No American trading party has passed without paying tribute. Lewis and Clark will face them in September.",
+      "Beyond the Sioux: Mandan, Hidatsa, Arikara, Shoshone, Nez Perce, Clatsop — dozens of nations with their own politics, languages, and relationships with the land the Americans claim to have bought.",
+      "Jefferson wants Lewis and Clark to tell every nation they encounter that they have a new 'father' — the President of the United States. Most nations will smile politely and ignore this completely."
+    ],
+    "accent": [
+      26,
+      94,
+      144
+    ]
+  },
+  {
+    "id": "depart",
+    "title": "Set Forth",
+    "year": "May 14, 1804",
+    "location": "Camp Dubois, Illinois",
+    "fact": "They left at 4pm on a Monday. Lewis wasn't even there — he was still in St. Louis handling paperwork. He caught up three days later.",
+    "narration": [
+      "May 14, 1804. Four in the afternoon. The keelboat and two smaller pirogues push off from the muddy bank at Camp Dubois.",
+      "Clark commands the boats. Lewis is still in St. Louis finishing paperwork — he will catch up in three days. This tells you something about both men.",
+      "Thirty-three permanent members. Two tons of supplies. Enough food for two years, though they will have to hunt most of it. An American flag snapping in the Missouri wind.",
+      "They have no idea what lies ahead. The Rocky Mountains are unknown. The Pacific coast is a guess. The distance is a prayer. The great adventure begins."
+    ],
+    "accent": [
+      218,
+      158,
+      32
+    ]
+  }
+]

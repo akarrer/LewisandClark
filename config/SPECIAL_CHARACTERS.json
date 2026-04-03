@@ -1,0 +1,44 @@
+{
+  "york": {
+    "name": "York",
+    "title": "Clark's Manservant — Frontiersman",
+    "abilities": {
+      "Diplomacy": "+10 all tribe relations",
+      "Strength": "Portage health -50%",
+      "Hunting": "+8 food from wildlife",
+      "Morale": "Passive +2 morale/event"
+    },
+    "joined_at": 0,
+    "active": true,
+    "bio": "His extraordinary strength and spirit win respect from every nation they encounter. Clark will refuse to grant him freedom after the expedition.",
+    "quote": "\"His appearance intimidated and astonished the natives.\" — Clark"
+  },
+  "drouillard": {
+    "name": "Drouillard",
+    "title": "Hunter & Sign-Language Interpreter",
+    "abilities": {
+      "Hunting": "+15 food from wildlife events",
+      "Scouting": "Preview next event",
+      "Sign Language": "+15 plains tribe relations",
+      "Trapping": "+1 Fur/event"
+    },
+    "joined_at": 0,
+    "active": true,
+    "bio": "The finest hunter and scout on the frontier. Half-Shawnee, all woodsman.",
+    "quote": "\"He was the best hunter and interpreter in the service.\" — Lewis"
+  },
+  "sacagawea": {
+    "name": "Sacagawea",
+    "title": "Shoshone Guide & Interpreter",
+    "abilities": {
+      "Mountain Passage": "+15 health on mountain routes",
+      "Tribe Diplomacy": "+20 all relations",
+      "Foraging": "Passive +3 food/event",
+      "Language": "Unlocks special trade"
+    },
+    "joined_at": 4,
+    "active": false,
+    "bio": "Perhaps sixteen years old and eight months pregnant when she joins the corps. She will prove worth more than any soldier.",
+    "quote": "\"The wife of Charbonneau was of great service as a pilot.\" — Clark"
+  }
+}
