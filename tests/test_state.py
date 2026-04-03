@@ -21,7 +21,8 @@ def _assert_roundtrip_equal(before: GameState, after: GameState) -> None:
 
 def test_game_state_defaults_from_config():
     s = GameState()
-    assert s.food == 80
+    assert s.food == 100
+    assert s.morale == 80
     assert len(s.tribe_relations) == len(assets.TRIBES)
     assert s.inventory.keys() == assets.STARTING_INVENTORY.keys()
     assert "york" in s.characters
@@ -41,7 +42,7 @@ def test_clamp_bounds():
 def test_apply_effect_food_and_inventory():
     s = GameState()
     s.apply_effect({"food": -20, "inventory": {"Tobacco": -2}}, {})
-    assert s.food == 60
+    assert s.food == 80
     assert s.inventory["Tobacco"] == assets.STARTING_INVENTORY["Tobacco"] - 2
 
 

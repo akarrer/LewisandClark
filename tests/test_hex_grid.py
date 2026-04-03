@@ -61,6 +61,11 @@ def test_hex_terrain_plains_far_south():
     assert hex_terrain(20, 19) == "plains"
 
 
+def test_hex_terrain_river_corridor_before_mountain_band():
+    """River segments through the Rocky column band must classify as river, not mountain."""
+    assert hex_terrain(5, 6) == "river"
+
+
 def test_wp_display_name_revealed_shows_real_name():
     wp0 = assets.WAYPOINTS[0]
     old = wp0["revealed"]

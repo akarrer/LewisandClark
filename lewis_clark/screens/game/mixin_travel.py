@@ -213,7 +213,7 @@ class TravelMixin:
         terr = hex_terrain(col, row)
         tdata = assets.TERRAIN_DATA[terr]
 
-        s.food = max(0, s.food + tdata["food"])
+        s.food = max(0, s.food + tdata["food"] - 2)
         s.health = max(0, s.health + tdata["health"])
         s.morale = max(0, s.morale + tdata["morale"])
         s.advance_date(tdata["days"])
@@ -289,7 +289,7 @@ class TravelMixin:
             self._start_end_game()
             return
 
-        if random.random() < 0.35:
+        if random.random() < 0.18:
             event = self._pick_event()
             if event:
                 self.pending_event = event

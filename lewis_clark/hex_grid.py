@@ -37,27 +37,26 @@ def hex_terrain(col: int, row: int) -> str:
 
     Classification uses **hard-coded** column/row bands and ``RIVER_PATHS`` from
     config. It is *not* driven by ``TERRAIN_DATA.json`` (that file only supplies
-    costs/labels per terrain type). Change grid size in JSON without updating
-    this logic and terrain buckets may no longer match the map.
+    costs/labels per terrain type). River corridors are evaluated before mountains
+    so rivers can pass through the Rocky band. Change grid size in JSON without
+    updating this logic and terrain buckets may no longer match the map.
     """
     if col <= 2:
         return "coast"
-    if col <= 8 and 3 <= row <= 9:
-        return "mountain"
-    if row <= 2:
+    if row <= 2 or row >= 15:
         return "plains"
-    if row >= 15:
-        return "plains"
+    # River corridors checked first — they can pass through mountains
     for path in assets.RIVER_PATHS:
         for i in range(len(path) - 1):
             ac, ar = path[i]
             bc, br = path[i + 1]
             if _seg_dist(col, row, ac, ar, bc, br) <= 0.85:
                 return "river"
+    # Rocky Mountains — only if not on a river corridor
+    if col <= 8 and 3 <= row <= 9:
+        return "mountain"
     if col <= 11 and 4 <= row <= 8:
         return "forest"
-    if col >= 18 and 10 <= row <= 15:
-        return "plains"
     return "plains"
 
 

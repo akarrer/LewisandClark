@@ -46,6 +46,12 @@ class InputMixin:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 on_save()
+            elif event.key in (pygame.K_EQUALS, pygame.K_KP_PLUS):
+                self.map_view.zoom_in()
+            elif event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
+                self.map_view.zoom_out()
+            elif event.key == pygame.K_r:
+                self.map_view.zoom_reset()
 
     def _button_clicked(self, btn, on_new_game, on_save):
         if hasattr(btn, "_hex_move"):

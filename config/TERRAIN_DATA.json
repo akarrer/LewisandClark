@@ -26,8 +26,8 @@
     ]
   },
   "mountain": {
-    "food": 3,
-    "health": -2,
+    "food": 2,
+    "health": -1,
     "morale": -1,
     "days": 3,
     "label": "Mountain Terrain",
@@ -39,7 +39,7 @@
     ]
   },
   "forest": {
-    "food": 2,
+    "food": 1,
     "health": 0,
     "morale": 1,
     "days": 2,

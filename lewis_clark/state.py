@@ -13,9 +13,9 @@ from lewis_clark.hex_grid import get_season
 @dataclass
 class GameState:
     current_wp: int = 0
-    food: int = 80
+    food: int = 100
     health: int = 100
-    morale: int = 75
+    morale: int = 80
     current_month: int = 5
     current_year: int = 1804
     journal: List[str] = field(default_factory=list)
