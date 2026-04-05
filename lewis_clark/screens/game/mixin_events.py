@@ -10,13 +10,12 @@ from lewis_clark.ui.button import Button
 
 
 class EventsMixin:
-    def _build_event_ui(self, event):
+    def _build_event_ui(self, event, _resize_only=False):
+        self._sync_layout()
         self.mode = "event"
         self.action_btns = []
-        chars = {k: v["active"] for k, v in self.state.characters.items()}
-        PX = self.PANEL_X + 8
-        BW = self.PANEL_W - 16
-        by = self.BTN_Y_EVENT
+        s = self.state
+        chars = {k: v["active"] for k, v in s.characters.items()}
 
         TYPE_COLS = {
             "wildlife": assets.GREEN2,
@@ -28,16 +27,11 @@ class EventsMixin:
         }
         acc = TYPE_COLS.get(event.get("type", ""), assets.GOLD)
 
-        lines = [
-            (event["title"], assets.F["header"], acc),
-            (event.get("type", "event").upper(), assets.F["tiny_b"], darken(acc, 0.7)),
-            ("", assets.F["tiny"], assets.DIM),
-            (event["intro"], assets.F["body"], assets.PARCH_DARK),
-            ("", assets.F["tiny"], assets.DIM),
-            ("— Choose your response —", assets.F["small_i"], assets.DIM2),
-        ]
-        self.scroll_panel.set_lines(lines)
+        art_key = event.get("art_id") or event.get("id")
+        imgs = getattr(assets, "IMG_ANIMALS", None) or {}
+        self._event_art_surf = imgs.get(art_key) or imgs.get("generic")
 
+        choices_overlay = []
         for i, choice in enumerate(event["choices"]):
             req = choice.get("requires_char")
             has = chars.get(req, True) if req else True
@@ -70,37 +64,72 @@ class EventsMixin:
                 tc = assets.PARCH
                 dis = False
                 lbl = choice["label"]
-            btn = Button(
-                (PX, by + i * 48, BW, 40), lbl, fill=fc, text_col=tc, sub=effs or None
+            choices_overlay.append(
+                {
+                    "label": lbl,
+                    "sub": effs or None,
+                    "fill": fc,
+                    "text_col": tc,
+                    "disabled": dis,
+                    "index": i,
+                }
             )
-            btn.disabled = dis
-            btn._choice = i
-            self.action_btns.append(btn)
 
-    def _show_resource_popup(self, content, col, row):
-        self.mode = "event"
+        if not _resize_only:
+            s.add_journal(f"{event['title']}: {event['intro']}")
+            self._update_journal()
+
+        self._narrative_overlay = {
+            "title": event["title"],
+            "body": event["intro"],
+            "subtitle": event.get("type", "event").upper(),
+            "accent": acc,
+            "art": self._event_art_surf,
+            "choices": choices_overlay,
+        }
+        self.scroll_panel.set_lines([])
         self.action_btns = []
+
+    def _show_resource_popup(self, content, col, row, _resize_only=False):
+        self._sync_layout()
+        self.mode = "event"
+        self._resource_popup_coords = (col, row, content)
+        self._event_art_surf = None
+        self.action_btns = []
+        s = self.state
         eff = content.get("effect", {})
 
-        lines = [
-            (content["name"], assets.F["header"], assets.GOLD2),
-            ("", assets.F["tiny"], assets.DIM),
-            (content["desc"], assets.F["body"], assets.PARCH_DARK),
-            ("", assets.F["tiny"], assets.DIM),
-        ]
+        body = content["desc"]
         if eff:
             eff_str = "  ·  ".join(
                 f"{k.capitalize()} {v:+d}" for k, v in eff.items() if isinstance(v, int)
             )
             if eff_str:
-                lines.append((eff_str, assets.F["small"], assets.GREEN2))
-        self.scroll_panel.set_lines(lines)
+                body = f"{body}\n\n{eff_str}"
+        if not _resize_only:
+            s.add_journal(f"{content['name']}: {content['desc']}")
+            self._update_journal()
+            self._narrative_overlay = {
+                "title": content["name"],
+                "body": body,
+                "subtitle": "RESOURCE",
+                "accent": assets.GOLD2,
+                "art": None,
+            }
+        self.scroll_panel.set_lines([])
 
         PX = self.PANEL_X + 8
         BW = self.PANEL_W - 16
         by = self.BTN_Y_EVENT
+        us = getattr(assets, "UI_SCALE", 1.0)
+
+        def sz2(n: float) -> int:
+            return max(1, int(round(n * us)))
+
+        h1 = sz2(42)
+        h2 = sz2(34)
         b_take = Button(
-            (PX, by, BW, 42),
+            (PX, by, BW, h1),
             "▶  Gather & Continue",
             fill=darken(assets.GREEN2, 0.5),
             fill_h=assets.GREEN2,
@@ -109,10 +138,16 @@ class EventsMixin:
         b_take._resource_take = (col, row, content)
         self.action_btns.append(b_take)
         b_pass = Button(
-            (PX, by + 50, BW, 34), "Pass By", fill=assets.UI_PANEL, text_col=assets.DIM2
+            (PX, by + h1 + sz2(8), BW, h2),
+            "Pass By",
+            fill=assets.UI_PANEL,
+            text_col=assets.DIM2,
         )
         b_pass._action = "pass_resource"
         self.action_btns.append(b_pass)
+
+    def _clear_resource_popup_state(self):
+        self._resource_popup_coords = None
 
     def _pick_event(self):
         s = self.state
@@ -134,6 +169,7 @@ class EventsMixin:
         ev = self.pending_event
         if not ev:
             return
+        self._narrative_overlay = None
         choice = ev["choices"][choice_idx]
         s = self.state
         chars = {k: v["active"] for k, v in s.characters.items()}
@@ -147,9 +183,11 @@ class EventsMixin:
                 )
         if choice.get("discovery") or ev.get("type") == "discovery":
             s.discoveries += 1
+            if chars.get("lewis"):
+                s.discoveries += 1
         for item, qty in choice.get("inventory_gain", {}).items():
             s.inventory[item] = s.inventory.get(item, 0) + qty
-        s.add_journal(f"{ev['title']}: {choice['text']}")
+        s.add_journal(f"Outcome: {choice['text']}")
         self.pending_event = None
         s.clamp()
         if s.food <= 0:

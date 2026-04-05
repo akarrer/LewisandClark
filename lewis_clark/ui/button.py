@@ -13,6 +13,30 @@ from lewis_clark.drawing import (
 )
 
 
+def _text_width(font: pygame.font.Font, text: str) -> int:
+    return font.size(text)[0]
+
+
+def _truncate_to_width(font: pygame.font.Font, text: str, max_w: int) -> str:
+    """Shorten *text* with an ellipsis so rendered width ≤ *max_w*."""
+    if max_w <= 0:
+        return ""
+    if _text_width(font, text) <= max_w:
+        return text
+    ell = "…"
+    if _text_width(font, ell) > max_w:
+        return ""
+    lo, hi = 0, len(text)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        cand = text[:mid].rstrip() + ell
+        if _text_width(font, cand) <= max_w:
+            lo = mid
+        else:
+            hi = mid - 1
+    return text[:lo].rstrip() + ell if lo > 0 else ell
+
+
 class Button:
     def __init__(
         self,
@@ -24,6 +48,7 @@ class Button:
         text_h=assets.INK,
         font=None,
         sub=None,
+        sub_font=None,
     ):
         self.rect = pygame.Rect(rect)
         self.label = label
@@ -32,6 +57,7 @@ class Button:
         self.text_col = text_col
         self.text_h = text_h
         self.font = font or assets.F["btn"]
+        self.sub_font = sub_font
         self.sub = sub
         self.hovered = False
         self.disabled = False
@@ -67,8 +93,9 @@ class Button:
             btn_tex.set_alpha(12)
             surf.blit(btn_tex, r.topleft)
         gs = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
-        for i in range(0, r.w + r.h, 10):
-            pygame.draw.line(gs, (255, 255, 255, 6), (i, 0), (max(0, i - r.h), r.h))
+        for y in range(0, r.h, 6):
+            a = 6 if (y // 6) % 2 == 0 else 5
+            pygame.draw.line(gs, (255, 255, 255, a), (0, y), (r.w, y), 1)
         surf.blit(gs, r.topleft)
         # Emboss: bright top edge, dark bottom edge
         pygame.draw.line(
@@ -86,20 +113,46 @@ class Button:
         # Corner brackets on hover
         if self.hovered and not self.disabled:
             draw_corner_brackets(surf, r, assets.GOLD2, size=5, width=1)
-        # Text
-        ts = self.font.render(self.label, True, tcol)
-        tr = ts.get_rect(center=r.center)
+        # Text — fit inside rect (fonts scale with window; fixed pixel rects overflow otherwise)
+        pad = max(3, min(10, r.w // 48 + 2))
+        max_tw = max(0, r.w - 2 * pad)
+        sub_font = self.sub_font or assets.F["small"]
+        main = _truncate_to_width(self.font, self.label, max_tw)
+        ts = self.font.render(main, True, tcol)
         if self.sub:
-            tr.centery = r.centery - 7
-        # Subtle text shadow
-        ts_sh = self.font.render(self.label, True, darken(col, 0.3))
-        surf.blit(ts_sh, tr.move(1, 1))
-        surf.blit(ts, tr)
-        if self.sub:
-            ss = assets.F["tiny"].render(
-                self.sub, True, lighten(tcol, 0.8) if not self.disabled else assets.DIM
+            sub_t = _truncate_to_width(
+                sub_font, self.sub, max_tw,
             )
-            surf.blit(ss, ss.get_rect(centerx=r.centerx, top=r.centery + 5))
+            ss = sub_font.render(
+                sub_t, True, lighten(tcol, 0.8) if not self.disabled else assets.DIM
+            )
+            fh = ts.get_height()
+            gap = max(2, min(6, r.h // 12))
+            sh = ss.get_height()
+            total = fh + gap + sh
+            top = r.centery - total // 2
+            if top < r.y + pad:
+                top = r.y + pad
+            if top + total > r.bottom - pad:
+                top = max(r.y + pad, r.bottom - pad - total)
+            tr = ts.get_rect(centerx=r.centerx, top=top)
+            sr = ss.get_rect(centerx=r.centerx, top=top + fh + gap)
+        else:
+            tr = ts.get_rect(center=r.center)
+            if tr.height > r.h - 2 * pad:
+                tr.centery = r.centery
+            tr.clamp_ip(r.inflate(-pad, -pad))
+        ts_sh = self.font.render(main, True, darken(col, 0.3))
+        old_clip = surf.get_clip()
+        clip_inner = r.inflate(-2, -2)
+        surf.set_clip(clip_inner if clip_inner.w > 0 and clip_inner.h > 0 else r)
+        try:
+            surf.blit(ts_sh, tr.move(1, 1))
+            surf.blit(ts, tr)
+            if self.sub:
+                surf.blit(ss, sr)
+        finally:
+            surf.set_clip(old_clip)
 
     def handle(self, event):
         if event.type == pygame.MOUSEMOTION:

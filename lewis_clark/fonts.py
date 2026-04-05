@@ -62,27 +62,50 @@ def _load_mono(size: int):
     return pygame.font.Font(None, size)
 
 
-def load_fonts(assets: Any) -> None:
-    """Attach ``assets.F`` dict of pygame.font.Font instances."""
+def _sz(n: float, scale: float) -> int:
+    return max(6, min(96, int(round(n * scale))))
+
+
+def compute_ui_scale(assets: Any) -> float:
+    """Scale factor vs design resolution (REF_SW × REF_SH)."""
+    ref_w = getattr(assets, "REF_SW", assets.SW)
+    ref_h = getattr(assets, "REF_SH", assets.SH)
+    ref_m = min(ref_w, ref_h)
+    m = min(assets.SW, assets.SH)
+    if ref_m <= 0:
+        return 1.0
+    return max(0.65, min(1.85, m / ref_m))
+
+
+def load_fonts(assets: Any, scale: float | None = None) -> None:
+    """Attach ``assets.F`` dict of pygame.font.Font instances.
+
+    If *scale* is None, uses :func:`compute_ui_scale` from current ``assets.SW``/``SH``.
+    """
+    if scale is None:
+        scale = compute_ui_scale(assets)
+    assets.UI_SCALE = scale
+
+    s = scale
     assets.F = {
-        "huge": _load_display(44, bold=True),
-        "display": _load_display(30, bold=True),
-        "title": _load_display(20, bold=True),
-        "cine": _load_display(17, bold=True),
-        "header": _load_font(16, bold=True),
-        "subhead": _load_font(13, bold=True),
-        "body": _load_font(12),
-        "body_i": _load_font(12, italic=True),
-        "small": _load_font(10),
-        "small_i": _load_font(10, italic=True),
-        "tiny": _load_font(8),
-        "tiny_b": _load_font(8, bold=True),
-        "map_lbl": _load_font(9, italic=True),
-        "map_sm": _load_font(7, italic=True),
-        "mono": _load_mono(10),
-        "mono_sm": _load_mono(8),
-        "narr": _load_font(13),
-        "btn": _load_font(12, bold=True),
-        "btn_lg": _load_display(15, bold=True),
-        "year": _load_font(11, italic=True),
+        "huge": _load_display(_sz(44, s), bold=True),
+        "display": _load_display(_sz(30, s), bold=True),
+        "title": _load_display(_sz(20, s), bold=True),
+        "cine": _load_display(_sz(17, s), bold=True),
+        "header": _load_font(_sz(16, s), bold=True),
+        "subhead": _load_font(_sz(13, s), bold=True),
+        "body": _load_font(_sz(12, s)),
+        "body_i": _load_font(_sz(12, s), italic=True),
+        "small": _load_font(_sz(10, s)),
+        "small_i": _load_font(_sz(10, s), italic=True),
+        "tiny": _load_font(_sz(8, s)),
+        "tiny_b": _load_font(_sz(8, s), bold=True),
+        "map_lbl": _load_font(_sz(9, s), italic=True),
+        "map_sm": _load_font(_sz(7, s), italic=True),
+        "mono": _load_mono(_sz(10, s)),
+        "mono_sm": _load_mono(_sz(8, s)),
+        "narr": _load_font(_sz(13, s)),
+        "btn": _load_font(_sz(12, s), bold=True),
+        "btn_lg": _load_display(_sz(15, s), bold=True),
+        "year": _load_font(_sz(11, s), italic=True),
     }

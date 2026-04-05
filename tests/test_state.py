@@ -25,6 +25,8 @@ def test_game_state_defaults_from_config():
     assert s.morale == 80
     assert len(s.tribe_relations) == len(assets.TRIBES)
     assert s.inventory.keys() == assets.STARTING_INVENTORY.keys()
+    assert "lewis" in s.characters
+    assert "clark" in s.characters
     assert "york" in s.characters
 
 

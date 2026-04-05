@@ -437,6 +437,7 @@
   },
   {
     "id": "elk_hunt",
+    "art_id": "elk",
     "type": "wildlife",
     "season": [
       "Autumn",

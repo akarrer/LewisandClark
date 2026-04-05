@@ -10,8 +10,38 @@ from lewis_clark.hex_grid import hex_terrain
 
 class InputMixin:
     def handle(self, event, on_new_game, on_save, on_load):
+        ovr = getattr(self, "_narrative_overlay", None)
+        if ovr:
+            if ovr.get("choices"):
+                if event.type == pygame.MOUSEMOTION:
+                    self._narrative_choice_hover = -1
+                    for i, hb in enumerate(
+                        getattr(self, "_narrative_choice_hitboxes", [])
+                    ):
+                        if not hb["disabled"] and hb["rect"].collidepoint(event.pos):
+                            self._narrative_choice_hover = i
+                            break
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    for hb in getattr(self, "_narrative_choice_hitboxes", []):
+                        if (
+                            not hb["disabled"]
+                            and hb["rect"].collidepoint(event.pos)
+                        ):
+                            self._resolve_event(hb["index"])
+                            return
+                return
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self._narrative_continue_rect.collidepoint(event.pos):
+                    self.dismiss_narrative_overlay()
+            elif event.type == pygame.KEYDOWN and event.key in (
+                pygame.K_RETURN,
+                pygame.K_SPACE,
+            ):
+                self.dismiss_narrative_overlay()
+            return
+
         self.journal_panel.handle(event)
-        if self.mode in ("event", "trade"):
+        if self.mode == "inventory":
             self.scroll_panel.handle(event)
 
         self.map_view.handle(event, self.state, self._on_hex_click)
@@ -87,7 +117,9 @@ class InputMixin:
                 self._trade_tribe = btn._tribe
                 self._build_trade_ui(btn._tribe)
             elif act == "inventory":
-                self.mode = "inventory"
+                self._build_inventory_ui()
+            elif act == "close_inventory":
+                self._build_travel_ui()
             elif act == "cancel_route":
                 self._build_travel_ui()
             elif act == "pass_resource":

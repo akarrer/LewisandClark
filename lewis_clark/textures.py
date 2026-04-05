@@ -97,21 +97,17 @@ def gen_vignette(w: int, h: int) -> pygame.Surface:
         ))
         surf.blit(ring, (0, 0))
 
+    # Top/bottom edge darkening only. Do not draw full-height vertical lines at x=i and x=w-1-i:
+    # those stacks meet the ellipse layer at x=edge_w and x=w-edge_w and read as a sharp vertical
+    # seam (~2/3 into the right UI column on typical layouts). Ellipse rings already darken corners.
     edge_w = min(w, h) // 6
-    for side in range(4):
-        for i in range(edge_w):
-            t = 1.0 - i / edge_w
-            alpha = int(t * t * 180)
-            if alpha < 1:
-                continue
-            if side == 0:
-                pygame.draw.line(surf, (8, 4, 0, alpha), (0, i), (w, i))
-            elif side == 1:
-                pygame.draw.line(surf, (8, 4, 0, alpha), (0, h - 1 - i), (w, h - 1 - i))
-            elif side == 2:
-                pygame.draw.line(surf, (8, 4, 0, alpha), (i, 0), (i, h))
-            else:
-                pygame.draw.line(surf, (8, 4, 0, alpha), (w - 1 - i, 0), (w - 1 - i, h))
+    for i in range(edge_w):
+        t = 1.0 - i / edge_w
+        alpha = int(t * t * 180)
+        if alpha < 1:
+            continue
+        pygame.draw.line(surf, (8, 4, 0, alpha), (0, i), (w, i))
+        pygame.draw.line(surf, (8, 4, 0, alpha), (0, h - 1 - i), (w, h - 1 - i))
 
     return surf
 

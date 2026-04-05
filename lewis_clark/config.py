@@ -123,6 +123,11 @@ def apply_game_config(module: Any, cfg: GameConfig) -> None:
         else:
             setattr(module, f.name, val)
     module.game_config = cfg
+    # Fixed design resolution for font/UI scale (min dimension vs min(REF_*)); not tied to default window size.
+    if not getattr(module, "_ref_display_set", False):
+        module.REF_SW = 1400
+        module.REF_SH = 900
+        module._ref_display_set = True
 
 
 def load_all(module: Any) -> None:
