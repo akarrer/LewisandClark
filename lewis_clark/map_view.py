@@ -21,7 +21,7 @@ _FONT_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
 
 
 class MapView:
-    MAP_RECT  = pygame.Rect(0, 50, 920, assets.SH - 50)
+    MAP_RECT = pygame.Rect(0, 50, 920, 400)  # overwritten by :meth:`set_map_rect`
     HEX_SIZE  = 80      # circumradius in pixels on the large canvas
     CANVAS_W  = 4600    # pre-rendered map canvas width
     CANVAS_H  = 2500    # pre-rendered map canvas height
@@ -62,6 +62,15 @@ class MapView:
         self._particles  = []
         self._canvas     = None   # lazily built
         self._canvas_dirty = True # rebuild when state changes
+        self._map_overlay_us = None  # UI_SCALE used for scaled cartouche / compass cache
+        self._scaled_cartouche = None
+        self._scaled_compass = None
+        self.MAP_RECT = pygame.Rect(
+            0, 50, max(120, assets.SW - 500), max(120, assets.SH - 120)
+        )
+
+    def set_map_rect(self, rect: pygame.Rect) -> None:
+        self.MAP_RECT = pygame.Rect(rect)
 
     # ── hex pixel geometry ────────────────────────────────────────────────────
     @staticmethod
@@ -96,6 +105,17 @@ class MapView:
         cx = (sx - R.x) / self.zoom + self.pan_x
         cy = (sy - R.y) / self.zoom + self.pan_y
         return cx, cy
+
+    def _waypoint_sprite_blt(self, surf, wx2, wy2, wp_type):
+        """Blit static 8-bit waypoint art if available; else caller draws vector style."""
+        wps = getattr(assets, "IMG_WAYPOINTS", None) or {}
+        key = "fort" if wp_type in ("fort", "start") else wp_type
+        im = wps.get(key) or wps.get("camp")
+        if im is None:
+            return False
+        iw, ih = im.get_size()
+        surf.blit(im, (wx2 - iw // 2, wy2 - ih // 2))
+        return True
 
     def screen_hex(self, sx, sy):
         """Screen pixel → which hex (col, row)."""
@@ -539,50 +559,51 @@ class MapView:
             wx2,wy2 = self.hex_center(wc,wr)
             wp_type = wp.get("type","camp")
 
-            # Drop shadow
-            pygame.draw.circle(surf,(0,0,0),(wx2+3,wy2+3),24)
+            if not self._waypoint_sprite_blt(surf, wx2, wy2, wp_type):
+                # Drop shadow
+                pygame.draw.circle(surf,(0,0,0),(wx2+3,wy2+3),24)
 
-            if wp_type in ("fort","start"):
-                sq=26
-                pygame.draw.rect(surf,(218,198,148),(wx2-sq,wy2-sq,sq*2,sq*2))
-                pygame.draw.rect(surf,(68,48,18),(wx2-sq,wy2-sq,sq*2,sq*2),4)
-                # Corner bastions
-                for bx3,by3 in [(wx2-sq,wy2-sq),(wx2+sq,wy2-sq),(wx2-sq,wy2+sq),(wx2+sq,wy2+sq)]:
-                    pygame.draw.circle(surf,(68,48,18),(bx3,by3),8)
-                    pygame.draw.circle(surf,(218,198,148),(bx3,by3),5)
-                # Flag
-                pygame.draw.line(surf,(68,48,18),(wx2-sq+6,wy2-sq),(wx2-sq+6,wy2-sq-24),2)
-                pygame.draw.polygon(surf,(160,20,20),[(wx2-sq+6,wy2-sq-24),(wx2-sq+22,wy2-sq-16),(wx2-sq+6,wy2-sq-8)])
+                if wp_type in ("fort","start"):
+                    sq=26
+                    pygame.draw.rect(surf,(218,198,148),(wx2-sq,wy2-sq,sq*2,sq*2))
+                    pygame.draw.rect(surf,(68,48,18),(wx2-sq,wy2-sq,sq*2,sq*2),4)
+                    # Corner bastions
+                    for bx3,by3 in [(wx2-sq,wy2-sq),(wx2+sq,wy2-sq),(wx2-sq,wy2+sq),(wx2+sq,wy2+sq)]:
+                        pygame.draw.circle(surf,(68,48,18),(bx3,by3),8)
+                        pygame.draw.circle(surf,(218,198,148),(bx3,by3),5)
+                    # Flag
+                    pygame.draw.line(surf,(68,48,18),(wx2-sq+6,wy2-sq),(wx2-sq+6,wy2-sq-24),2)
+                    pygame.draw.polygon(surf,(160,20,20),[(wx2-sq+6,wy2-sq-24),(wx2-sq+22,wy2-sq-16),(wx2-sq+6,wy2-sq-8)])
 
-            elif wp_type == "pass":
-                sz_p=24
-                pygame.draw.polygon(surf,(218,198,148),
-                    [(wx2,wy2-sz_p),(wx2+sz_p,wy2),(wx2,wy2+sz_p),(wx2-sz_p,wy2)])
-                pygame.draw.polygon(surf,(68,48,18),
-                    [(wx2,wy2-sz_p),(wx2+sz_p,wy2),(wx2,wy2+sz_p),(wx2-sz_p,wy2)],3)
-                # Mountain peak inside
-                pygame.draw.polygon(surf,(100,78,48),[(wx2-10,wy2+8),(wx2,wy2-12),(wx2+10,wy2+8)])
+                elif wp_type == "pass":
+                    sz_p=24
+                    pygame.draw.polygon(surf,(218,198,148),
+                        [(wx2,wy2-sz_p),(wx2+sz_p,wy2),(wx2,wy2+sz_p),(wx2-sz_p,wy2)])
+                    pygame.draw.polygon(surf,(68,48,18),
+                        [(wx2,wy2-sz_p),(wx2+sz_p,wy2),(wx2,wy2+sz_p),(wx2-sz_p,wy2)],3)
+                    # Mountain peak inside
+                    pygame.draw.polygon(surf,(100,78,48),[(wx2-10,wy2+8),(wx2,wy2-12),(wx2+10,wy2+8)])
 
-            elif wp_type == "dead_end":
-                pygame.draw.circle(surf,(80,30,30),(wx2,wy2),20)
-                pygame.draw.circle(surf,(120,40,40),(wx2,wy2),20,3)
-                pygame.draw.line(surf,(200,80,80),(wx2-12,wy2-12),(wx2+12,wy2+12),4)
-                pygame.draw.line(surf,(200,80,80),(wx2+12,wy2-12),(wx2-12,wy2+12),4)
+                elif wp_type == "dead_end":
+                    pygame.draw.circle(surf,(80,30,30),(wx2,wy2),20)
+                    pygame.draw.circle(surf,(120,40,40),(wx2,wy2),20,3)
+                    pygame.draw.line(surf,(200,80,80),(wx2-12,wy2-12),(wx2+12,wy2+12),4)
+                    pygame.draw.line(surf,(200,80,80),(wx2+12,wy2-12),(wx2-12,wy2+12),4)
 
-            elif wp_type == "junction":
-                # Y-fork symbol
-                pygame.draw.circle(surf,(218,198,148),(wx2,wy2),20)
-                pygame.draw.circle(surf,(68,48,18),(wx2,wy2),20,3)
-                for ang_j in [270,30,150]:
-                    ex_j=wx2+int(math.cos(math.radians(ang_j))*16)
-                    ey_j=wy2+int(math.sin(math.radians(ang_j))*16)
-                    pygame.draw.line(surf,(68,48,18),(wx2,wy2),(ex_j,ey_j),3)
+                elif wp_type == "junction":
+                    # Y-fork symbol
+                    pygame.draw.circle(surf,(218,198,148),(wx2,wy2),20)
+                    pygame.draw.circle(surf,(68,48,18),(wx2,wy2),20,3)
+                    for ang_j in [270,30,150]:
+                        ex_j=wx2+int(math.cos(math.radians(ang_j))*16)
+                        ey_j=wy2+int(math.sin(math.radians(ang_j))*16)
+                        pygame.draw.line(surf,(68,48,18),(wx2,wy2),(ex_j,ey_j),3)
 
-            else:
-                # Camp circle
-                pygame.draw.circle(surf,(218,198,148),(wx2,wy2),22)
-                pygame.draw.circle(surf,(68,48,18),(wx2,wy2),22,3)
-                pygame.draw.circle(surf,(68,48,18),(wx2,wy2),7)
+                else:
+                    # Camp circle
+                    pygame.draw.circle(surf,(218,198,148),(wx2,wy2),22)
+                    pygame.draw.circle(surf,(68,48,18),(wx2,wy2),22,3)
+                    pygame.draw.circle(surf,(68,48,18),(wx2,wy2),7)
 
             # Generic label (shown until visited)
             if fn_wp_i:
@@ -594,105 +615,7 @@ class MapView:
                 pygame.draw.rect(surf,(218,200,155),pill,border_radius=3)
                 surf.blit(ts_g,g_r)
 
-        # ── 7. Cartouche with scrollwork ────────────────────────────────────
-        cx3 = 24
-        cy3 = self.CANVAS_H - 175
-        cw3 = 380
-        ch3 = 150
-
-        sh_s = pygame.Surface((cw3 + 8, ch3 + 8), pygame.SRCALPHA)
-        sh_s.fill((0, 0, 0, 60))
-        surf.blit(sh_s, (cx3 + 4, cy3 + 4))
-
-        pygame.draw.rect(surf, (215, 198, 148), (cx3, cy3, cw3, ch3))
-
-        for i in range(0, cw3 + ch3, 10):
-            pygame.draw.line(
-                surf, (222, 206, 158),
-                (cx3 + i, cy3), (cx3 + max(0, i - ch3), cy3 + ch3), 1,
-            )
-
-        pygame.draw.rect(surf, (62, 46, 18), (cx3, cy3, cw3, ch3), 4)
-        pygame.draw.rect(surf, (90, 68, 24), (cx3 + 6, cy3 + 6, cw3 - 12, ch3 - 12), 2)
-        pygame.draw.rect(surf, (110, 85, 35), (cx3 + 10, cy3 + 10, cw3 - 20, ch3 - 20), 1)
-
-        rope_step = 12
-        for edge in range(4):
-            if edge == 0:
-                pts = [(cx3 + i, cy3 + 3) for i in range(3, cw3 - 3, rope_step)]
-            elif edge == 1:
-                pts = [(cx3 + i, cy3 + ch3 - 3) for i in range(3, cw3 - 3, rope_step)]
-            elif edge == 2:
-                pts = [(cx3 + 3, cy3 + i) for i in range(3, ch3 - 3, rope_step)]
-            else:
-                pts = [(cx3 + cw3 - 3, cy3 + i) for i in range(3, ch3 - 3, rope_step)]
-            for j, (rx, ry) in enumerate(pts):
-                off = 2 if j % 2 == 0 else -2
-                if edge < 2:
-                    pygame.draw.circle(surf, (90, 68, 30), (rx, ry + off), 2)
-                else:
-                    pygame.draw.circle(surf, (90, 68, 30), (rx + off, ry), 2)
-
-        for ccx, ccy, sdx, sdy in [
-            (cx3 + 6, cy3 + 6, 1, 1), (cx3 + cw3 - 6, cy3 + 6, -1, 1),
-            (cx3 + 6, cy3 + ch3 - 6, 1, -1), (cx3 + cw3 - 6, cy3 + ch3 - 6, -1, -1),
-        ]:
-            pygame.draw.line(surf, (62, 46, 18), (ccx, ccy), (ccx + sdx * 18, ccy), 2)
-            pygame.draw.line(surf, (62, 46, 18), (ccx, ccy), (ccx, ccy + sdy * 18), 2)
-            curl_pts = []
-            for t in range(8):
-                a = math.radians(t * 30 * sdx * sdy)
-                curl_pts.append((
-                    ccx + sdx * (20 + int(math.cos(a) * 6)),
-                    ccy + sdy * (2 + int(math.sin(a) * 4)),
-                ))
-            if len(curl_pts) >= 2:
-                pygame.draw.lines(surf, (90, 68, 24), False, curl_pts, 1)
-
-        try:
-            fct = self._map_font(12, italic=True)
-            fcb = self._map_font(16, bold=True)
-            cxm = cx3 + cw3 // 2
-
-            pygame.draw.line(
-                surf, (90, 68, 24),
-                (cx3 + 30, cy3 + 14), (cx3 + cw3 - 30, cy3 + 14), 1,
-            )
-
-            for cy3_off, txt3, fn3 in [
-                (18, "MAP of the", fct),
-                (36, "LOUISIANA TERRITORY", fcb),
-                (60, "Explored by Capts LEWIS & CLARK", fct),
-                (78, "By order of President Jefferson", fct),
-                (96, "Anno Domini MDCCCIV", fct),
-            ]:
-                col3 = (40, 28, 8) if fn3 == fcb else (78, 56, 20)
-                ts = fn3.render(txt3, True, col3)
-                surf.blit(ts, ts.get_rect(centerx=cxm, top=cy3 + cy3_off))
-
-            pygame.draw.line(
-                surf, (90, 68, 24),
-                (cx3 + 30, cy3 + 56), (cx3 + cw3 - 30, cy3 + 56), 1,
-            )
-
-            scale_y = cy3 + ch3 - 26
-            scale_x = cx3 + 40
-            scale_w = cw3 - 80
-            fs = self._map_font(8)
-            pygame.draw.line(surf, (60, 42, 14), (scale_x, scale_y), (scale_x + scale_w, scale_y), 2)
-            for si in range(5):
-                sx = scale_x + int(si / 4 * scale_w)
-                pygame.draw.line(surf, (60, 42, 14), (sx, scale_y - 4), (sx, scale_y + 4), 1)
-                miles = str(si * 100)
-                ts = fs.render(miles, True, (78, 56, 20))
-                surf.blit(ts, ts.get_rect(centerx=sx, top=scale_y + 5))
-            ts = fs.render("Miles (approx.)", True, (78, 56, 20))
-            surf.blit(ts, ts.get_rect(centerx=scale_x + scale_w // 2, top=scale_y + 16))
-
-        except Exception:
-            pass
-
-        # ── 8. Decorative double-line map border ─────────────────────────────
+        # ── 7. Decorative double-line map border ─────────────────────────────
         W, H = self.CANVAS_W, self.CANVAS_H
         pygame.draw.rect(surf, (80, 58, 20), (0, 0, W, H), 5)
         pygame.draw.rect(surf, (120, 90, 35), (8, 8, W - 16, H - 16), 2)
@@ -970,103 +893,88 @@ class MapView:
         # ── Particles ─────────────────────────────────────────────────────────
         self._draw_particles(surf)
 
-        # ── Ornate compass rose (screen-space, bottom right) ────────────────
-        cr = 48
-        crx = R.right - cr - 14
-        cry = R.bottom - cr - 14
+        us = float(getattr(assets, "UI_SCALE", 1.0))
 
-        outer_ring = pygame.Surface((cr * 2 + 20, cr * 2 + 20), pygame.SRCALPHA)
-        oc = cr + 10
-        pygame.draw.circle(outer_ring, (220, 205, 160, 220), (oc, oc), cr + 6)
-        pygame.draw.circle(outer_ring, (160, 140, 90, 200), (oc, oc), cr + 6, 2)
-        pygame.draw.circle(outer_ring, (196, 178, 128, 230), (oc, oc), cr)
-        pygame.draw.circle(outer_ring, (100, 78, 32, 180), (oc, oc), cr, 2)
-        pygame.draw.circle(outer_ring, (180, 160, 110, 160), (oc, oc), cr - 4, 1)
-        for tick in range(32):
-            a = math.radians(tick * 11.25)
-            ln = 4 if tick % 8 == 0 else (3 if tick % 4 == 0 else 2)
-            r_in = cr - 2 - ln
-            r_out = cr - 1
-            pygame.draw.line(
-                outer_ring, (80, 60, 25, 160),
-                (oc + int(math.sin(a) * r_in), oc - int(math.cos(a) * r_in)),
-                (oc + int(math.sin(a) * r_out), oc - int(math.cos(a) * r_out)),
-                1,
-            )
-        surf.blit(outer_ring, (crx - cr - 10, cry - cr - 10))
+        # Zoom label metrics (scaled with window — keeps cartouche / zoom spacing)
+        zi_w = max(80, int(round(120 * us)))
+        zi_h = max(8, int(round(12 * us)))
+        fz_sz = max(10, int(round(15 * us)))
+        try:
+            fz = self._map_font(fz_sz)
+        except Exception:
+            fz = self._map_font(max(8, fz_sz - 1))
+        zi_lbl_h = fz.get_height() + max(3, int(round(5 * us)))
 
-        cardinal_len = cr - 8
-        inter_len = cr - 18
-        for i in range(8):
-            a = math.radians(i * 45)
-            is_card = i % 2 == 0
-            ln = cardinal_len if is_card else inter_len
-            w = 3 if is_card else 2
-            tip_x = crx + int(math.sin(a) * ln)
-            tip_y = cry - int(math.cos(a) * ln)
-
-            if is_card:
-                perp = math.radians(i * 45 + 90)
-                bw = 8
-                pts_star = [
-                    (tip_x, tip_y),
-                    (crx + int(math.sin(perp) * bw), cry - int(math.cos(perp) * bw)),
-                    (crx, cry),
-                    (crx - int(math.sin(perp) * bw), cry + int(math.cos(perp) * bw)),
-                ]
-                dark = (80, 55, 20) if i in (0, 2) else (120, 90, 40)
-                light = (200, 170, 100) if i in (0, 2) else (230, 210, 160)
-                pygame.draw.polygon(surf, dark, [pts_star[0], pts_star[1], pts_star[2]])
-                pygame.draw.polygon(surf, light, [pts_star[0], pts_star[3], pts_star[2]])
-                pygame.draw.polygon(surf, (60, 42, 14), pts_star, 1)
-            else:
-                pygame.draw.line(surf, (100, 75, 30), (crx, cry), (tip_x, tip_y), w)
-
-        if i == 0:
-            pass
-        fleur_y = cry - cardinal_len - 4
-        pygame.draw.polygon(
-            surf, (180, 40, 20),
-            [(crx, fleur_y - 6), (crx - 4, fleur_y), (crx + 4, fleur_y)],
-        )
-        pygame.draw.circle(surf, (180, 40, 20), (crx, fleur_y - 7), 3)
-
-        for lb9, ag9 in [("N", 0), ("E", 90), ("S", 180), ("W", 270)]:
-            dist = cr - 12
-            lxc = crx + int(math.sin(math.radians(ag9)) * dist)
-            lyc = cry - int(math.cos(math.radians(ag9)) * dist)
-            try:
-                fc9 = self._map_font(9, bold=True)
-                lbl_col = (180, 40, 20) if lb9 == "N" else (58, 40, 8)
-                ts9 = fc9.render(lb9, True, lbl_col)
-                bg_pill = pygame.Surface(
-                    (ts9.get_width() + 6, ts9.get_height() + 2), pygame.SRCALPHA,
+        # ── Louisiana Territory cartouche (static PNG; bottom-left, above zoom)
+        cart_img = getattr(assets, "IMG_LOUISIANA_CARTOUCHE", None)
+        if cart_img is None:
+            if not hasattr(self, "_louisiana_cartouche_fallback"):
+                from lewis_clark.louisiana_cartouche import (
+                    render_louisiana_cartouche_surface,
                 )
-                bg_pill.fill((220, 205, 160, 180))
-                surf.blit(bg_pill, (
-                    lxc - bg_pill.get_width() // 2,
-                    lyc - bg_pill.get_height() // 2,
-                ))
-                surf.blit(ts9, ts9.get_rect(center=(lxc, lyc)))
-            except Exception:
-                pass
 
-        pygame.draw.circle(surf, (140, 100, 30), (crx, cry), 5)
-        pygame.draw.circle(surf, (220, 180, 80), (crx, cry), 3)
-        pygame.draw.circle(surf, (80, 55, 20), (crx, cry), 5, 1)
+                self._louisiana_cartouche_fallback = render_louisiana_cartouche_surface()
+            cart_img = self._louisiana_cartouche_fallback
+        # Overlay size vs UI_SCALE: cartouche −2/3 area (×⅓), compass −¼ (×¾)
+        _cart_us = us * (1.0 / 3.0)
+        _rose_us = us * 0.75
+        if self._map_overlay_us != us:
+            self._map_overlay_us = us
+            ctw, cth = cart_img.get_size()
+            self._scaled_cartouche = pygame.transform.smoothscale(
+                cart_img,
+                (
+                    max(1, int(round(ctw * _cart_us))),
+                    max(1, int(round(cth * _cart_us))),
+                ),
+            )
+            rose = getattr(assets, "IMG_COMPASS_ROSE", None)
+            if rose is None:
+                if not hasattr(self, "_compass_rose_fallback"):
+                    from lewis_clark.compass_rose import render_compass_rose_surface
+
+                    self._compass_rose_fallback = render_compass_rose_surface(48)
+                rose = self._compass_rose_fallback
+            iw0, ih0 = rose.get_size()
+            self._scaled_compass = pygame.transform.smoothscale(
+                rose,
+                (
+                    max(1, int(round(iw0 * _rose_us))),
+                    max(1, int(round(ih0 * _rose_us))),
+                ),
+            )
+        cart_draw = self._scaled_cartouche
+        rose_draw = self._scaled_compass
+        sch = cart_draw.get_height()
+        gap_cz = max(4, int(round(10 * us)))
+        cart_x = R.x + max(6, int(round(10 * us)))
+        zoom_stack = zi_lbl_h + zi_h + max(6, int(round(10 * us)))
+        cart_y = R.bottom - zoom_stack - gap_cz - sch
+        cart_y = max(R.y + max(4, int(round(8 * us))), cart_y)
+        surf.blit(cart_draw, (cart_x, cart_y))
+
+        # ── Compass rose (static PNG; procedural fallback if missing) ───────
+        iw2, ih2 = rose_draw.get_size()
+        off_c = max(16, int(round(62 * _rose_us)))
+        cx = R.right - off_c
+        cy = R.bottom - off_c
+        surf.blit(rose_draw, (cx - iw2 // 2, cy - ih2 // 2))
 
         # ── Zoom indicator (bottom-left of map) ──────────────────────────────
         zoom_pct = int(self.zoom / 1.8 * 100)
-        zi_x = R.x + 8; zi_y = R.bottom - 28; zi_w = 100; zi_h = 10
-        pygame.draw.rect(surf, (100,84,50), (zi_x,zi_y,zi_w,zi_h), border_radius=2)
-        pygame.draw.rect(surf, (200,172,100), (zi_x,zi_y,int(zi_w*zoom_pct/100),zi_h), border_radius=2)
-        pygame.draw.rect(surf, (140,112,60), (zi_x,zi_y,zi_w,zi_h), 1, border_radius=2)
+        zi_x = R.x + max(6, int(round(10 * us)))
+        zi_y = R.bottom - zi_h - max(6, int(round(10 * us)))
+        pygame.draw.rect(surf, (100, 84, 50), (zi_x, zi_y, zi_w, zi_h), border_radius=2)
+        pygame.draw.rect(
+            surf, (200, 172, 100), (zi_x, zi_y, int(zi_w * zoom_pct / 100), zi_h), border_radius=2
+        )
+        pygame.draw.rect(surf, (140, 112, 60), (zi_x, zi_y, zi_w, zi_h), 1, border_radius=2)
         try:
-            fz = self._map_font(9)
-            surf.blit(
-                fz.render("ZOOM  scroll\u2195  R=reset", True, (154, 128, 72)),
-                (zi_x, zi_y - 13),
-            )
+            lbl = fz.render("ZOOM  scroll\u2195  R=reset", True, (42, 32, 14))
+            lbl_sh = fz.render("ZOOM  scroll\u2195  R=reset", True, (220, 200, 150))
+            ly = zi_y - zi_lbl_h
+            surf.blit(lbl_sh, (zi_x + 1, ly + 1))
+            surf.blit(lbl, (zi_x, ly))
         except Exception:
             pass
 

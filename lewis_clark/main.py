@@ -29,7 +29,9 @@ def main() -> None:
     pygame.font.init()
     load_fonts(assets)
 
-    assets.screen = pygame.display.set_mode((assets.SW, assets.SH))
+    assets.screen = pygame.display.set_mode(
+        (assets.SW, assets.SH), pygame.RESIZABLE
+    )
     pygame.display.set_caption("Lewis & Clark — Corps of Discovery  1804")
     assets.clock = pygame.time.Clock()
 

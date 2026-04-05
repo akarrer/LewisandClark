@@ -36,6 +36,21 @@ class TitleScreen:
             fill=assets.UI_CARD2,
             text_col=assets.PARCH_DARK,
         )
+        self.on_resize()
+
+    def on_resize(self):
+        W, H = assets.SW, assets.SH
+        us = getattr(assets, "UI_SCALE", 1.0)
+
+        def sz(n: float) -> int:
+            return max(1, int(round(n * us)))
+
+        self.start_btn.rect = pygame.Rect(
+            W // 2 - sz(160), H - sz(180), sz(320), sz(54)
+        )
+        self.load_btn.rect = pygame.Rect(
+            W // 2 - sz(120), H - sz(112), sz(240), sz(38)
+        )
 
     def draw(self, surf):
         f = self.frame

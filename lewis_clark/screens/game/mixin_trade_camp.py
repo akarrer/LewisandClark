@@ -6,12 +6,15 @@ import random
 
 from lewis_clark import assets
 from lewis_clark.drawing import darken
+from lewis_clark.screens.game import layout as game_layout
 from lewis_clark.ui.button import Button
 
 
 class TradeCampMixin:
-    def _build_trade_ui(self, tribe_key):
+    def _build_trade_ui(self, tribe_key, _resize_only=False):
+        self._sync_layout()
         self.mode = "trade"
+        self._event_art_surf = None
         self.action_btns = []
         self._trade_tribe = tribe_key
         s = self.state
@@ -27,6 +30,15 @@ class TradeCampMixin:
         PX = self.PANEL_X + 8
         BW = self.PANEL_W - 16
         by = self.BTN_Y_TRADE
+        us = getattr(assets, "UI_SCALE", 1.0)
+
+        def sz(n: float) -> int:
+            return max(1, int(round(n * us)))
+
+        h_sac = sz(38)
+        h_row = sz(36)
+        gap_after_sac = sz(44)
+        gap_rows = sz(42)
 
         rt = "Friendly" if er >= 60 else "Neutral" if er >= 40 else "Tense"
         wants_str = "  ·  ".join(
@@ -34,18 +46,23 @@ class TradeCampMixin:
         )
         offers_str = "  ·  ".join(tribe["offers"])
 
-        lines = [
-            (f"{tribe['name']} Nation — Council", assets.F["header"], assets.TEAL2),
-            (
-                f"Relations: {rt} ({er}/100)",
-                assets.F["body"],
-                assets.GREEN2 if er >= 60 else assets.GOLD if er >= 40 else assets.RED2,
-            ),
-            ("", assets.F["tiny"], assets.DIM),
-            (f"They desire: {wants_str}", assets.F["body"], assets.PARCH_DARK),
-            (f"They offer:  {offers_str}", assets.F["body"], assets.GOLD),
-        ]
-        self.scroll_panel.set_lines(lines)
+        body = (
+            f"Relations: {rt} ({er}/100).\n\n"
+            f"They desire: {wants_str}\n\nThey offer: {offers_str}"
+        )
+        if not _resize_only:
+            s.add_journal(
+                f"{tribe['name']} Nation — Council. Relations {rt} ({er}/100)."
+            )
+            self._update_journal()
+            self._narrative_overlay = {
+                "title": f"{tribe['name']} Nation",
+                "body": body,
+                "subtitle": "TRADE COUNCIL",
+                "accent": assets.TEAL2,
+                "art": None,
+            }
+        self.scroll_panel.set_lines([])
 
         trade_actions = [
             (
@@ -64,7 +81,7 @@ class TradeCampMixin:
         ]
         if chars.get("sacagawea"):
             btn_s = Button(
-                (PX, by, BW, 38),
+                (PX, by, BW, h_sac),
                 "Sacagawea negotiates in their tongue",
                 fill=darken(assets.AMBER, 0.5),
                 text_col=assets.PARCH,
@@ -72,11 +89,11 @@ class TradeCampMixin:
             )
             btn_s._trade_action = "sacagawea_speak"
             self.action_btns.append(btn_s)
-            by += 44
+            by += gap_after_sac
 
         for lbl, act, dis in trade_actions:
             btn = Button(
-                (PX, by, BW, 36),
+                (PX, by, BW, h_row),
                 lbl,
                 fill=darken(assets.TEAL2, 0.5),
                 text_col=assets.PARCH,
@@ -84,7 +101,7 @@ class TradeCampMixin:
             btn.disabled = dis
             btn._trade_action = act
             self.action_btns.append(btn)
-            by += 42
+            by += gap_rows
 
     def _start_end_game(self):
         self.mode = "end"
@@ -102,10 +119,25 @@ class TradeCampMixin:
             rating = "PYRRHIC"
         s.add_journal(f"EXPEDITION COMPLETE — {score}/6 objectives. Rating: {rating}.")
         self._update_journal()
+        self._rebuild_end_buttons()
+
+    def _rebuild_end_buttons(self):
+        self._sync_layout()
+        self.action_btns = []
         PX = self.PANEL_X + 8
         BW = self.PANEL_W - 16
+        us = getattr(assets, "UI_SCALE", 1.0)
+
+        def sz(n: float) -> int:
+            return max(1, int(round(n * us)))
+
+        ft = game_layout.right_panel_footer_top(assets.SH, us)
+        gap = sz(8)
+        save_h, new_h = sz(36), sz(40)
+        y_save = ft - gap - save_h
+        y_new = y_save - gap - new_h
         b_new = Button(
-            (PX, assets.SH - 92, BW, 40),
+            (PX, y_new, BW, new_h),
             "⚑  New Expedition",
             fill=assets.GOLD,
             fill_h=assets.GOLD2,
@@ -116,7 +148,7 @@ class TradeCampMixin:
         b_new._action = "new"
         self.action_btns.append(b_new)
         b_save = Button(
-            (PX, assets.SH - 44, BW, 36),
+            (PX, y_save, BW, save_h),
             "Save Record",
             fill=assets.UI_CARD2,
             text_col=assets.DIM2,

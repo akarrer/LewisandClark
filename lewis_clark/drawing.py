@@ -6,6 +6,10 @@ import pygame
 
 from lewis_clark import assets
 
+# Scaled parchment per panel size — avoids visible tile seams from repeating IMG_PARCHMENT_TILE.
+_PARCH_SCALE_CACHE: dict[tuple[int, int], pygame.Surface] = {}
+_PARCH_CACHE_MAX = 64
+
 
 def hex2rgb(h: str):
     h = h.lstrip("#")
@@ -71,6 +75,16 @@ def draw_corner_brackets(surf, rect, col=assets.GOLD, size=10, width=2):
         pygame.draw.line(surf, col, (cx, cy), (cx, cy + sy * size), width)
 
 
+def panel_title_metrics(title_font=None, title_strip_h=None):
+    """Font and title-band height for :func:`draw_panel` (default = tiny band)."""
+    tf = title_font or assets.F["tiny_b"]
+    if title_strip_h is not None:
+        return tf, title_strip_h
+    if title_font is None:
+        return tf, 20
+    return tf, max(22, tf.get_height() + 10)
+
+
 def draw_panel(
     surf,
     rect,
@@ -80,6 +94,8 @@ def draw_panel(
     title=None,
     accent=None,
     corners=True,
+    title_font=None,
+    title_strip_h=None,
 ):
     """Panel with parchment texture, optional title strip, corner brackets."""
     r = pygame.Rect(rect)
@@ -93,21 +109,29 @@ def draw_panel(
         assets, "TEX_PARCHMENT", None
     )
     if tex:
-        parch_overlay = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
-        for ty in range(0, r.h, tex.get_height()):
-            for tx in range(0, r.w, tex.get_width()):
-                parch_overlay.blit(tex, (tx, ty))
+        tw, th = tex.get_size()
+        if tw > 0 and th > 0:
+            key = (r.w, r.h)
+            parch_overlay = _PARCH_SCALE_CACHE.get(key)
+            if parch_overlay is None:
+                parch_overlay = pygame.transform.smoothscale(
+                    tex, (max(1, r.w), max(1, r.h))
+                )
+                if len(_PARCH_SCALE_CACHE) >= _PARCH_CACHE_MAX:
+                    _PARCH_SCALE_CACHE.clear()
+                _PARCH_SCALE_CACHE[key] = parch_overlay
+        else:
+            parch_overlay = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
         parch_overlay.set_alpha(255)
         surf.blit(parch_overlay, r.topleft, special_flags=pygame.BLEND_MULT)
 
+    # Fine horizontal grain only — diagonal lines produced vertical banding when blended.
     grain_s = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
-    for i in range(0, r.w + r.h, 10):
-        pygame.draw.line(grain_s, (255, 255, 255, 5), (i, 0), (max(0, i - r.h), r.h))
-    for i in range(0, r.w + r.h, 16):
-        pygame.draw.line(
-            grain_s, (0, 0, 0, 4),
-            (i + 5, 0), (max(0, i + 5 - r.h), r.h),
-        )
+    for y in range(0, r.h, 5):
+        a = 5 if (y // 5) % 2 == 0 else 4
+        pygame.draw.line(grain_s, (255, 255, 255, a), (0, y), (r.w, y), 1)
+    for y in range(2, r.h, 5):
+        pygame.draw.line(grain_s, (0, 0, 0, 3), (0, y), (r.w, y), 1)
     surf.blit(grain_s, r.topleft)
 
     pygame.draw.rect(surf, darken(fill, 0.4), r, border_radius=radius)
@@ -118,20 +142,21 @@ def draw_panel(
     pygame.draw.rect(surf, darken(fill, 0.3), bot_r)
 
     if title:
-        strip = pygame.Rect(r.x, r.y, r.w, 20)
+        tf, th = panel_title_metrics(title_font, title_strip_h)
+        strip = pygame.Rect(r.x, r.y, r.w, th)
         ac = accent or border
         pygame.draw.rect(surf, darken(ac, 0.35), strip, border_radius=radius)
-        pygame.draw.line(surf, ac, (r.x, r.y + 20), (r.right, r.y + 20), 1)
+        pygame.draw.line(surf, ac, (r.x, r.y + th), (r.right, r.y + th), 1)
         pygame.draw.line(
             surf, lighten(ac, 0.6),
-            (r.x + 4, r.y + 21), (r.right - 4, r.y + 21), 1,
+            (r.x + 4, r.y + th + 1), (r.right - 4, r.y + th + 1), 1,
         )
         draw_text(
             surf,
             title,
-            assets.F["tiny_b"],
+            tf,
             lighten(ac, 1.4),
-            (r.centerx, r.y + 10),
+            (r.centerx, r.y + th // 2),
             anchor="center",
         )
     if corners:
@@ -150,18 +175,38 @@ def draw_separator(surf, x, y, w, col=assets.UI_BORDER):
 def stat_bar(surf, x, y, w, h, value, colour, label, icon=""):
     """Engraved stat bar — recessed track, bright fill, danger pulse."""
     lbl_col = assets.INK_FAINT if value > 25 else assets.RED2
-    draw_text(
-        surf, icon + label, assets.F["tiny_b"], lbl_col, (x, y - 13), anchor="topleft"
-    )
     val_col = assets.RED2 if value < 25 else assets.AMBER if value < 50 else colour
-    draw_text(
-        surf,
-        f"{value}",
-        assets.F["subhead"],
-        val_col,
-        (x + w, y - 13),
-        anchor="topright",
+    us = getattr(assets, "UI_SCALE", 1.0)
+    gap = max(2, int(3 * us))
+    line_h = max(
+        assets.F["small"].get_height(),
+        assets.F["header"].get_height(),
     )
+    text_y = y - gap - line_h
+    # Clip label/value row so glyphs never bleed into neighbouring columns.
+    line_top = text_y - 1
+    text_clip = pygame.Rect(x, line_top, w, y - line_top)
+    prev_clip = surf.get_clip()
+    surf.set_clip(text_clip.clip(prev_clip))
+    try:
+        draw_text(
+            surf,
+            icon + label,
+            assets.F["small"],
+            lbl_col,
+            (x + 2, text_y),
+            anchor="topleft",
+        )
+        draw_text(
+            surf,
+            f"{value}",
+            assets.F["header"],
+            val_col,
+            (x + w - 2, text_y),
+            anchor="topright",
+        )
+    finally:
+        surf.set_clip(prev_clip)
     pygame.draw.rect(
         surf, darken(colour, 0.15), (x - 1, y - 1, w + 2, h + 2), border_radius=2
     )

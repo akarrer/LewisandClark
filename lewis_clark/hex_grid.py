@@ -105,6 +105,31 @@ def _build_hex_contents() -> None:
             }
 
 
+def hex_distance(col1: int, row1: int, col2: int, row2: int) -> int:
+    """Cube distance (max of axial differences) for offset hex coordinates."""
+
+    def to_cube(c: int, r: int):
+        x = c - (r - (r & 1)) // 2
+        z = r
+        return x, -x - z, z
+
+    x1, y1, z1 = to_cube(col1, row1)
+    x2, y2, z2 = to_cube(col2, row2)
+    return max(abs(x1 - x2), abs(y1 - y2), abs(z1 - z2))
+
+
+def next_waypoint_goal_caption(current_wp: int, hex_col: int, hex_row: int) -> str | None:
+    """Human-readable next-waypoint line for the objectives panel, or None if none."""
+    next_wp_id = current_wp + 1
+    nwp = len(assets.WAYPOINTS)
+    if next_wp_id >= nwp or next_wp_id >= 10:
+        return None
+    wp = assets.WAYPOINTS[next_wp_id]
+    nwc, nwr = assets.WP_HEX[next_wp_id]
+    dist = hex_distance(hex_col, hex_row, nwc, nwr)
+    return f"Goal: {wp['name']} · {dist} hexes away"
+
+
 def hex_neighbours(col: int, row: int):
     """Return valid (col, row) neighbours for pointy-top offset hexes."""
     if row % 2 == 0:

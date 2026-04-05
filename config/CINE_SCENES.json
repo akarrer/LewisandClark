@@ -4,6 +4,7 @@
     "title": "Jefferson's Secret Message",
     "year": "January 18, 1803",
     "location": "Washington City, D.C.",
+    "figure": "jefferson",
     "fact": "Jefferson sent Congress a CONFIDENTIAL message — the word underlined twice. He asked for $2,500 for a 'literary expedition.' The real mission: map the entire continent.",
     "narration": [
       "President Jefferson sits alone at his writing desk. He is composing the most important letter of his presidency — and it must be secret.",
@@ -22,6 +23,7 @@
     "title": "Napoleon Sells a Continent",
     "year": "April 11–30, 1803",
     "location": "Paris, France",
+    "figure": "napoleon",
     "fact": "Napoleon offered Louisiana to the Americans before they asked. Talleyrand made the offer at 8am on April 11th, 1803. The Americans had only been sent to buy New Orleans.",
     "narration": [
       "Napoleon Bonaparte has just lost Haiti — his Caribbean empire destroyed by disease and the revolution of enslaved people under Toussaint Louverture.",
@@ -40,6 +42,7 @@
     "title": "Lewis Prepares",
     "year": "June–October 1803",
     "location": "Philadelphia & Harpers Ferry",
+    "figure": "lewis",
     "fact": "Lewis carried 193 pounds of portable soup, 30 gallons of whiskey, 15 rifles, and a collapsible iron-frame boat he designed himself. It will sink immediately.",
     "narration": [
       "Lewis spends the summer in Philadelphia studying botany, astronomy, medicine, and zoology with the finest scientists in America — cramming four university degrees into four months.",
@@ -58,6 +61,7 @@
     "title": "Clark is Recruited",
     "year": "June 19, 1803",
     "location": "Clarksville, Indiana Territory",
+    "figure": "clark",
     "fact": "Clark said yes the same day he received Lewis's letter. He had been living quietly on a farm, largely retired, after a difficult military service record.",
     "narration": [
       "Lewis writes to his old army friend William Clark in Indiana. Clark is 33, living quietly on a farm, largely retired from military life.",
@@ -76,6 +80,7 @@
     "title": "The Corps of Discovery",
     "year": "Winter 1803–1804",
     "location": "Camp Dubois, Illinois",
+    "figure": "corps",
     "fact": "The Corps included York (enslaved, Black), Drouillard (half-Shawnee), Sacagawea (Shoshone, ~16 years old, eight months pregnant), and her infant son.",
     "narration": [
       "At Camp Dubois, forty-five men train through a brutal winter. Only thirty-three will make the permanent journey. Lewis and Clark drill them daily — shooting, rowing, discipline.",
@@ -94,6 +99,7 @@
     "title": "The Missouri River",
     "year": "Spring 1804",
     "location": "The Louisiana Territory",
+    "figure": "lewis",
     "fact": "The Missouri runs 2,341 miles. Lewis and Clark's complete route was approximately 3,700 miles each way — through country no American had mapped.",
     "narration": [
       "The Missouri River is nothing like any river in the eastern United States. It is brown, wide, violent, and alive. Entire forests wheel past in the current. Sandbars appear and vanish overnight.",
@@ -112,6 +118,7 @@
     "title": "Set Forth",
     "year": "May 14, 1804",
     "location": "Camp Dubois, Illinois",
+    "figure": "clark",
     "fact": "They left at 4pm on a Monday. Lewis wasn't even there — he was still in St. Louis handling paperwork. He caught up three days later.",
     "narration": [
       "May 14, 1804. Four in the afternoon. The keelboat and two smaller pirogues push off from the muddy bank at Camp Dubois.",

@@ -1,4 +1,32 @@
 {
+  "lewis": {
+    "name": "Lewis",
+    "title": "Captain — Corps of Discovery",
+    "abilities": {
+      "Science": "+1 discovery on discovery events",
+      "Command": "Co-leads the expedition",
+      "Journals": "Detailed natural history notes",
+      "Navigation": "Celestial observation & mapping"
+    },
+    "joined_at": 0,
+    "active": true,
+    "bio": "Jefferson's private secretary, chosen to lead the expedition west. Botanist, soldier, restless intellect.",
+    "quote": "\"I shall in future believe myself capable of performing feats both of bodily and mind strength.\" — Lewis"
+  },
+  "clark": {
+    "name": "Clark",
+    "title": "Captain — Co-Commander",
+    "abilities": {
+      "Rivercraft": "Keelboat and river discipline",
+      "Mapping": "Charts the main route",
+      "Recruiting": "Draws frontier men to the corps",
+      "Leadership": "Shares equal command with Lewis"
+    },
+    "joined_at": 0,
+    "active": true,
+    "bio": "Lewis's chosen partner — equal command, not subordinate. Steady hand on the Missouri.",
+    "quote": "\"Ocean in view! O! The joy!\" — Clark"
+  },
   "york": {
     "name": "York",
     "title": "Clark's Manservant — Frontiersman",

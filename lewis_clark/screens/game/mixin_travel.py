@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import random
 
+import pygame
+
 from lewis_clark import assets
 from lewis_clark.drawing import darken
 from lewis_clark.hex_grid import hex_neighbours, hex_terrain
@@ -13,12 +15,20 @@ from lewis_clark.ui.button import Button
 
 class TravelMixin:
     def _build_travel_ui(self, hover_hex=None):
+        self._sync_layout()
         self.mode = "travel"
+        self._event_art_surf = None
+        if hasattr(self, "_clear_resource_popup_state"):
+            self._clear_resource_popup_state()
         self.action_btns = []
         s = self.state
         PX = self.PANEL_X + 8
         BW = self.PANEL_W - 16
         by = self.BTN_Y_TRAVEL
+        us = getattr(assets, "UI_SCALE", 1.0)
+
+        def sz(n: float) -> int:
+            return max(1, int(round(n * us)))
 
         if s.current_wp >= 9:
             self._start_end_game()
@@ -54,9 +64,31 @@ class TravelMixin:
         neighbours_sorted = sorted(neighbours, key=sort_key)
         n_nb = len(neighbours_sorted)
         use_2col = n_nb > 3
-        col_w = (BW // 2 - 6) if use_2col else BW
-        travel_row_h = 33 if n_nb > 5 else 36
-        travel_gap = 7 if n_nb > 5 else 8
+        gap_y = max(sz(6), int(round(8 * us)))
+        col_gap = gap_y
+        col_w = (BW - col_gap) // 2 if use_2col else BW
+        travel_row_h = sz(40) if n_nb > 5 else sz(44)
+
+        sh_win = assets.SH
+        footer_top = game_layout.right_panel_footer_top(sh_win, us)
+        strip_h = game_layout.right_panel_inventory_strip_h(us)
+        inv_strip_top = footer_top - strip_h
+        nav_max_bottom = inv_strip_top - gap_y
+        rows_hex = (n_nb + 1) // 2 if use_2col else n_nb
+        hex_block = rows_hex * (travel_row_h + gap_y)
+        hunt_block = travel_row_h + gap_y
+        tribe_extra = travel_row_h + gap_y
+        need_nav = hex_block + hunt_block + tribe_extra
+        avail_nav = nav_max_bottom - self.BTN_Y_TRAVEL
+        if need_nav > avail_nav > 0:
+            factor = avail_nav / max(1, need_nav)
+            travel_row_h = max(sz(22), int(travel_row_h * factor))
+            gap_y = max(sz(4), int(gap_y * factor))
+            col_gap = gap_y
+            if use_2col:
+                col_w = (BW - col_gap) // 2
+
+        row2_h = travel_row_h
 
         from_col, from_row = s.hex_col, s.hex_row
         for ni, (col, row) in enumerate(neighbours_sorted):
@@ -111,11 +143,11 @@ class TravelMixin:
             if use_2col:
                 col_ix = ni % 2
                 row_ix = ni // 2
-                bx = PX + col_ix * (col_w + 10)
-                b_row_y = by + row_ix * (travel_row_h + travel_gap)
+                bx = PX + col_ix * (col_w + col_gap)
+                b_row_y = by + row_ix * (travel_row_h + gap_y)
             else:
                 bx = PX
-                b_row_y = by + ni * (travel_row_h + travel_gap)
+                b_row_y = by + ni * (travel_row_h + gap_y)
             btn = Button(
                 (bx, b_row_y, col_w, travel_row_h),
                 lbl,
@@ -125,6 +157,7 @@ class TravelMixin:
                 text_h=assets.INK,
                 font=assets.F["btn"],
                 sub=sub,
+                sub_font=assets.F["body"],
             )
             btn._hex_move = (col, row)
             btn.hovered = is_hov
@@ -132,33 +165,36 @@ class TravelMixin:
 
         if use_2col:
             rows = (n_nb + 1) // 2
-            by = by + rows * (travel_row_h + travel_gap) + 6
+            by = by + rows * (travel_row_h + gap_y)
         else:
-            by = by + n_nb * (travel_row_h + travel_gap) + 6
+            by = by + n_nb * (travel_row_h + gap_y)
 
         has_d = s.characters.get("drouillard", {}).get("active", False)
+        hunt_w = (BW - col_gap) // 2
         b_hunt = Button(
-            (PX, by, BW // 2 - 2, 34),
+            (PX, by, hunt_w, row2_h),
             "Hunt",
             fill=darken(assets.GREEN2, 0.5),
             fill_h=assets.GREEN2,
             text_col=assets.PARCH,
             sub="Drouillard leads" if has_d else "+8–18 food",
+            sub_font=assets.F["body"],
         )
         b_hunt._action = "hunt"
         self.action_btns.append(b_hunt)
 
         b_camp = Button(
-            (PX + BW // 2 + 2, by, BW // 2 - 2, 34),
+            (PX + hunt_w + col_gap, by, BW - hunt_w - col_gap, row2_h),
             "Make Camp",
             fill=darken(assets.BLUE2, 0.5),
             fill_h=assets.BLUE2,
             text_col=assets.PARCH,
             sub="+10hp +8mor -10food",
+            sub_font=assets.F["body"],
         )
         b_camp._action = "camp"
         self.action_btns.append(b_camp)
-        by += 42
+        by += row2_h + gap_y
 
         cur_content = assets.HEX_CONTENTS.get((s.hex_col, s.hex_row))
         if cur_content and cur_content["type"] == "tribe":
@@ -167,49 +203,76 @@ class TravelMixin:
             rel = s.tribe_relations.get(tk_key, 50)
             rt = "Friendly" if rel >= 60 else "Neutral" if rel >= 40 else "Tense"
             b_trade = Button(
-                (PX, by, BW, 34),
+                (PX, by, BW, row2_h),
                 f"Council — {tribe['name']} Nation",
                 fill=darken(assets.TEAL2, 0.5),
                 fill_h=assets.TEAL2,
                 text_col=assets.PARCH,
                 sub=f"Relations: {rt} ({rel}/100)",
+                sub_font=assets.F["body"],
             )
             b_trade._action = "trade"
             b_trade._tribe = tk_key
             self.action_btns.append(b_trade)
-            by += 42
+            by += row2_h + gap_y
 
-        next_wp_id = s.current_wp + 1
-        if next_wp_id < 10:
-            nwp = assets.WAYPOINTS[next_wp_id]
-            nwc, nwr = assets.WP_HEX[next_wp_id]
-
-            def cube_dist(c1, r1, c2, r2):
-                def to_cube(c, r):
-                    x = c - (r - (r & 1)) // 2
-                    z = r
-                    return x, -x - z, z
-
-                x1, y1, z1 = to_cube(c1, r1)
-                x2, y2, z2 = to_cube(c2, r2)
-                return max(abs(x1 - x2), abs(y1 - y2), abs(z1 - z2))
-
-            dist = cube_dist(s.hex_col, s.hex_row, nwc, nwr)
-            self._next_wp_hint = f"Goal: {nwp['name']}  ·  {dist} hexes away"
-        else:
-            self._next_wp_hint = ""
-
-        inv_y = min(by + 6, assets.SH - game_layout.OBJECTIVES_TOP_MARGIN - 40)
-        inv_y = max(inv_y, self.BTN_Y_TRAVEL + 8)
+        inv_h = sz(36)
+        inv_y = inv_strip_top + max(0, (strip_h - inv_h) // 2)
         b_inv = Button(
-            (PX, inv_y, BW, 32),
+            (PX, inv_y, BW, inv_h),
             "View Inventory",
             fill=assets.UI_CARD2,
             text_col=assets.DIM2,
-            font=assets.F["small"],
+            font=assets.F["btn"],
         )
         b_inv._action = "inventory"
         self.action_btns.append(b_inv)
+
+    def _build_inventory_ui(self):
+        """Full-height inventory list + return — does not share space with travel controls."""
+        self._sync_layout()
+        self.mode = "inventory"
+        self._event_art_surf = None
+        self.action_btns = []
+        s = self.state
+        PX = self.PANEL_X + 8
+        BW = self.PANEL_W - 16
+        us = getattr(assets, "UI_SCALE", 1.0)
+
+        def sz(n: float) -> int:
+            return max(1, int(round(n * us)))
+
+        sh_win = assets.SH
+        mode_y = game_layout.mode_header_y(us, self._stats_card_h)
+        ft = game_layout.right_panel_footer_top(sh_win, us)
+        panel_bottom = ft - 8
+        title_strip = 20
+        inner_top = mode_y + title_strip + sz(8)
+        back_h = sz(38)
+        pad_b = sz(8)
+        back_y = panel_bottom - pad_b - back_h
+        scroll_h = max(sz(40), back_y - inner_top - sz(8))
+        self.scroll_panel.rect = pygame.Rect(PX + 6, inner_top, BW - 12, scroll_h)
+
+        lines = []
+        for item in sorted(s.inventory.keys()):
+            qty = s.inventory[item]
+            if qty > 0:
+                lines.append((f"{item}  ×{qty}", assets.F["body"], assets.PARCH_DARK))
+        if not lines:
+            lines.append(("No supplies recorded.", assets.F["body_i"], assets.DIM2))
+        self.scroll_panel.set_lines(lines)
+
+        b_back = Button(
+            (PX, back_y, BW, back_h),
+            "← Return to travel",
+            fill=darken(assets.UI_CARD2, 0.35),
+            fill_h=assets.GOLD,
+            text_col=assets.PARCH,
+            font=assets.F["btn"],
+        )
+        b_back._action = "close_inventory"
+        self.action_btns.append(b_back)
 
     def _on_hex_click(self, col, row):
         s = self.state
