@@ -23,10 +23,7 @@ class InputMixin:
                             break
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     for hb in getattr(self, "_narrative_choice_hitboxes", []):
-                        if (
-                            not hb["disabled"]
-                            and hb["rect"].collidepoint(event.pos)
-                        ):
+                        if not hb["disabled"] and hb["rect"].collidepoint(event.pos):
                             self._resolve_event(hb["index"])
                             return
                 return
@@ -82,6 +79,12 @@ class InputMixin:
                 self.map_view.zoom_out()
             elif event.key == pygame.K_r:
                 self.map_view.zoom_reset()
+            elif event.key == pygame.K_F1:
+                self.map_view.set_map_mode("overview")
+            elif event.key == pygame.K_F2:
+                self.map_view.set_map_mode("region")
+            elif event.key == pygame.K_F3:
+                self.map_view.set_map_mode("hex")
 
     def _button_clicked(self, btn, on_new_game, on_save):
         if hasattr(btn, "_hex_move"):

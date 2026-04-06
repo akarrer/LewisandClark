@@ -230,11 +230,15 @@ def bake_terrain_tile(terr: str, tw: int, th: int) -> pygame.Surface:
     cx, cy = int(cx_f), int(cy_f)
     if terr == "plains":
         for dx, dy in [(-20, -8), (8, 12), (-12, 14), (18, -6)]:
-            pygame.draw.circle(surf, (mid[0] - 25, mid[1] - 20, mid[2] - 15), (cx + dx, cy + dy), 2)
+            pygame.draw.circle(
+                surf, (mid[0] - 25, mid[1] - 20, mid[2] - 15), (cx + dx, cy + dy), 2
+            )
     elif terr == "river":
         for ly in range(-28, 30, 8):
             wy = cy + ly
-            pygame.draw.line(surf, (160, 198, 228, 200), (cx - 50, wy), (cx + 50, wy), 2)
+            pygame.draw.line(
+                surf, (160, 198, 228, 200), (cx - 50, wy), (cx + 50, wy), 2
+            )
     elif terr == "mountain":
         for ox in (-18, 4, 20):
             pygame.draw.polygon(
@@ -260,17 +264,34 @@ def bake_waypoint(kind: str, sz: int = 56) -> pygame.Surface:
         r = 20
         pygame.draw.rect(s, (218, 198, 148), (cx - r, cy - r, r * 2, r * 2))
         pygame.draw.rect(s, (68, 48, 18), (cx - r, cy - r, r * 2, r * 2), 3)
-        for bx, by in [(cx - r, cy - r), (cx + r, cy - r), (cx - r, cy + r), (cx + r, cy + r)]:
+        for bx, by in [
+            (cx - r, cy - r),
+            (cx + r, cy - r),
+            (cx - r, cy + r),
+            (cx + r, cy + r),
+        ]:
             pygame.draw.circle(s, (68, 48, 18), (bx, by), 6)
             pygame.draw.circle(s, (218, 198, 148), (bx, by), 4)
-        pygame.draw.line(s, (68, 48, 18), (cx - r + 5, cy - r), (cx - r + 5, cy - r - 16), 2)
-        pygame.draw.polygon(s, (150, 28, 28), [(cx - r + 5, cy - r - 16), (cx - r + 18, cy - r - 10), (cx - r + 5, cy - r - 6)])
+        pygame.draw.line(
+            s, (68, 48, 18), (cx - r + 5, cy - r), (cx - r + 5, cy - r - 16), 2
+        )
+        pygame.draw.polygon(
+            s,
+            (150, 28, 28),
+            [
+                (cx - r + 5, cy - r - 16),
+                (cx - r + 18, cy - r - 10),
+                (cx - r + 5, cy - r - 6),
+            ],
+        )
     elif kind == "pass":
         pygame.draw.circle(s, sh, (cx + 2, cy + 2), 20)
         p = [(cx, cy - 22), (cx + 22, cy), (cx, cy + 22), (cx - 22, cy)]
         pygame.draw.polygon(s, (218, 198, 148), p)
         pygame.draw.polygon(s, (68, 48, 18), p, 3)
-        pygame.draw.polygon(s, (100, 78, 48), [(cx - 8, cy + 6), (cx, cy - 10), (cx + 8, cy + 6)])
+        pygame.draw.polygon(
+            s, (100, 78, 48), [(cx - 8, cy + 6), (cx, cy - 10), (cx + 8, cy + 6)]
+        )
     elif kind == "dead_end":
         pygame.draw.circle(s, sh, (cx + 2, cy + 2), 18)
         pygame.draw.circle(s, (88, 32, 32), (cx, cy), 18)
@@ -294,7 +315,9 @@ def bake_waypoint(kind: str, sz: int = 56) -> pygame.Surface:
     return s
 
 
-def _cine_bg_grad(surf: pygame.Surface, top: tuple[int, int, int], bot: tuple[int, int, int]) -> None:
+def _cine_bg_grad(
+    surf: pygame.Surface, top: tuple[int, int, int], bot: tuple[int, int, int]
+) -> None:
     w, h = surf.get_size()
     for y in range(h):
         t = y / max(h - 1, 1)
@@ -317,14 +340,18 @@ def bake_cinematic(scene_id: str) -> pygame.Surface:
         pygame.draw.circle(s, (255, 240, 200), (264, H - 392), 16)
         pygame.draw.rect(s, (35, 28, 22), (400, H - 360, 200, 24))
         for i in range(6):
-            pygame.draw.line(s, (30, 24, 18), (410 + i * 30, H - 352), (410 + i * 30, H - 320), 2)
+            pygame.draw.line(
+                s, (30, 24, 18), (410 + i * 30, H - 352), (410 + i * 30, H - 320), 2
+            )
     elif scene_id == "napoleon":
         _cine_bg_grad(s, (40, 35, 55), (22, 18, 35))
         block(100, 80, W - 200, H - 200, (55, 48, 38))
         pygame.draw.rect(s, (75, 105, 140), (140, 200, 240, 160), 4)
         pygame.draw.rect(s, (90, 68, 40), (420, 220, 280, 120), 4)
         for i in range(5):
-            pygame.draw.line(s, (35, 55, 75), (160 + i * 40, 240), (200 + i * 50, 340), 3)
+            pygame.draw.line(
+                s, (35, 55, 75), (160 + i * 40, 240), (200 + i * 50, 340), 3
+            )
     elif scene_id == "lewis_prepares":
         _cine_bg_grad(s, (55, 62, 85), (35, 40, 55))
         block(120, H - 200, W - 240, 80, (42, 38, 32))
@@ -335,11 +362,15 @@ def bake_cinematic(scene_id: str) -> pygame.Surface:
         for i, x0 in enumerate([200, W // 2, W - 200]):
             pygame.draw.circle(s, (120 + i * 15, 95, 72), (x0, H // 2), 40)
             pygame.draw.rect(s, (55, 48, 42), (x0 - 30, H // 2 + 20, 60, 120))
-        pygame.draw.line(s, (42, 38, 32), (W // 2 - 60, H // 2 + 20), (W // 2 + 60, H // 2 + 20), 4)
+        pygame.draw.line(
+            s, (42, 38, 32), (W // 2 - 60, H // 2 + 20), (W // 2 + 60, H // 2 + 20), 4
+        )
     elif scene_id == "corps_assembled":
         _cine_bg_grad(s, (85, 90, 110), (45, 52, 62))
         for tx in range(120, W - 80, 100):
-            pygame.draw.polygon(s, (42, 38, 32), [(tx, H - 120), (tx + 40, H - 200), (tx + 80, H - 120)])
+            pygame.draw.polygon(
+                s, (42, 38, 32), [(tx, H - 120), (tx + 40, H - 200), (tx + 80, H - 120)]
+            )
             pygame.draw.rect(s, (55, 48, 40), (tx + 20, H - 120, 40, 80))
     elif scene_id == "the_river":
         _cine_bg_grad(s, (110, 125, 145), (55, 70, 88))
@@ -350,7 +381,15 @@ def bake_cinematic(scene_id: str) -> pygame.Surface:
     else:  # depart
         _cine_bg_grad(s, (45, 55, 75), (25, 35, 48))
         pygame.draw.ellipse(s, (55, 75, 95), (100, H // 2 - 80, W - 200, 200))
-        pygame.draw.polygon(s, (42, 38, 32), [(W // 2 - 100, H // 2 + 40), (W // 2, H // 2 - 60), (W // 2 + 100, H // 2 + 40)])
+        pygame.draw.polygon(
+            s,
+            (42, 38, 32),
+            [
+                (W // 2 - 100, H // 2 + 40),
+                (W // 2, H // 2 - 60),
+                (W // 2 + 100, H // 2 + 40),
+            ],
+        )
         pygame.draw.rect(s, (68, 58, 48), (W // 2 - 60, H // 2 + 40, 120, 40))
 
     pygame.draw.rect(s, (28, 22, 18), (0, 0, W, H), 6)
@@ -416,12 +455,18 @@ def bake_all_to_disk() -> None:
         str(IMG_DIR / "louisiana_cartouche.png"),
     )
     pygame.image.save(bake_portrait_york(), str(IMG_DIR / "portrait_york.png"))
-    pygame.image.save(bake_portrait_drouillard(), str(IMG_DIR / "portrait_drouillard.png"))
-    pygame.image.save(bake_portrait_sacagawea(), str(IMG_DIR / "portrait_sacagawea.png"))
+    pygame.image.save(
+        bake_portrait_drouillard(), str(IMG_DIR / "portrait_drouillard.png")
+    )
+    pygame.image.save(
+        bake_portrait_sacagawea(), str(IMG_DIR / "portrait_sacagawea.png")
+    )
     pygame.image.save(bake_portrait_inactive(), str(IMG_DIR / "portrait_inactive.png"))
     pygame.image.save(bake_portrait_lewis(), str(IMG_DIR / "portrait_lewis.png"))
     pygame.image.save(bake_portrait_clark(), str(IMG_DIR / "portrait_clark.png"))
-    pygame.image.save(bake_portrait_jefferson(), str(IMG_DIR / "portrait_jefferson.png"))
+    pygame.image.save(
+        bake_portrait_jefferson(), str(IMG_DIR / "portrait_jefferson.png")
+    )
     pygame.image.save(bake_portrait_napoleon(), str(IMG_DIR / "portrait_napoleon.png"))
     pygame.image.save(bake_portrait_corps(), str(IMG_DIR / "portrait_corps.png"))
     pygame.image.save(bake_title_bg(), str(IMG_DIR / "title_bg.png"))

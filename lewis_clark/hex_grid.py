@@ -118,7 +118,9 @@ def hex_distance(col1: int, row1: int, col2: int, row2: int) -> int:
     return max(abs(x1 - x2), abs(y1 - y2), abs(z1 - z2))
 
 
-def next_waypoint_goal_caption(current_wp: int, hex_col: int, hex_row: int) -> str | None:
+def next_waypoint_goal_caption(
+    current_wp: int, hex_col: int, hex_row: int
+) -> str | None:
     """Human-readable next-waypoint line for the objectives panel, or None if none."""
     next_wp_id = current_wp + 1
     nwp = len(assets.WAYPOINTS)

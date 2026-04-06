@@ -83,4 +83,4 @@ def test_main_module_imports_without_prefilled_assets():
         text=True,
         timeout=60,
     )
-    assert r.returncode == 0, (r.stderr or r.stdout or "(no output)")
+    assert r.returncode == 0, r.stderr or r.stdout or "(no output)"

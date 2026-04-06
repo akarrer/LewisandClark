@@ -24,9 +24,7 @@ class JournalMixin:
         for entry in reversed(self.state.journal[-24:]):
             if entry.startswith("["):
                 end = entry.find("]")
-                lines.append(
-                    (entry[: end + 1], assets.F["mono_sm"], assets.GOLD2)
-                )
+                lines.append((entry[: end + 1], assets.F["mono_sm"], assets.GOLD2))
                 rest = entry[end + 1 :].strip()
                 col = BASE
                 for kw, c in TAG_COLS.items():

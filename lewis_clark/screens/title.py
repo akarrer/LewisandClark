@@ -48,9 +48,7 @@ class TitleScreen:
         self.start_btn.rect = pygame.Rect(
             W // 2 - sz(160), H - sz(180), sz(320), sz(54)
         )
-        self.load_btn.rect = pygame.Rect(
-            W // 2 - sz(120), H - sz(112), sz(240), sz(38)
-        )
+        self.load_btn.rect = pygame.Rect(W // 2 - sz(120), H - sz(112), sz(240), sz(38))
 
     def draw(self, surf):
         f = self.frame
@@ -103,18 +101,30 @@ class TitleScreen:
                 spike_len = rng7.randint(3, 6)
                 sc = (bv10, bv10, int(bv10 * 0.85))
                 pygame.draw.circle(surf, sc, (sx7, sy7), 2)
-                for dx, dy in [(spike_len, 0), (-spike_len, 0),
-                               (0, spike_len), (0, -spike_len)]:
-                    spike_s = pygame.Surface((abs(dx) * 2 + 3, abs(dy) * 2 + 3), pygame.SRCALPHA)
+                for dx, dy in [
+                    (spike_len, 0),
+                    (-spike_len, 0),
+                    (0, spike_len),
+                    (0, -spike_len),
+                ]:
+                    spike_s = pygame.Surface(
+                        (abs(dx) * 2 + 3, abs(dy) * 2 + 3), pygame.SRCALPHA
+                    )
                     scx, scy = abs(dx) + 1, abs(dy) + 1
                     pygame.draw.line(
-                        spike_s, (*sc, 100),
-                        (scx, scy), (scx + dx, scy + dy), 1,
+                        spike_s,
+                        (*sc, 100),
+                        (scx, scy),
+                        (scx + dx, scy + dy),
+                        1,
                     )
                     surf.blit(spike_s, (sx7 - abs(dx) - 1, sy7 - abs(dy) - 1))
             else:
                 pygame.draw.circle(
-                    surf, (bv10, bv10, int(bv10 * 0.85)), (sx7, sy7), 1,
+                    surf,
+                    (bv10, bv10, int(bv10 * 0.85)),
+                    (sx7, sy7),
+                    1,
                 )
 
         # ── Shooting stars ───────────────────────────────────────────────────
@@ -131,11 +141,18 @@ class TitleScreen:
                 alpha = min(255, ss[4] * 8)
                 trail_s = pygame.Surface((20, 4), pygame.SRCALPHA)
                 pygame.draw.line(
-                    trail_s, (255, 255, 220, alpha), (0, 2), (18, 2), 2,
+                    trail_s,
+                    (255, 255, 220, alpha),
+                    (0, 2),
+                    (18, 2),
+                    2,
                 )
                 surf.blit(trail_s, (int(ss[0]) - 18, int(ss[1]) - 2))
                 pygame.draw.circle(
-                    surf, (255, 255, 240), (int(ss[0]), int(ss[1])), 2,
+                    surf,
+                    (255, 255, 240),
+                    (int(ss[0]), int(ss[1])),
+                    2,
                 )
                 alive_ss.append(ss)
         self._shooting_stars = alive_ss
@@ -162,10 +179,13 @@ class TitleScreen:
             my5 = myf * H
             mw5 = mwf * W
             pygame.draw.polygon(
-                surf, mc,
-                [(int(mx5 - mw5), int(H * 0.62)),
-                 (int(mx5), int(my5)),
-                 (int(mx5 + mw5), int(H * 0.62))],
+                surf,
+                mc,
+                [
+                    (int(mx5 - mw5), int(H * 0.62)),
+                    (int(mx5), int(my5)),
+                    (int(mx5 + mw5), int(H * 0.62)),
+                ],
             )
 
         # ── Atmospheric fog layers ───────────────────────────────────────────
@@ -175,8 +195,10 @@ class TitleScreen:
             if fog_alpha > 0:
                 x_off = int(math.sin(t * 0.3 + fy * 0.02) * 30)
                 pygame.draw.line(
-                    fog_s, (140, 160, 170, fog_alpha),
-                    (x_off, fy), (W + x_off, fy),
+                    fog_s,
+                    (140, 160, 170, fog_alpha),
+                    (x_off, fy),
+                    (W + x_off, fy),
                 )
         surf.blit(fog_s, (0, int(H * 0.52)))
 
@@ -202,7 +224,8 @@ class TitleScreen:
             pygame.draw.line(
                 surf,
                 (min(255, ref_r), min(255, ref_g), min(255, ref_b)),
-                (0, ri6), (W, ri6),
+                (0, ri6),
+                (W, ri6),
             )
 
         pan3 = int(math.sin(t * 0.25) * 16)
@@ -235,16 +258,19 @@ class TitleScreen:
             flk4 = int(math.sin(t * 8 + fi7 * 1.2) * 4)
             flame_h = 14 + int(math.sin(t * 6 + fi7) * 3)
             pygame.draw.ellipse(
-                surf, (220, 120, 16),
+                surf,
+                (220, 120, 16),
                 (fgx + fof4 - 4 + flk4, fgy - 18 - flame_h // 2, 8, flame_h),
             )
             pygame.draw.ellipse(
-                surf, (245, 215, 40),
+                surf,
+                (245, 215, 40),
                 (fgx + fof4 - 2 + flk4, fgy - 24 - flame_h // 3, 5, flame_h - 4),
             )
             if fi7 == 2:
                 pygame.draw.ellipse(
-                    surf, (255, 250, 200),
+                    surf,
+                    (255, 250, 200),
                     (fgx + fof4 - 1 + flk4, fgy - 28, 3, 8),
                 )
 
@@ -253,14 +279,16 @@ class TitleScreen:
 
         rng_s = self._spark_rng
         if rng_s.random() < 0.6:
-            self._sparks.append([
-                fgx + rng_s.randint(-8, 8),
-                fgy - 20,
-                rng_s.uniform(-0.5, 0.5),
-                rng_s.uniform(-2.0, -4.0),
-                rng_s.randint(20, 50),
-                rng_s.uniform(1.0, 2.5),
-            ])
+            self._sparks.append(
+                [
+                    fgx + rng_s.randint(-8, 8),
+                    fgy - 20,
+                    rng_s.uniform(-0.5, 0.5),
+                    rng_s.uniform(-2.0, -4.0),
+                    rng_s.randint(20, 50),
+                    rng_s.uniform(1.0, 2.5),
+                ]
+            )
         alive_sparks = []
         for sp in self._sparks:
             sp[0] += sp[2]
@@ -275,7 +303,9 @@ class TitleScreen:
                     min(255, int(sp[4] * 1.5)),
                 )
                 spark_s = pygame.Surface((4, 4), pygame.SRCALPHA)
-                pygame.draw.circle(spark_s, (*sc, sa), (2, 2), max(1, int(sp[5] * sp[4] / 30)))
+                pygame.draw.circle(
+                    spark_s, (*sc, sa), (2, 2), max(1, int(sp[5] * sp[4] / 30))
+                )
                 surf.blit(spark_s, (int(sp[0]) - 2, int(sp[1]) - 2))
                 alive_sparks.append(sp)
         self._sparks = alive_sparks
@@ -292,9 +322,14 @@ class TitleScreen:
         bx5 = int(W * 0.65 - (f * 0.5) % W)
         by5 = int(H * 0.615)
         pygame.draw.polygon(
-            surf, (8, 12, 8),
-            [(bx5 - 55, by5), (bx5 - 38, by5 - 12),
-             (bx5 + 55, by5 - 12), (bx5 + 62, by5)],
+            surf,
+            (8, 12, 8),
+            [
+                (bx5 - 55, by5),
+                (bx5 - 38, by5 - 12),
+                (bx5 + 55, by5 - 12),
+                (bx5 + 62, by5),
+            ],
         )
         pygame.draw.line(surf, (12, 16, 8), (bx5 + 8, by5 - 12), (bx5 + 8, by5 - 52), 3)
         for fi8 in range(4):
@@ -303,7 +338,9 @@ class TitleScreen:
             pygame.draw.line(
                 surf,
                 (106, 12, 14) if fi8 % 2 == 0 else (160, 144, 112),
-                (bx5 + 8, by5 - 52), (fx6 + 10, fy8), 2,
+                (bx5 + 8, by5 - 52),
+                (fx6 + 10, fy8),
+                2,
             )
 
         # ── Title text with decorative flourishes ────────────────────────────
@@ -315,24 +352,32 @@ class TitleScreen:
             for i in range(12):
                 a = i * 0.5 * direction
                 r_val = 4 + i * 0.8
-                pts.append((
-                    int(cx + math.cos(a) * r_val * direction),
-                    int(cy + math.sin(a) * r_val * 0.5),
-                ))
+                pts.append(
+                    (
+                        int(cx + math.cos(a) * r_val * direction),
+                        int(cy + math.sin(a) * r_val * 0.5),
+                    )
+                )
             if len(pts) >= 2:
                 pygame.draw.lines(surf, col, False, pts, 1)
 
         pygame.draw.line(
-            surf, assets.PARCH_EDGE,
-            (W // 2 - 240, rule_y), (W // 2 + 240, rule_y), 1,
+            surf,
+            assets.PARCH_EDGE,
+            (W // 2 - 240, rule_y),
+            (W // 2 + 240, rule_y),
+            1,
         )
         for ox in [-240, 240]:
             pygame.draw.polygon(
-                surf, assets.GOLD,
-                [(W // 2 + ox, rule_y),
-                 (W // 2 + ox + 8, rule_y - 4),
-                 (W // 2 + ox + 16, rule_y),
-                 (W // 2 + ox + 8, rule_y + 4)],
+                surf,
+                assets.GOLD,
+                [
+                    (W // 2 + ox, rule_y),
+                    (W // 2 + ox + 8, rule_y - 4),
+                    (W // 2 + ox + 16, rule_y),
+                    (W // 2 + ox + 8, rule_y + 4),
+                ],
             )
         _draw_flourish(surf, W // 2 - 256, rule_y, -1, assets.PARCH_EDGE)
         _draw_flourish(surf, W // 2 + 256, rule_y, 1, assets.PARCH_EDGE)
@@ -352,8 +397,11 @@ class TitleScreen:
         tag_y = sub_y + ts10.get_height() + 8
 
         pygame.draw.line(
-            surf, assets.PARCH_EDGE,
-            (W // 2 - 180, tag_y - 8), (W // 2 + 180, tag_y - 8), 1,
+            surf,
+            assets.PARCH_EDGE,
+            (W // 2 - 180, tag_y - 8),
+            (W // 2 + 180, tag_y - 8),
+            1,
         )
         _draw_flourish(surf, W // 2 - 180, tag_y - 8, -1, assets.GOLD_DIM)
         _draw_flourish(surf, W // 2 + 180, tag_y - 8, 1, assets.GOLD_DIM)
@@ -367,8 +415,11 @@ class TitleScreen:
             anchor="midtop",
         )
         pygame.draw.line(
-            surf, assets.PARCH_EDGE,
-            (W // 2 - 180, tag_y + 24), (W // 2 + 180, tag_y + 24), 1,
+            surf,
+            assets.PARCH_EDGE,
+            (W // 2 - 180, tag_y + 24),
+            (W // 2 + 180, tag_y + 24),
+            1,
         )
 
         if f > 80:

@@ -21,6 +21,8 @@ def expedition_stats_card_h(ui_scale: float, label_h: int, bar_h: int) -> int:
     bottom_pad = max(2, int(2 * ui_scale))
     inner = title_strip + pad_top + label_h + gap + bar_h + bottom_pad
     return max(int(STATS_CARD_H * ui_scale), inner)
+
+
 CHAR_H_BASE = 92
 JOURNAL_LABEL_H = 14
 STATS_TO_OBJECTIVES_GAP = 6
@@ -69,7 +71,6 @@ def bottom_bar_h(sw: int, sh: int, ui_scale: float) -> int:
     label_gap = JOURNAL_LABEL_H + 10
     journal_need = jh + label_gap
     need = max(stack_need, journal_need)
-    cap = max(220, sh * 45 // 100)
     return min(max(sh // 2, 200), max(need, int(sh * 0.26)))
 
 

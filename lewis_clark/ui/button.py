@@ -121,7 +121,9 @@ class Button:
         ts = self.font.render(main, True, tcol)
         if self.sub:
             sub_t = _truncate_to_width(
-                sub_font, self.sub, max_tw,
+                sub_font,
+                self.sub,
+                max_tw,
             )
             ss = sub_font.render(
                 sub_t, True, lighten(tcol, 0.8) if not self.disabled else assets.DIM
