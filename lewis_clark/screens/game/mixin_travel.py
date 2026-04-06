@@ -5,7 +5,6 @@ from __future__ import annotations
 import random
 
 import pygame
-
 from lewis_clark import assets
 from lewis_clark.drawing import darken
 from lewis_clark.hex_grid import hex_neighbours, hex_terrain

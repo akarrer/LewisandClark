@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import pygame
 from lewis_clark import assets
-from lewis_clark.hex_grid import next_waypoint_goal_caption
-from lewis_clark.screens.game import layout as game_layout
 from lewis_clark.drawing import (
     alpha_surf,
     darken,
@@ -17,6 +15,8 @@ from lewis_clark.drawing import (
     lighten,
     stat_bar,
 )
+from lewis_clark.hex_grid import next_waypoint_goal_caption
+from lewis_clark.screens.game import layout as game_layout
 from lewis_clark.ui.button import _truncate_to_width
 
 
@@ -57,9 +57,7 @@ def _narrative_choice_row_height(
         label_lines = [""]
     lh = len(label_lines) * f_btn.get_linesize()
     sub_stripped = (sub or "").strip()
-    sub_lines = (
-        _word_wrap_lines(sub_stripped, f_sub, max_tw) if sub_stripped else []
-    )
+    sub_lines = _word_wrap_lines(sub_stripped, f_sub, max_tw) if sub_stripped else []
     sh = len(sub_lines) * f_sub.get_linesize() if sub_lines else 0
     mid = (gap_mid + sh) if sub_lines else 0
     h = ip + lh + mid + ip
@@ -84,8 +82,11 @@ class DrawMixin:
         for y in range(0, sh, 5):
             gc = _g_hi if (y // 5) % 2 == 0 else _g_lo
             pygame.draw.line(
-                surf, gc,
-                (self.PANEL_X, y), (self.PANEL_X + self.PANEL_W, y), 1,
+                surf,
+                gc,
+                (self.PANEL_X, y),
+                (self.PANEL_X + self.PANEL_W, y),
+                1,
             )
         # Layout leaves a few pixels before the window edge; fill with sbg so no stray strip.
         right_edge = self.PANEL_X + self.PANEL_W
@@ -114,23 +115,38 @@ class DrawMixin:
 
         pygame.draw.line(surf, assets.GOLD, (0, 1), (sw, 1), 2)
         pygame.draw.line(
-            surf, darken(assets.GOLD, 0.4), (0, 3), (sw, 3), 1,
+            surf,
+            darken(assets.GOLD, 0.4),
+            (0, 3),
+            (sw, 3),
+            1,
         )
 
         tooling_y = self.HEADER_H - 6
         for tx in range(0, sw, 16):
             pygame.draw.polygon(
-                surf, assets.GOLD_DIM,
-                [(tx + 4, tooling_y), (tx + 8, tooling_y - 3),
-                 (tx + 12, tooling_y), (tx + 8, tooling_y + 3)],
+                surf,
+                assets.GOLD_DIM,
+                [
+                    (tx + 4, tooling_y),
+                    (tx + 8, tooling_y - 3),
+                    (tx + 12, tooling_y),
+                    (tx + 8, tooling_y + 3),
+                ],
             )
         pygame.draw.line(
-            surf, assets.GOLD_DIM,
-            (0, self.HEADER_H - 3), (sw, self.HEADER_H - 3), 1,
+            surf,
+            assets.GOLD_DIM,
+            (0, self.HEADER_H - 3),
+            (sw, self.HEADER_H - 3),
+            1,
         )
         pygame.draw.line(
-            surf, assets.GOLD,
-            (0, self.HEADER_H - 1), (sw, self.HEADER_H - 1), 2,
+            surf,
+            assets.GOLD,
+            (0, self.HEADER_H - 1),
+            (sw, self.HEADER_H - 1),
+            2,
         )
         title_txt = "LEWIS & CLARK EXPEDITION  ·  CORPS OF DISCOVERY"
         ts_sh = assets.F["title"].render(title_txt, True, (0, 0, 0))
@@ -258,7 +274,6 @@ class DrawMixin:
         """Calendar and waypoint — bottom of the right panel only."""
         s = self.state
         sh = assets.SH
-        fh = game_layout.right_panel_footer_h(us)
         ft = game_layout.right_panel_footer_top(sh, us)
         PX = self.PANEL_X + 4
         PW = self.PANEL_W - 8
@@ -307,13 +322,21 @@ class DrawMixin:
         base = pygame.Rect(0, top, mc, sh - top)
         pygame.draw.rect(surf, darken(assets.UI_BG, 0.25), base)
         pygame.draw.line(
-            surf, assets.UI_BORDER, (0, top), (mc, top), 2,
+            surf,
+            assets.UI_BORDER,
+            (0, top),
+            (mc, top),
+            2,
         )
 
         pw = game_layout.party_strip_w(sw)
         log_x = pw
         pygame.draw.line(
-            surf, assets.DIM2, (log_x, top + 4), (log_x, sh - 4), 1,
+            surf,
+            assets.DIM2,
+            (log_x, top + 4),
+            (log_x, sh - 4),
+            1,
         )
 
         party_x = 6
@@ -397,7 +420,6 @@ class DrawMixin:
             pygame.draw.rect(surf, darken(cf, 0.7), port_r, border_radius=2)
             port_im = portraits.get(key) or portraits.get("inactive")
             ic_cx = port_r.centerx
-            ic_cy = port_r.centery
             if port_im:
                 iw, ih = port_im.get_size()
                 if iw > 0 and ih > 0:
@@ -424,7 +446,10 @@ class DrawMixin:
                         border_radius=2,
                     )
                     ts_ic = assets.F["tiny_b"].render(icon, True, acc2)
-                    surf.blit(ts_ic, ts_ic.get_rect(center=(ic_cx, port_r.bottom - ib_h // 2 - 2)))
+                    surf.blit(
+                        ts_ic,
+                        ts_ic.get_rect(center=(ic_cx, port_r.bottom - ib_h // 2 - 2)),
+                    )
             else:
                 pr = max(5, min(port_r.w, port_r.h) // 4)
                 pcx, pcy_head = ic_cx, port_r.y + port_r.h // 3
@@ -444,7 +469,10 @@ class DrawMixin:
                         border_radius=2,
                     )
                     ts_ic = assets.F["tiny_b"].render(icon, True, acc2)
-                    surf.blit(ts_ic, ts_ic.get_rect(center=(ic_cx, port_r.bottom - ib_h // 2 - 2)))
+                    surf.blit(
+                        ts_ic,
+                        ts_ic.get_rect(center=(ic_cx, port_r.bottom - ib_h // 2 - 2)),
+                    )
 
             tx = cx2 + port_w + 10
             nc2 = assets.CREAM
@@ -586,7 +614,9 @@ class DrawMixin:
                     )
                 )
             n_ch = len(choices)
-            choice_stack_h = gap_above_btn + sum(row_heights) + max(0, n_ch - 1) * ch_gap
+            choice_stack_h = (
+                gap_above_btn + sum(row_heights) + max(0, n_ch - 1) * ch_gap
+            )
         else:
             row_heights = []
             choice_stack_h = gap_above_btn + btn_h
@@ -599,24 +629,31 @@ class DrawMixin:
 
         body_y0 = box.y + inner_top
         body_limit = box.bottom - pad - choice_stack_h
-        max_body_lines = max(
-            0, (body_limit - body_y0) // max(1, body_line_h)
-        )
+        max_body_lines = max(0, (body_limit - body_y0) // max(1, body_line_h))
         if max_body_lines < len(body_lines):
             shown = body_lines[:max_body_lines]
             if shown:
                 shown[-1] = _truncate_to_width(f_body, shown[-1] + " …", tw)
             body_lines = shown
         draw_panel(
-            surf, box, fill=assets.UI_CARD, border=acc, title=None, corners=True,
+            surf,
+            box,
+            fill=assets.UI_CARD,
+            border=acc,
+            title=None,
+            corners=True,
         )
         y = box.y + pad
         draw_text(surf, title, f_header, acc, (box.centerx, y), anchor="midtop")
         y += header_h + 4
         if sub:
             draw_text(
-                surf, sub, f_tiny, darken(acc, 0.5),
-                (box.centerx, y), anchor="midtop",
+                surf,
+                sub,
+                f_tiny,
+                darken(acc, 0.5),
+                (box.centerx, y),
+                anchor="midtop",
             )
             y += f_tiny.get_linesize() + 6
         for line in body_lines:
@@ -651,8 +688,12 @@ class DrawMixin:
             cr = pygame.Rect(box.centerx - 90, box.bottom - pad - btn_h, 180, btn_h)
             pygame.draw.rect(surf, darken(acc, 0.4), cr, border_radius=4)
             draw_text(
-                surf, "Continue", assets.F["btn"], assets.PARCH,
-                cr.center, anchor="center",
+                surf,
+                "Continue",
+                assets.F["btn"],
+                assets.PARCH,
+                cr.center,
+                anchor="center",
             )
             self._narrative_continue_rect = cr
 
@@ -745,9 +786,7 @@ class DrawMixin:
             ("Healthy Arrival", 4, assets.GREEN2),
             (f"5 Discoveries ({s.discoveries}/5)", 5, assets.GOLD2),
         ]
-        goal_txt = next_waypoint_goal_caption(
-            s.current_wp, s.hex_col, s.hex_row
-        )
+        goal_txt = next_waypoint_goal_caption(s.current_wp, s.hex_col, s.hex_row)
         rows = []
         if goal_txt:
             rows.append((goal_txt, None, assets.GOLD))

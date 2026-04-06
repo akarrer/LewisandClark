@@ -10,7 +10,9 @@ import pygame
 _FONT_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
 
 
-def _compass_font(size: int, bold: bool = False, italic: bool = False) -> pygame.font.Font:
+def _compass_font(
+    size: int, bold: bool = False, italic: bool = False
+) -> pygame.font.Font:
     garamond = _FONT_DIR / ("EBGaramond-Italic.ttf" if italic else "EBGaramond.ttf")
     try:
         if garamond.exists():

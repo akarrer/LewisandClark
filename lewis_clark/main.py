@@ -27,11 +27,15 @@ def main() -> None:
 
     pygame.init()
     pygame.font.init()
-    load_fonts(assets)
 
-    assets.screen = pygame.display.set_mode(
-        (assets.SW, assets.SH), pygame.RESIZABLE
-    )
+    # Fullscreen uses the desktop resolution so the window never exceeds the monitor
+    # (the JSON SW/SH are legacy design defaults; REF_* drives font/UI scale).
+    assets.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    surf = pygame.display.get_surface()
+    if surf is not None:
+        assets.SW, assets.SH = surf.get_size()
+
+    load_fonts(assets)
     pygame.display.set_caption("Lewis & Clark — Corps of Discovery  1804")
     assets.clock = pygame.time.Clock()
 

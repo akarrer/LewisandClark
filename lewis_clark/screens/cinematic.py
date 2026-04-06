@@ -104,7 +104,9 @@ class CinematicScreen:
         self.next_btn.rect = pygame.Rect(
             sw * 3 // 5 + sz(120), sh - sz(58), sz(180), sz(38)
         )
-        self.back_btn.rect = pygame.Rect(sw * 3 // 5 + sz(10), sh - sz(58), sz(100), sz(38))
+        self.back_btn.rect = pygame.Rect(
+            sw * 3 // 5 + sz(10), sh - sz(58), sz(100), sz(38)
+        )
         self.skip_btn.rect = pygame.Rect(sw - sz(90), sh - sz(28), sz(78), sz(20))
         self.begin_btn.rect = pygame.Rect(
             sw * 3 // 5 + sz(50), sh - sz(62), sz(280), sz(46)
@@ -283,14 +285,18 @@ class CinematicScreen:
         if self.idx < len(assets.CINE_SCENES) - 1:
             saved_fill = self.next_btn.fill
             if narr_done:
-                self.next_btn.fill = blend(assets.UI_CARD2, assets.GOLD, 0.3 + pulse_t * 0.55)
+                self.next_btn.fill = blend(
+                    assets.UI_CARD2, assets.GOLD, 0.3 + pulse_t * 0.55
+                )
             self.next_btn.draw(surf)
             self.next_btn.fill = saved_fill
             primary_btn = self.next_btn
         else:
             saved_fill = self.begin_btn.fill
             if narr_done:
-                self.begin_btn.fill = blend(assets.GOLD, assets.GOLD2, 0.15 + pulse_t * 0.75)
+                self.begin_btn.fill = blend(
+                    assets.GOLD, assets.GOLD2, 0.15 + pulse_t * 0.75
+                )
             self.begin_btn.draw(surf)
             self.begin_btn.fill = saved_fill
             primary_btn = self.begin_btn

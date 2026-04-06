@@ -9,12 +9,12 @@ import pygame
 
 from lewis_clark import assets
 from lewis_clark.fonts import load_fonts
-from lewis_clark.textures import generate_all as generate_textures
 from lewis_clark.save_load import load_expedition_json, save_expedition_json
 from lewis_clark.screens.cinematic import CinematicScreen
 from lewis_clark.screens.game import GameScreen
 from lewis_clark.screens.title import TitleScreen
 from lewis_clark.state import GameState
+from lewis_clark.textures import generate_all as generate_textures
 
 # Ctrl+Shift+1 … 5 — window presets when drag-resize fails (e.g. WSL / remote desktop).
 _WINDOW_PRESETS = (
@@ -55,7 +55,8 @@ class Transition:
             return
         if self._black is None or self._black.get_size() != (assets.SW, assets.SH):
             self._black = pygame.Surface(
-                (assets.SW, assets.SH), pygame.SRCALPHA,
+                (assets.SW, assets.SH),
+                pygame.SRCALPHA,
             )
 
         self._frame += 1
@@ -131,6 +132,7 @@ class App:
         def switch():
             self.cinematic = CinematicScreen(self._start_game)
             self.scene = AppScene.CINEMATIC
+
         self._transition.start(switch)
 
     def _start_game(self, state=None):
@@ -145,12 +147,14 @@ class App:
                 )
             self.game_screen = GameScreen(st, self._new_game)
             self.scene = AppScene.GAME
+
         self._transition.start(switch)
 
     def _new_game(self):
         def switch():
             self.scene = AppScene.TITLE
             self.title = TitleScreen(self._start_cinematic, self._load_game)
+
         self._transition.start(switch)
 
     def _save_game(self):

@@ -5,7 +5,6 @@ from __future__ import annotations
 import pygame
 from lewis_clark.map_view import MapView
 from lewis_clark.screens.game import layout as game_layout
-from lewis_clark.weather import WeatherSystem
 from lewis_clark.screens.game.mixin_draw import DrawMixin
 from lewis_clark.screens.game.mixin_events import EventsMixin
 from lewis_clark.screens.game.mixin_input import InputMixin
@@ -14,6 +13,7 @@ from lewis_clark.screens.game.mixin_objectives import ObjectivesMixin
 from lewis_clark.screens.game.mixin_trade_camp import TradeCampMixin
 from lewis_clark.screens.game.mixin_travel import TravelMixin
 from lewis_clark.ui.scroll_panel import ScrollPanel
+from lewis_clark.weather import WeatherSystem
 
 
 class GameScreen(

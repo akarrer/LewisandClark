@@ -65,7 +65,8 @@ class WeatherSystem:
             x = rng.randint(R.x, R.right)
             y = R.y - rng.randint(0, 10)
             return _Particle(
-                x, y,
+                x,
+                y,
                 rng.uniform(-0.3, 0.3) + 1.2,
                 rng.uniform(2.5, 4.5),
                 rng.randint(120, 250),
@@ -77,29 +78,40 @@ class WeatherSystem:
             x = rng.randint(R.x, R.right)
             y = rng.randint(R.y, R.bottom)
             return _Particle(
-                x, y,
+                x,
+                y,
                 rng.uniform(-0.3, 0.3),
                 rng.uniform(-0.4, 0.4),
                 rng.randint(80, 200),
                 rng.randint(2, 5),
-                rng.choice([
-                    (230, 215, 160), (220, 200, 140), (200, 190, 130),
-                ]),
+                rng.choice(
+                    [
+                        (230, 215, 160),
+                        (220, 200, 140),
+                        (200, 190, 130),
+                    ]
+                ),
             )
 
         if season == "Autumn":
             x = rng.randint(R.x, R.right)
             y = R.y - rng.randint(0, 10)
             return _Particle(
-                x, y,
+                x,
+                y,
                 rng.uniform(0.5, 1.5),
                 rng.uniform(0.8, 2.0),
                 rng.randint(150, 350),
                 rng.randint(3, 7),
-                rng.choice([
-                    (180, 90, 20), (200, 120, 30), (160, 70, 15),
-                    (190, 140, 40), (170, 80, 25),
-                ]),
+                rng.choice(
+                    [
+                        (180, 90, 20),
+                        (200, 120, 30),
+                        (160, 70, 15),
+                        (190, 140, 40),
+                        (170, 80, 25),
+                    ]
+                ),
                 rot=rng.uniform(0, math.pi * 2),
             )
 
@@ -107,7 +119,8 @@ class WeatherSystem:
             x = rng.randint(R.x, R.right)
             y = R.y - rng.randint(0, 10)
             return _Particle(
-                x, y,
+                x,
+                y,
                 rng.uniform(-0.5, 0.5),
                 rng.uniform(0.5, 1.8),
                 rng.randint(200, 400),
@@ -131,18 +144,24 @@ class WeatherSystem:
                 ex = ix + int(p.vx * 2)
                 ey = iy + streak_len
                 pygame.draw.line(
-                    surf, (*p.col[:2], min(255, p.col[2] + 20)),
-                    (ix, iy), (ex, ey), p.size,
+                    surf,
+                    (*p.col[:2], min(255, p.col[2] + 20)),
+                    (ix, iy),
+                    (ex, ey),
+                    p.size,
                 )
 
             elif season == "Summer":
                 if alpha > 80:
                     ps = pygame.Surface(
-                        (p.size * 2, p.size * 2), pygame.SRCALPHA,
+                        (p.size * 2, p.size * 2),
+                        pygame.SRCALPHA,
                     )
                     pygame.draw.circle(
-                        ps, (*p.col, min(alpha, 130)),
-                        (p.size, p.size), p.size,
+                        ps,
+                        (*p.col, min(alpha, 130)),
+                        (p.size, p.size),
+                        p.size,
                     )
                     surf.blit(ps, (ix - p.size, iy - p.size))
 
@@ -157,32 +176,45 @@ class WeatherSystem:
                     (ix - int(-s_val * sz * 0.5), iy - int(c * sz * 0.5)),
                 ]
                 leaf_s = pygame.Surface(
-                    (sz * 4 + 2, sz * 4 + 2), pygame.SRCALPHA,
+                    (sz * 4 + 2, sz * 4 + 2),
+                    pygame.SRCALPHA,
                 )
                 local = [(x - ix + sz * 2 + 1, y - iy + sz * 2 + 1) for x, y in pts]
                 pygame.draw.polygon(
-                    leaf_s, (*p.col, min(alpha, 220)), local,
+                    leaf_s,
+                    (*p.col, min(alpha, 220)),
+                    local,
                 )
                 pygame.draw.polygon(
                     leaf_s,
-                    (max(0, p.col[0] - 30), max(0, p.col[1] - 20), p.col[2], min(alpha, 170)),
-                    local, 1,
+                    (
+                        max(0, p.col[0] - 30),
+                        max(0, p.col[1] - 20),
+                        p.col[2],
+                        min(alpha, 170),
+                    ),
+                    local,
+                    1,
                 )
                 surf.blit(leaf_s, (ix - sz * 2 - 1, iy - sz * 2 - 1))
 
             elif season == "Winter":
                 ps = pygame.Surface(
-                    (p.size * 2 + 2, p.size * 2 + 2), pygame.SRCALPHA,
+                    (p.size * 2 + 2, p.size * 2 + 2),
+                    pygame.SRCALPHA,
                 )
                 pygame.draw.circle(
-                    ps, (*p.col, min(alpha, 210)),
-                    (p.size + 1, p.size + 1), p.size,
+                    ps,
+                    (*p.col, min(alpha, 210)),
+                    (p.size + 1, p.size + 1),
+                    p.size,
                 )
                 surf.blit(ps, (ix - p.size - 1, iy - p.size - 1))
 
         if season == "Spring" and self._frame % 400 < 3 and self._rng.random() < 0.3:
             flash = pygame.Surface(
-                (map_rect.w, map_rect.h), pygame.SRCALPHA,
+                (map_rect.w, map_rect.h),
+                pygame.SRCALPHA,
             )
             flash.fill((255, 255, 240, 15))
             surf.blit(flash, map_rect.topleft)

@@ -23,7 +23,9 @@ from typing import Any
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-OPTIONAL_CONTROL_POINTS = ROOT / "assets" / "map_georef" / "lewis_1804_crop_control_points.json"
+OPTIONAL_CONTROL_POINTS = (
+    ROOT / "assets" / "map_georef" / "lewis_1804_crop_control_points.json"
+)
 
 
 def _mercator_plane(lon_deg: float, lat_deg: float) -> tuple[float, float]:
@@ -104,7 +106,9 @@ def _fit_quadratic_lonlat_to_px(
     return ax, ay
 
 
-def _apply_quadratic(ax: np.ndarray, ay: np.ndarray, lon: float, lat: float) -> tuple[float, float]:
+def _apply_quadratic(
+    ax: np.ndarray, ay: np.ndarray, lon: float, lat: float
+) -> tuple[float, float]:
     l, p = lon, lat
     v = np.array([1.0, l, p, l * p, l * l, p * p], dtype=np.float64)
     return float(v @ ax), float(v @ ay)

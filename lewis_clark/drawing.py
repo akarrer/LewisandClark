@@ -148,8 +148,11 @@ def draw_panel(
         pygame.draw.rect(surf, darken(ac, 0.35), strip, border_radius=radius)
         pygame.draw.line(surf, ac, (r.x, r.y + th), (r.right, r.y + th), 1)
         pygame.draw.line(
-            surf, lighten(ac, 0.6),
-            (r.x + 4, r.y + th + 1), (r.right - 4, r.y + th + 1), 1,
+            surf,
+            lighten(ac, 0.6),
+            (r.x + 4, r.y + th + 1),
+            (r.right - 4, r.y + th + 1),
+            1,
         )
         draw_text(
             surf,

@@ -5,7 +5,6 @@ All textures are generated once at startup and cached on the assets module.
 
 from __future__ import annotations
 
-import math
 import random
 
 import pygame
@@ -91,10 +90,16 @@ def gen_vignette(w: int, h: int) -> pygame.Surface:
         if alpha < 1:
             continue
         ring = pygame.Surface((w, h), pygame.SRCALPHA)
-        pygame.draw.ellipse(ring, (8, 4, 0, alpha), (
-            int(cx - radius_x), int(cy - radius_y),
-            radius_x * 2, radius_y * 2,
-        ))
+        pygame.draw.ellipse(
+            ring,
+            (8, 4, 0, alpha),
+            (
+                int(cx - radius_x),
+                int(cy - radius_y),
+                radius_x * 2,
+                radius_y * 2,
+            ),
+        )
         surf.blit(ring, (0, 0))
 
     # Top/bottom edge darkening only. Do not draw full-height vertical lines at x=i and x=w-1-i:

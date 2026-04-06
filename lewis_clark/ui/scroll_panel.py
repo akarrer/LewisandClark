@@ -74,20 +74,31 @@ class ScrollPanel:
             surf.blit(parch, r.topleft)
 
         import random as _rng_mod
+
         _rng = _rng_mod.Random(r.x * 7 + r.y * 13)
         for li in range(0, r.h, 14):
             wobble = _rng.randint(-1, 1)
             line_col = (36 + _rng.randint(-2, 2), 24 + _rng.randint(-2, 2), 10)
             pygame.draw.line(
-                surf, line_col,
+                surf,
+                line_col,
                 (r.x + 6, r.y + li + wobble),
-                (r.right - 6, r.y + li + wobble), 1,
+                (r.right - 6, r.y + li + wobble),
+                1,
             )
         pygame.draw.line(
-            surf, (55, 28, 10), (r.x + 22, r.y + 4), (r.x + 22, r.bottom - 4), 1,
+            surf,
+            (55, 28, 10),
+            (r.x + 22, r.y + 4),
+            (r.x + 22, r.bottom - 4),
+            1,
         )
         pygame.draw.line(
-            surf, (50, 25, 8), (r.x + 24, r.y + 4), (r.x + 24, r.bottom - 4), 1,
+            surf,
+            (50, 25, 8),
+            (r.x + 24, r.y + 4),
+            (r.x + 24, r.bottom - 4),
+            1,
         )
 
         edge_h = 6
@@ -95,14 +106,20 @@ class ScrollPanel:
         for ey in range(edge_h):
             alpha = int((edge_h - ey) / edge_h * 40)
             pygame.draw.line(
-                top_edge, (0, 0, 0, alpha), (0, ey), (r.w, ey),
+                top_edge,
+                (0, 0, 0, alpha),
+                (0, ey),
+                (r.w, ey),
             )
         surf.blit(top_edge, (r.x, r.y))
         bot_edge = pygame.Surface((r.w, edge_h), pygame.SRCALPHA)
         for ey in range(edge_h):
             alpha = int(ey / edge_h * 40)
             pygame.draw.line(
-                bot_edge, (0, 0, 0, alpha), (0, ey), (r.w, ey),
+                bot_edge,
+                (0, 0, 0, alpha),
+                (0, ey),
+                (r.w, ey),
             )
         surf.blit(bot_edge, (r.x, r.bottom - edge_h))
 
@@ -121,18 +138,27 @@ class ScrollPanel:
         surf.set_clip(old_clip)
         pygame.draw.rect(surf, self.border, r, 1, border_radius=3)
         pygame.draw.rect(
-            surf, darken(self.border, 0.5), r.inflate(1, 1), 1, border_radius=3,
+            surf,
+            darken(self.border, 0.5),
+            r.inflate(1, 1),
+            1,
+            border_radius=3,
         )
         pygame.draw.line(
-            surf, lighten(paper_col, 1.8),
-            (r.x + 2, r.y + 1), (r.right - 2, r.y + 1), 1,
+            surf,
+            lighten(paper_col, 1.8),
+            (r.x + 2, r.y + 1),
+            (r.right - 2, r.y + 1),
+            1,
         )
         if self.content_h > r.h:
-            bar_h = max(18, int(r.h ** 2 / self.content_h))
+            bar_h = max(18, int(r.h**2 / self.content_h))
             bar_y = int(self.scroll / max(1, self.content_h - r.h) * (r.h - bar_h))
             bar_r = pygame.Rect(r.right - 7, r.y + bar_y + 2, 5, bar_h - 4)
             pygame.draw.rect(surf, darken(assets.UI_CARD3, 0.6), bar_r, border_radius=2)
-            pygame.draw.rect(surf, assets.UI_CARD3, bar_r.inflate(-2, -2), border_radius=2)
+            pygame.draw.rect(
+                surf, assets.UI_CARD3, bar_r.inflate(-2, -2), border_radius=2
+            )
             pygame.draw.rect(surf, assets.UI_BORD_HI, bar_r, 1, border_radius=2)
         draw_corner_brackets(surf, r, assets.UI_BORD_HI, size=6, width=1)
 
