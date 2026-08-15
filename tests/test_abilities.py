@@ -188,6 +188,16 @@ def test_winter_lock_penalizes_when_stuck_in_rockies():
     assert any("WINTER" in j for j in s.journal)
 
 
+def test_winter_lock_advances_to_following_march():
+    # Historically realistic: stuck in the Rockies in Nov 1805 -> thaw is Mar 1806.
+    s = GameState(current_month=11, current_year=1805)
+    s.current_wp = 3
+    host = _Host(s)
+    host._check_calendar_gates()
+    assert s.current_month == 3
+    assert s.current_year == 1806  # year must roll forward, not stay/rewind
+
+
 def test_winter_lock_does_not_refire_after_thaw():
     s = GameState(current_month=11)
     s.current_wp = 3

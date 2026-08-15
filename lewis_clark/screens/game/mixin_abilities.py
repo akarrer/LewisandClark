@@ -119,9 +119,10 @@ class AbilitiesMixin:
         s.health = max(5, s.health - penalty)
         s.food = max(0, s.food - months_to_march * 4)
         s.morale = max(0, s.morale - months_to_march * 3)
+        # The lock only fires in Nov/Dec (see _check_calendar_gates), so the
+        # thaw is always the following March — advance the year by one.
+        s.current_year += 1
         s.current_month = 3
-        if s.current_month <= 3:
-            s.current_year += 1 if s.current_year == 1804 else 0
         s.winter_locked = False
         s.add_journal(
             f"Spring thaw — the corps resumes. The mountain winter cost {penalty} health."
