@@ -5,6 +5,7 @@ from __future__ import annotations
 import pygame
 from lewis_clark.map_view import MapView
 from lewis_clark.screens.game import layout as game_layout
+from lewis_clark.screens.game.mixin_abilities import AbilitiesMixin
 from lewis_clark.screens.game.mixin_draw import DrawMixin
 from lewis_clark.screens.game.mixin_events import EventsMixin
 from lewis_clark.screens.game.mixin_input import InputMixin
@@ -24,6 +25,7 @@ class GameScreen(
     EventsMixin,
     TravelMixin,
     JournalMixin,
+    AbilitiesMixin,
 ):
     def __init__(self, state, on_menu):
         self.state = state

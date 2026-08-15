@@ -295,7 +295,9 @@ class TravelMixin:
         tdata = assets.TERRAIN_DATA[terr]
 
         s.food = max(0, s.food + tdata["food"] - 2)
-        s.health = max(0, s.health + tdata["health"])
+        # P1 Clark's route buffer waives health cost for N moves
+        health_delta = 0 if s.clark_route_buffer > 0 else tdata["health"]
+        s.health = max(0, s.health + health_delta)
         s.morale = max(0, s.morale + tdata["morale"])
         s.advance_date(tdata["days"])
 
@@ -315,6 +317,10 @@ class TravelMixin:
         s.hex_trail.append((col, row))
         if (col, row) not in [tuple(h) for h in s.visited_hexes]:
             s.visited_hexes.append((col, row))
+
+        # P1 — tick ability cooldowns; P3 — check calendar gate
+        self._decrement_char_cooldowns()
+        self._check_calendar_gates()
 
         s.clamp()
         self.map_view.invalidate()
@@ -369,6 +375,12 @@ class TravelMixin:
             s.add_journal("Too many men have been lost.")
             self._start_end_game()
             return
+
+        # P2 — fire any queued event chain triggers before the random roll
+        if s.pending_triggers:
+            self._check_pending_triggers()
+            if self.mode == "event":
+                return
 
         if random.random() < 0.18:
             event = self._pick_event()

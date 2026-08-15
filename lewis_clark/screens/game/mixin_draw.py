@@ -67,6 +67,7 @@ def _narrative_choice_row_height(
 class DrawMixin:
     def draw(self, surf):
         self._sync_layout()
+        self._ability_hitboxes = []  # rebuilt each frame in _draw_party_strip
         s = self.state
         season = s.season
         sbg = assets.SEASON_BG.get(season, assets.UI_BG)
@@ -476,11 +477,17 @@ class DrawMixin:
 
             tx = cx2 + port_w + 10
             nc2 = assets.CREAM
+            ab = base.get("active_ability", {})
+            cooldown_left = s.char_cooldowns.get(key, 0)
+            ab_ready = ab and cooldown_left <= 0 and self.mode == "travel"
+            use_btn_h = max(14, min(20, row_h // 3)) if ab else 0
+            use_btn_gap = 2
             text_block_h = (
                 name_font.get_height()
                 + detail_font.get_height()
                 + abil_font.get_height()
                 + 4
+                + (use_btn_h + use_btn_gap if ab else 0)
             )
             ty = cy + max(2, (row_h - text_block_h) // 2)
             draw_text(surf, base["name"], name_font, nc2, (tx, ty), max_w=text_w)
@@ -503,6 +510,27 @@ class DrawMixin:
                 (tx, ty),
                 max_w=text_w,
             )
+            ty += abil_font.get_height() + use_btn_gap
+            if ab and row_h >= 54:
+                use_r = pygame.Rect(tx, ty, min(text_w, max(60, text_w)), use_btn_h)
+                if ab_ready:
+                    pygame.draw.rect(surf, darken(acc2, 0.45), use_r, border_radius=3)
+                    pygame.draw.rect(surf, acc2, use_r, 1, border_radius=3)
+                    lbl_txt = ab["name"]
+                else:
+                    pygame.draw.rect(surf, darken(assets.UI_CARD, 0.6), use_r, border_radius=3)
+                    pygame.draw.rect(surf, assets.UI_GROOVE, use_r, 1, border_radius=3)
+                    lbl_txt = f"…{cooldown_left}" if cooldown_left > 0 else ab["name"]
+                tc_use = acc2 if ab_ready else assets.DIM2
+                lbl_surf = assets.F["tiny_b"].render(
+                    _truncate_to_width(assets.F["tiny_b"], lbl_txt, use_r.w - 4),
+                    True, tc_use,
+                )
+                surf.blit(lbl_surf, lbl_surf.get_rect(center=use_r.center))
+                # register as a clickable hitbox so input mixin can fire _use_ability
+                if not hasattr(self, "_ability_hitboxes"):
+                    self._ability_hitboxes = []
+                self._ability_hitboxes.append({"rect": use_r, "char_key": key, "ready": ab_ready})
 
     def _draw_narrative_overlay_choice_row(
         self,

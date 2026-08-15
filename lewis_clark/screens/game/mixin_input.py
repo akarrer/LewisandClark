@@ -41,6 +41,13 @@ class InputMixin:
         if self.mode == "inventory":
             self.scroll_panel.handle(event)
 
+        # P1 — ability hitboxes drawn onto party strip
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for hb in getattr(self, "_ability_hitboxes", []):
+                if hb["ready"] and hb["rect"].collidepoint(event.pos):
+                    self._use_ability(hb["char_key"])
+                    return
+
         self.map_view.handle(event, self.state, self._on_hex_click)
 
         if self.mode == "travel" and event.type == pygame.MOUSEMOTION:
