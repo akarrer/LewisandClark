@@ -11,6 +11,7 @@ from lewis_clark import assets
 from lewis_clark.fonts import load_fonts
 from lewis_clark.save_load import load_expedition_json, save_expedition_json
 from lewis_clark.screens.cinematic import CinematicScreen
+from lewis_clark.screens.explore import ExploreScreen
 from lewis_clark.screens.game import GameScreen
 from lewis_clark.screens.title import TitleScreen
 from lewis_clark.state import GameState
@@ -29,7 +30,8 @@ _WINDOW_PRESETS = (
 class AppScene(Enum):
     TITLE = auto()
     CINEMATIC = auto()
-    GAME = auto()
+    GAME = auto()  # strategic hex map
+    EXPLORE = auto()  # on-the-ground isometric field
 
 
 class Transition:
@@ -88,6 +90,7 @@ class App:
         self.title = TitleScreen(self._start_cinematic, self._load_game)
         self.cinematic = None
         self.game_screen = None
+        self.explore = None
         self._transition = Transition()
 
     def _maybe_resize_with_keyboard(self, event: pygame.event.Event) -> None:
@@ -127,6 +130,8 @@ class App:
             self.cinematic.on_resize()
         elif self.scene == AppScene.GAME and self.game_screen:
             self.game_screen.on_resize()
+        elif self.scene == AppScene.EXPLORE and self.explore:
+            self.explore.on_resize()
 
     def _start_cinematic(self):
         def switch():
@@ -146,9 +151,19 @@ class App:
                     "York and Drouillard march with us. Sacagawea will join at Fort Mandan."
                 )
             self.game_screen = GameScreen(st, self._new_game)
-            self.scene = AppScene.GAME
+            # Both screens share one GameState; start on the ground.
+            self.explore = ExploreScreen(st, self._open_map, self._new_game)
+            self.scene = AppScene.EXPLORE
 
         self._transition.start(switch)
+
+    def _open_map(self):
+        if self.game_screen:
+            self.scene = AppScene.GAME
+
+    def _open_field(self):
+        if self.explore:
+            self.scene = AppScene.EXPLORE
 
     def _new_game(self):
         def switch():
@@ -191,8 +206,15 @@ class App:
                     if event.key == pygame.K_ESCAPE:
                         if self.scene == AppScene.GAME:
                             self._new_game()
+                        elif self.scene == AppScene.EXPLORE:
+                            pass  # ExploreScreen.handle owns Esc
                         else:
                             running = False
+                    elif (
+                        event.key in (pygame.K_m, pygame.K_TAB)
+                        and self.scene == AppScene.GAME
+                    ):
+                        self._open_field()  # map -> back to the ground
 
                 if not self._transition.active:
                     if self.scene == AppScene.TITLE:
@@ -203,6 +225,15 @@ class App:
                         self.game_screen.handle(
                             event, self._new_game, self._save_game, self._load_game
                         )
+                    elif self.scene == AppScene.EXPLORE and self.explore:
+                        self.explore.handle(event)
+
+            if (
+                self.scene == AppScene.EXPLORE
+                and self.explore
+                and not self._transition.active
+            ):
+                self.explore.update()
 
             assets.screen.fill(assets.UI_BG)
             if self.scene == AppScene.TITLE:
@@ -211,6 +242,8 @@ class App:
                 self.cinematic.draw(assets.screen)
             elif self.scene == AppScene.GAME and self.game_screen:
                 self.game_screen.draw(assets.screen)
+            elif self.scene == AppScene.EXPLORE and self.explore:
+                self.explore.draw(assets.screen)
 
             vignette = getattr(assets, "TEX_VIGNETTE", None)
             if vignette:
