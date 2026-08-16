@@ -72,7 +72,7 @@ class GameScreen(
             assets.F["small"].get_height(),
             assets.F["header"].get_height(),
         )
-        bar_h = max(10, int(14 * us))
+        bar_h = max(12, int(16 * us))  # matches the stacked stat rows in mixin_draw.draw
         self._stats_card_h = game_layout.expedition_stats_card_h(us, label_h, bar_h)
         self.BTN_Y_TRAVEL = game_layout.btn_y_travel(us, self._stats_card_h)
         self.BTN_Y_EVENT = game_layout.btn_y_event(us, self._stats_card_h)
