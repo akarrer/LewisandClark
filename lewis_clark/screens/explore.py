@@ -208,26 +208,59 @@ class ExploreScreen:
 
     def _draw_player(self, surf, px, py, ox, oy):
         sx, sy = iso.world_to_screen(px, py)
-        cx, cy = sx + ox, sy + oy
-        # Shadow.
-        sh = pygame.Surface((28, 12), pygame.SRCALPHA)
-        pygame.draw.ellipse(sh, (0, 0, 0, 90), (0, 0, 28, 12))
-        surf.blit(sh, (cx - 14, cy - 4))
-        # Body (coat) + head; a small nub shows facing.
-        coat = (60, 74, 110)
-        pygame.draw.rect(surf, coat, (cx - 7, cy - 26, 14, 24), border_radius=3)
-        pygame.draw.rect(surf, darken(coat, 0.6), (cx - 7, cy - 26, 14, 24), 1, border_radius=3)
-        pygame.draw.circle(surf, (224, 194, 150), (int(cx), int(cy - 30)), 6)
-        pygame.draw.circle(surf, (60, 42, 26), (int(cx), int(cy - 34)), 6)  # hat
-        pygame.draw.rect(surf, (60, 42, 26), (cx - 7, cy - 35, 14, 3))
-        nub = {
+        cx, cy = int(sx + ox), int(sy + oy)
+        facing = self.facing
+        # Direction the body leans, in screen space (front-of-body offset).
+        fdir = {
             "N": (0, -1), "S": (0, 1), "E": (1, 0), "W": (-1, 0),
             "NE": (1, -1), "NW": (-1, -1), "SE": (1, 1), "SW": (-1, 1),
-        }.get(self.facing, (0, 1))
-        pygame.draw.circle(
-            surf, (250, 230, 180),
-            (int(cx + nub[0] * 8), int(cy - 16 + nub[1] * 4)), 2,
-        )
+        }.get(facing, (0, 1))
+        fx, fy = fdir
+        facing_away = fy < 0  # back turned to camera
+
+        # Ground shadow (feet at cx, cy).
+        sh = pygame.Surface((30, 13), pygame.SRCALPHA)
+        pygame.draw.ellipse(sh, (0, 0, 0, 95), (0, 0, 30, 13))
+        surf.blit(sh, (cx - 15, cy - 5))
+
+        # Simple 2-frame walk bob.
+        bob = -1 if (self._moving and (self.frame // 6) % 2 == 0) else 0
+        coat = (58, 78, 120)
+        coat_hi = lighten(coat, 1.25)
+        coat_lo = darken(coat, 0.6)
+        boot = (44, 32, 22)
+        skin = (226, 196, 152)
+        hat = (52, 38, 24)
+
+        # Legs (small stagger when moving).
+        stride = 3 if self._moving and (self.frame // 6) % 2 == 0 else 0
+        pygame.draw.rect(surf, boot, (cx - 5 - stride, cy - 8, 4, 8))
+        pygame.draw.rect(surf, boot, (cx + 1 + stride, cy - 8, 4, 8))
+        # Coat body.
+        body = pygame.Rect(cx - 7, cy - 26 + bob, 14, 20)
+        pygame.draw.rect(surf, coat, body, border_radius=3)
+        # Side shading gives the 3/4 volume; lit edge follows facing.
+        lit_left = fx <= 0
+        pygame.draw.rect(surf, coat_hi if lit_left else coat_lo, (body.x, body.y, 3, body.h), border_radius=2)
+        pygame.draw.rect(surf, coat_lo if lit_left else coat_hi, (body.right - 3, body.y, 3, body.h), border_radius=2)
+        pygame.draw.rect(surf, darken(coat, 0.45), body, 1, border_radius=3)
+        # Belt.
+        pygame.draw.rect(surf, (150, 120, 60), (body.x, body.centery + 2, body.w, 2))
+        # Head + tricorn hat.
+        hx, hy = cx, cy - 30 + bob
+        if not facing_away:
+            pygame.draw.circle(surf, skin, (hx, hy), 6)
+            pygame.draw.circle(surf, darken(skin, 0.7), (hx, hy), 6, 1)
+            # Eyes hint facing left/right.
+            ex = hx + (2 if fx > 0 else -2 if fx < 0 else 0)
+            pygame.draw.circle(surf, (30, 22, 16), (ex - 2, hy - 1), 1)
+            pygame.draw.circle(surf, (30, 22, 16), (ex + 2, hy - 1), 1)
+        else:
+            pygame.draw.circle(surf, darken(skin, 0.85), (hx, hy), 6)  # back of head
+        # Tricorn: brim + peaked crown.
+        pygame.draw.ellipse(surf, hat, (hx - 8, hy - 6, 16, 6))
+        pygame.draw.polygon(surf, darken(hat, 0.8), [(hx - 6, hy - 4), (hx, hy - 11), (hx + 6, hy - 4)])
+        pygame.draw.ellipse(surf, lighten(hat, 1.2), (hx - 8, hy - 6, 16, 6), 1)
 
     def _draw_hud(self, surf):
         s = self.state
