@@ -152,7 +152,9 @@ class App:
                 )
             self.game_screen = GameScreen(st, self._new_game)
             # Both screens share one GameState; start on the ground.
-            self.explore = ExploreScreen(st, self._open_map, self._new_game)
+            self.explore = ExploreScreen(
+                st, self._open_map, self._new_game, self._field_interact
+            )
             self.scene = AppScene.EXPLORE
 
         self._transition.start(switch)
@@ -164,6 +166,28 @@ class App:
     def _open_field(self):
         if self.explore:
             self.scene = AppScene.EXPLORE
+
+    def _field_interact(self, kind: str, data: dict) -> None:
+        """Resolve an on-the-ground interaction against the shared GameState."""
+        if not self.explore:
+            return
+        s = self.explore.state
+        if kind == "waypoint":
+            nwp = len(assets.WAYPOINTS)
+            s.current_wp = min(int(data.get("wp_index", s.current_wp + 1)), nwp - 1)
+            name = assets.WAYPOINTS[s.current_wp]["name"]
+            s.food = max(0, s.food - 6)
+            s.advance_date()
+            s.add_journal(f"The Corps reaches {name}.")
+            s.clamp()
+        elif kind == "hunt":
+            s.food = min(100, s.food + 12)
+            s.morale = min(100, s.morale + 2)
+            s.add_journal("The hunting party brings back fresh game. (+12 food)")
+            s.clamp()
+        elif kind == "tribe":
+            s.add_journal("You reach a village — open the map to trade and parley.")
+            self._open_map()
 
     def _new_game(self):
         def switch():
