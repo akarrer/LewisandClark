@@ -226,6 +226,45 @@ def stat_bar(surf, x, y, w, h, value, colour, label, icon=""):
     pygame.draw.rect(surf, darken(colour, 0.5), (x, y, w, h), 1, border_radius=2)
 
 
+def draw_stat_row(surf, x, y, w, row_h, value, colour, label, icon="", label_w=88, val_w=42):
+    """One compact stat on a single line: icon+label (left), engraved bar (middle),
+    value (right). Fill/value colour shifts amber<50, red<25."""
+    us = getattr(assets, "UI_SCALE", 1.0)
+    lbl = f"{icon}  {label}".strip() if icon else label
+    lf, vf = assets.F["small"], assets.F["subhead"]
+    lbl_col = assets.PARCH_LT if value > 25 else assets.RED2
+    val_col = (
+        assets.RED2 if value < 25
+        else assets.AMBER if value < 50
+        else lighten(colour, 1.35)
+    )
+    fill_col = assets.RED2 if value < 25 else assets.AMBER if value < 50 else colour
+    # Label (left, vertically centred).
+    ls = lf.render(lbl, True, lbl_col)
+    surf.blit(ls, (x, y + (row_h - ls.get_height()) // 2))
+    # Value (right, vertically centred).
+    vs = vf.render(f"{value}", True, val_col)
+    surf.blit(vs, (x + w - vs.get_width(), y + (row_h - vs.get_height()) // 2))
+    # Bar between them.
+    bx = x + label_w
+    bw = (x + w - val_w) - bx
+    bar_h = max(9, int(12 * us))
+    by = y + (row_h - bar_h) // 2
+    if bw < 8:
+        return
+    pygame.draw.rect(surf, darken(colour, 0.12), (bx - 1, by - 1, bw + 2, bar_h + 2), border_radius=3)
+    pygame.draw.rect(surf, darken(colour, 0.28), (bx, by, bw, bar_h), border_radius=3)
+    if value < 25:
+        surf.blit(alpha_surf(bw, bar_h, assets.RED_DIM, 55), (bx, by))
+    fw = max(3, int(bw * value / 100))
+    pygame.draw.rect(surf, fill_col, (bx, by, fw, bar_h), border_radius=3)
+    pygame.draw.rect(surf, lighten(fill_col, 1.55), (bx, by, fw, 2), border_radius=2)
+    for t in (25, 50, 75):
+        tx = bx + int(bw * t / 100)
+        pygame.draw.line(surf, darken(colour, 0.5), (tx, by + 2), (tx, by + bar_h - 2), 1)
+    pygame.draw.rect(surf, darken(colour, 0.55), (bx, by, bw, bar_h), 1, border_radius=3)
+
+
 def draw_wax_seal(surf, cx, cy, r, col, letter):
     """Small wax seal ornament."""
     pygame.draw.circle(surf, darken(col, 0.6), (cx + 2, cy + 2), r)

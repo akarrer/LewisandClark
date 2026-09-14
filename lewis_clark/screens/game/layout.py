@@ -14,12 +14,15 @@ STATS_CARD_H = 60
 
 
 def expedition_stats_card_h(ui_scale: float, label_h: int, bar_h: int) -> int:
-    """Height of EXPEDITION STATUS card: draw_panel title strip + labels + bar."""
+    """Height of EXPEDITION STATUS card: title strip + three compact single-line
+    stat rows (icon+label · bar · value). Must match the layout drawn in
+    mixin_draw.draw. label_h / bar_h are accepted for signature stability."""
     title_strip = 20  # matches drawing.draw_panel
-    pad_top = max(2, int(3 * ui_scale))
-    gap = max(2, int(3 * ui_scale))
-    bottom_pad = max(2, int(2 * ui_scale))
-    inner = title_strip + pad_top + label_h + gap + bar_h + bottom_pad
+    pad_top = max(4, int(6 * ui_scale))
+    bottom_pad = max(4, int(6 * ui_scale))
+    row_gap = max(4, int(6 * ui_scale))
+    row_h = max(22, int(26 * ui_scale))
+    inner = title_strip + pad_top + row_h * 3 + row_gap * 2 + bottom_pad
     return max(int(STATS_CARD_H * ui_scale), inner)
 
 
@@ -108,13 +111,19 @@ def stats_bottom_y(ui_scale: float, stats_card_h: int | None = None) -> int:
 
 
 def right_panel_footer_h(ui_scale: float) -> int:
-    """Reserved height at bottom of right panel (calendar + waypoint)."""
-    return max(58, int(76 * ui_scale))
+    """Reserved height at bottom of right panel (calendar + waypoint + progress bar)."""
+    return max(66, int(90 * ui_scale))
 
 
 def objectives_block_h(ui_scale: float) -> int:
-    """Height of objectives panel between stats bars and mode / travel UI."""
-    return max(200, int(268 * ui_scale))
+    """Height of objectives panel between stats bars and mode / travel UI.
+    Sized to the goal hint + 6 objective rows with a snug bottom pad."""
+    title_strip = 20
+    top_pad = int(20 * ui_scale)
+    row_gap = max(24, int(28 * ui_scale))
+    rows = 7  # goal hint + 6 objectives
+    bottom_pad = int(10 * ui_scale)
+    return max(200, title_strip + top_pad + rows * row_gap + bottom_pad)
 
 
 def right_panel_inventory_strip_h(ui_scale: float) -> int:

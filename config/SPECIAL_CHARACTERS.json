@@ -8,6 +8,15 @@
       "Journals": "Detailed natural history notes",
       "Navigation": "Celestial observation & mapping"
     },
+    "active_ability": {
+      "id": "scientific_survey",
+      "name": "Scientific Survey",
+      "desc": "+2 Discoveries · +5 Morale · 2 days",
+      "cooldown": 4,
+      "effect": {"morale": 5},
+      "discoveries": 2,
+      "days": 2
+    },
     "joined_at": 0,
     "active": true,
     "bio": "Jefferson's private secretary, chosen to lead the expedition west. Botanist, soldier, restless intellect.",
@@ -21,6 +30,15 @@
       "Mapping": "Charts the main route",
       "Recruiting": "Draws frontier men to the corps",
       "Leadership": "Shares equal command with Lewis"
+    },
+    "active_ability": {
+      "id": "chart_route",
+      "name": "Chart the Route",
+      "desc": "Next 3 hex moves waive health cost · +4 Morale",
+      "cooldown": 3,
+      "effect": {"morale": 4},
+      "route_buffer": 3,
+      "days": 1
     },
     "joined_at": 0,
     "active": true,
@@ -36,6 +54,14 @@
       "Hunting": "+8 food from wildlife",
       "Morale": "Passive +2 morale/event"
     },
+    "active_ability": {
+      "id": "rally_corps",
+      "name": "Rally the Corps",
+      "desc": "+20 Morale · costs 8 Food",
+      "cooldown": 5,
+      "effect": {"morale": 20, "food": -8},
+      "days": 0
+    },
     "joined_at": 0,
     "active": true,
     "bio": "His extraordinary strength and spirit win respect from every nation they encounter. Clark will refuse to grant him freedom after the expedition.",
@@ -50,6 +76,15 @@
       "Sign Language": "+15 plains tribe relations",
       "Trapping": "+1 Fur/event"
     },
+    "active_ability": {
+      "id": "scout_ahead",
+      "name": "Scout Ahead",
+      "desc": "Preview the next random event · +5 Food",
+      "cooldown": 3,
+      "effect": {"food": 5},
+      "scout_preview": true,
+      "days": 1
+    },
     "joined_at": 0,
     "active": true,
     "bio": "The finest hunter and scout on the frontier. Half-Shawnee, all woodsman.",
@@ -63,6 +98,15 @@
       "Tribe Diplomacy": "+20 all relations",
       "Foraging": "Passive +3 food/event",
       "Language": "Unlocks special trade"
+    },
+    "active_ability": {
+      "id": "diplomatic_bridge",
+      "name": "Diplomatic Bridge",
+      "desc": "Boost current tribe to Friendly · +8 Morale",
+      "cooldown": 4,
+      "effect": {"morale": 8},
+      "tribe_bridge": true,
+      "days": 0
     },
     "joined_at": 4,
     "active": false,

@@ -1,0 +1,3 @@
+# Scenarios are authored as JSON node graphs
+
+Scenarios extend the existing JSON event format into graphs of nodes with conditions (Companion present, Corps Skill, Reputation, item), Skill Checks, outcomes, and planted Chains, validated by the test suite. We chose this over a narrative scripting language (Ink, Yarn) because the existing event and chain pipeline already works and is tested, and JSON carries across an engine change (see ADR-0002). Hand-editing graphs is the cost; a script that renders a Scenario as a flowchart mitigates it. Revisit Ink/Yarn at the Slice gate if authoring becomes the bottleneck.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import pygame
 from lewis_clark.map_view import MapView
 from lewis_clark.screens.game import layout as game_layout
+from lewis_clark.screens.game.mixin_abilities import AbilitiesMixin
 from lewis_clark.screens.game.mixin_draw import DrawMixin
 from lewis_clark.screens.game.mixin_events import EventsMixin
 from lewis_clark.screens.game.mixin_input import InputMixin
@@ -24,6 +25,7 @@ class GameScreen(
     EventsMixin,
     TravelMixin,
     JournalMixin,
+    AbilitiesMixin,
 ):
     def __init__(self, state, on_menu):
         self.state = state
@@ -70,7 +72,7 @@ class GameScreen(
             assets.F["small"].get_height(),
             assets.F["header"].get_height(),
         )
-        bar_h = max(10, int(14 * us))
+        bar_h = max(12, int(16 * us))  # matches the stacked stat rows in mixin_draw.draw
         self._stats_card_h = game_layout.expedition_stats_card_h(us, label_h, bar_h)
         self.BTN_Y_TRAVEL = game_layout.btn_y_travel(us, self._stats_card_h)
         self.BTN_Y_EVENT = game_layout.btn_y_event(us, self._stats_card_h)

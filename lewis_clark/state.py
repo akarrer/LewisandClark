@@ -35,6 +35,16 @@ class GameState:
     hex_trail: List = field(default_factory=list)
     visited_hexes: List = field(default_factory=list)
     used_resources: List = field(default_factory=list)
+    # P1 — active character ability cooldowns (char_key -> hexes until ready)
+    char_cooldowns: Dict = field(default_factory=dict)
+    clark_route_buffer: int = 0
+    scout_preview: bool = False
+    # P2 — event trigger chain queue [{event_id, hexes_remaining}]
+    pending_triggers: List = field(default_factory=list)
+    # P3 — calendar deadline state
+    winter_locked: bool = False
+    # P4 — regional reputation shared across tribe regions
+    tribal_reputation: int = 50
 
     def __post_init__(self):
         if not self.tribe_relations:
@@ -128,6 +138,12 @@ class GameState:
             "hex_trail",
             "used_resources",
             "visited_hexes",
+            "char_cooldowns",
+            "clark_route_buffer",
+            "scout_preview",
+            "pending_triggers",
+            "winter_locked",
+            "tribal_reputation",
         }
     )
 
@@ -151,6 +167,12 @@ class GameState:
         s.hex_trail = d.get("hex_trail", [(s.hex_col, s.hex_row)])
         s.visited_hexes = d.get("visited_hexes", [(s.hex_col, s.hex_row)])
         s.used_resources = d.get("used_resources", [])
+        s.char_cooldowns = d.get("char_cooldowns", {})
+        s.clark_route_buffer = d.get("clark_route_buffer", 0)
+        s.scout_preview = d.get("scout_preview", False)
+        s.pending_triggers = d.get("pending_triggers", [])
+        s.winter_locked = d.get("winter_locked", False)
+        s.tribal_reputation = d.get("tribal_reputation", 50)
         s.characters = copy.deepcopy(assets.SPECIAL_CHARACTERS)
         for k, v in d.get("characters", {}).items():
             if k in s.characters:

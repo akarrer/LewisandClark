@@ -14,7 +14,8 @@
           "food": 15,
           "health": -18,
           "morale": -5
-        }
+        },
+        "triggers": [{"event_id": "wounded_recovery", "after_hexes": 3}]
       },
       {
         "label": "Scatter into the river",
@@ -28,7 +29,8 @@
           "york": {
             "morale": 10
           }
-        }
+        },
+        "triggers": [{"event_id": "wounded_recovery", "after_hexes": 3}]
       },
       {
         "label": "Drouillard steps forward",
@@ -220,7 +222,8 @@
           "food": -10,
           "health": -20,
           "morale": -8
-        }
+        },
+        "triggers": [{"event_id": "frostbite_crisis", "after_hexes": 3}]
       },
       {
         "label": "Sacagawea negotiates shelter",
@@ -314,7 +317,8 @@
           "morale": 22
         },
         "relation_bonus": 22,
-        "requires_char": "york"
+        "requires_char": "york",
+        "triggers": [{"event_id": "mandan_spring_guides", "after_hexes": 5}]
       }
     ]
   },
@@ -338,7 +342,8 @@
         "inventory_gain": {
           "Horses": 5
         },
-        "requires_char": "sacagawea"
+        "requires_char": "sacagawea",
+        "triggers": [{"event_id": "shoshone_parting_gift", "after_hexes": 2}]
       },
       {
         "label": "Offer Jefferson Medals and iron goods",
@@ -431,7 +436,8 @@
           "food": -10,
           "health": -30,
           "morale": -20
-        }
+        },
+        "triggers": [{"event_id": "epidemic_spreading", "after_hexes": 4}]
       }
     ]
   },
@@ -730,6 +736,192 @@
           "health": 3,
           "morale": 14
         }
+      }
+    ]
+  },
+  {
+    "id": "wounded_recovery",
+    "type": "hardship",
+    "season": null,
+    "title": "A Man's Recovery",
+    "symbol": "WOUND",
+    "intro": "The man wounded by the grizzly has been marching on sheer will. Tonight by the fire he confesses the wound has not closed. The corps waits on your word.",
+    "choices": [
+      {
+        "label": "Rest two days — proper care",
+        "text": "The wound is cleaned and bound. He recovers fully. The two-day halt costs supplies but saves the man.",
+        "effect": {
+          "food": -8,
+          "health": 12,
+          "morale": 6
+        }
+      },
+      {
+        "label": "Sacagawea treats the wound",
+        "text": "She packs it with a moss poultice the Shoshone have used for generations. He is marching by morning.",
+        "effect": {
+          "food": -3,
+          "health": 16,
+          "morale": 14
+        },
+        "requires_char": "sacagawea"
+      },
+      {
+        "label": "Keep marching — he will endure",
+        "text": "The man grits his teeth and marches. The wound festers. Two weeks later he will lose the arm below the elbow.",
+        "effect": {
+          "food": -2,
+          "health": -18,
+          "morale": -12
+        }
+      }
+    ]
+  },
+  {
+    "id": "epidemic_spreading",
+    "type": "illness",
+    "season": null,
+    "title": "Epidemic Spreading",
+    "symbol": "SICKNESS",
+    "intro": "The dysentery was never fully contained. Men who seemed recovered have relapsed. Three new cases overnight. Lewis writes grimly in his journal.",
+    "choices": [
+      {
+        "label": "Halt and quarantine the sick",
+        "text": "A strict camp separation — three days lost. The epidemic burns itself out. No further spread.",
+        "effect": {
+          "food": -14,
+          "health": -10,
+          "morale": -10
+        }
+      },
+      {
+        "label": "Administer the remaining medicinal stores",
+        "text": "You exhaust the medical supplies but arrest the spread. The corps moves again in two days.",
+        "effect": {
+          "food": -8,
+          "health": -8,
+          "morale": -6,
+          "inventory": {
+            "Trade Beads": -2
+          }
+        }
+      },
+      {
+        "label": "Sacagawea identifies a healing spring",
+        "text": "She has seen this illness before. A mineral spring nearby draws out the infection in remarkable time.",
+        "effect": {
+          "food": -4,
+          "health": 5,
+          "morale": 8
+        },
+        "requires_char": "sacagawea"
+      }
+    ]
+  },
+  {
+    "id": "frostbite_crisis",
+    "type": "illness",
+    "season": null,
+    "title": "Frostbite Takes Hold",
+    "symbol": "FROST",
+    "intro": "Private Whitehouse removes his boots and discovers three blackened toes. Two other men have hands they cannot close. The cost of pushing through that blizzard is now visible.",
+    "choices": [
+      {
+        "label": "Amputate — the surgeons work through the night",
+        "text": "Three toes are taken. The men will walk again. A dark night in camp — but the march continues.",
+        "effect": {
+          "food": -8,
+          "health": -14,
+          "morale": -16
+        }
+      },
+      {
+        "label": "Warm them slowly — pray for the flesh to revive",
+        "text": "Lewis tries gradual rewarming. Two men recover fully. One loses two fingers. An acceptable outcome.",
+        "effect": {
+          "food": -10,
+          "health": -8,
+          "morale": -8
+        }
+      },
+      {
+        "label": "York and Sacagawea render bear grease treatment",
+        "text": "A native remedy — rendered fat packed around the frozen tissue overnight. By morning all tissue is pink.",
+        "effect": {
+          "food": -6,
+          "health": -2,
+          "morale": 4
+        },
+        "requires_char": "york"
+      }
+    ]
+  },
+  {
+    "id": "mandan_spring_guides",
+    "type": "diplomacy",
+    "season": null,
+    "title": "Mandan Guides Arrive",
+    "symbol": "LODGE",
+    "intro": "Chief Big White kept his word. At first light three Mandan warriors wait outside camp, dressed for the mountains. They know the route west.",
+    "choices": [
+      {
+        "label": "Accept their guidance with ceremony",
+        "text": "A formal acceptance with gifts. The guides lead the corps through terrain that would have taken weeks to navigate. Extraordinary.",
+        "effect": {
+          "food": -6,
+          "health": 8,
+          "morale": 20,
+          "inventory": {
+            "Trade Beads": -2
+          }
+        },
+        "relation_bonus": 10
+      },
+      {
+        "label": "Accept briefly then part ways",
+        "text": "The guides show you the first mountain pass. You part amicably. Valuable intelligence gained.",
+        "effect": {
+          "food": -3,
+          "health": 4,
+          "morale": 10
+        },
+        "relation_bonus": 5
+      }
+    ]
+  },
+  {
+    "id": "shoshone_parting_gift",
+    "type": "diplomacy",
+    "season": null,
+    "title": "Cameahwait's Parting Gift",
+    "symbol": "HORSE",
+    "intro": "Two days after parting, a young Shoshone warrior catches the corps at a ford. He carries a bundle from Cameahwait — dried meat, mountain maps, and a written note in Sacagawea's hand.",
+    "choices": [
+      {
+        "label": "Accept with full ceremony and reply",
+        "text": "Clark writes a reply that Sacagawea translates. A profound moment of mutual respect across cultures.",
+        "effect": {
+          "food": 12,
+          "morale": 22
+        },
+        "inventory_gain": {
+          "Mountain Maps": 1,
+          "Dried Meat": 3
+        },
+        "relation_bonus": 12,
+        "discovery": true
+      },
+      {
+        "label": "Accept and press on",
+        "text": "Grateful and humbled, the corps continues west with Cameahwait's gift sustaining them for days.",
+        "effect": {
+          "food": 12,
+          "morale": 14
+        },
+        "inventory_gain": {
+          "Mountain Maps": 1
+        },
+        "relation_bonus": 6
       }
     ]
   },
