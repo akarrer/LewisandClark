@@ -90,6 +90,10 @@ _Avoid_: event, dialogue, quest
 A Scenario that fires by chance, weighted by Region, season, time of day, and the state of the Corps.
 _Avoid_: random encounter
 
+**Trail Moment**:
+A small story beat that plays out while the Corps keeps walking — a Companion's remark, a change in the world, something glimpsed — never pausing play or forcing a choice; engaging with it can grow it into an Encounter or Scenario.
+_Avoid_: micro-event, ambient event, bark
+
 **Encounter**:
 Something visible in the world the Leader can approach or avoid — wildlife, a trader, a hunting party.
 _Avoid_: mob, spawn
