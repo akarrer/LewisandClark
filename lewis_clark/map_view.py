@@ -1333,6 +1333,15 @@ class MapView:
             hint="ZOOM  scroll\u2195  R=reset  |  F1/F2/F3 map mode",
         )
 
+    def _cover_zoom(self, R: pygame.Rect, zoom: float) -> float:
+        """Never zoom out past the point where the canvas stops covering ``R``.
+
+        The draw step scales the visible canvas window to the full rect, so a
+        window clipped at the canvas edge would be stretched out of proportion.
+        """
+        cw, ch = self._canvas_dims()
+        return max(zoom, R.w / cw, R.h / ch)
+
     def _clamp_pan(self, R: pygame.Rect) -> None:
         cw, ch = self._canvas_dims()
         vis_w = int(R.w / self.zoom)
@@ -1383,7 +1392,7 @@ class MapView:
         if event.type == pygame.MOUSEWHEEL and R.collidepoint(mpos):
             wx0, wy0 = self.screen_to_canvas(*mpos)
             factor = 1.2 if event.y > 0 else 1 / 1.2
-            self.zoom = max(0.18, min(1.8, z * factor))
+            self.zoom = self._cover_zoom(R, max(0.18, min(1.8, z * factor)))
             sx_off = mpos[0] - R.x
             sy_off = mpos[1] - R.y
             self.pan_x = wx0 - sx_off / self.zoom
@@ -1403,7 +1412,7 @@ class MapView:
         R = self.MAP_RECT
         cx = self.pan_x + (R.w / self.zoom) / 2
         cy = self.pan_y + (R.h / self.zoom) / 2
-        self.zoom = max(0.18, self.zoom / 1.25)
+        self.zoom = self._cover_zoom(R, max(0.18, self.zoom / 1.25))
         self.pan_x = cx - (R.w / self.zoom) / 2
         self.pan_y = cy - (R.h / self.zoom) / 2
         self._clamp_pan(R)
@@ -1412,12 +1421,12 @@ class MapView:
         R = self.MAP_RECT
         if self.map_mode == "overview":
             cw, ch = self._canvas_dims()
-            self.zoom = max(0.18, min(1.8, R.w / cw * 0.98))
+            self.zoom = self._cover_zoom(R, max(0.18, min(1.8, R.w / cw * 0.98)))
             self.pan_x = 0
             self.pan_y = 0
         elif self.map_mode == "region":
             cw, ch = self._canvas_dims()
-            self.zoom = max(0.18, min(1.8, R.w / cw * 0.96))
+            self.zoom = self._cover_zoom(R, max(0.18, min(1.8, R.w / cw * 0.96)))
             vis_w = R.w / self.zoom
             vis_h = R.h / self.zoom
             self.pan_x = max(0, (cw - vis_w) * 0.2)

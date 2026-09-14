@@ -7,13 +7,14 @@ from enum import Enum, auto
 
 import pygame
 
-from lewis_clark import assets
+from lewis_clark import assets, legs
 from lewis_clark.fonts import load_fonts
-from lewis_clark.input import Action, InputState
+from lewis_clark.input import InputState
+from lewis_clark.region import build_world
 from lewis_clark.save_load import load_expedition_json, save_expedition_json
 from lewis_clark.screens.cinematic import CinematicScreen
+from lewis_clark.screens.expedition import DEPART, VIEW, ExpeditionMapScreen
 from lewis_clark.screens.explore import ExploreScreen
-from lewis_clark.screens.game import GameScreen
 from lewis_clark.screens.title import TitleScreen
 from lewis_clark.state import GameState
 from lewis_clark.textures import generate_all as generate_textures
@@ -31,8 +32,8 @@ _WINDOW_PRESETS = (
 class AppScene(Enum):
     TITLE = auto()
     CINEMATIC = auto()
-    GAME = auto()  # strategic hex map
-    EXPLORE = auto()  # on-the-ground isometric field
+    EXPLORE = auto()  # walking the current Region
+    EXPEDITION = auto()  # Expedition Map: route overview and Legs
 
 
 class Transition:
@@ -90,8 +91,9 @@ class App:
         self.scene = AppScene.TITLE
         self.title = TitleScreen(self._start_cinematic, self._load_game)
         self.cinematic = None
-        self.game_screen = None
+        self.state = None
         self.explore = None
+        self.expedition = None
         self._transition = Transition()
         self.input = InputState()
         self.input.init_controllers()
@@ -132,10 +134,10 @@ class App:
             self.title.on_resize()
         elif self.scene == AppScene.CINEMATIC and self.cinematic:
             self.cinematic.on_resize()
-        elif self.scene == AppScene.GAME and self.game_screen:
-            self.game_screen.on_resize()
-        elif self.scene == AppScene.EXPLORE and self.explore:
+        if self.explore:
             self.explore.on_resize()
+        if self.expedition:
+            self.expedition.on_resize()
 
     def _start_cinematic(self):
         def switch():
@@ -154,18 +156,27 @@ class App:
                 st.add_journal(
                     "York and Drouillard march with us. Sacagawea will join at Fort Mandan."
                 )
-            self.game_screen = GameScreen(st, self._new_game)
-            # Both screens share one GameState; start on the ground.
-            self.explore = ExploreScreen(
-                st, self._open_map, self._new_game, self._field_interact, self.input
-            )
-            self.scene = AppScene.EXPLORE
+            self.state = st
+            self._enter_region()
 
         self._transition.start(switch)
 
-    def _open_map(self):
-        if self.game_screen:
-            self.scene = AppScene.GAME
+    def _enter_region(self):
+        """Build the current Region's world and put the Corps on the ground in it."""
+        world = build_world(self.state.current_region)
+        self.explore = ExploreScreen(
+            self.state, world, self._open_map, self._new_game, self._field_interact, self.input
+        )
+        self.expedition = None
+        self.scene = AppScene.EXPLORE
+
+    def _open_map(self, mode=VIEW):
+        if not self.state:
+            return
+        self.expedition = ExpeditionMapScreen(
+            self.state, mode, self._open_field, self._take_leg, self._save_game, self.input
+        )
+        self.scene = AppScene.EXPEDITION
 
     def _quit(self):
         self._running = False
@@ -174,27 +185,28 @@ class App:
         if self.explore:
             self.scene = AppScene.EXPLORE
 
+    def _take_leg(self, option):
+        legs.take_leg(self.state, option)
+        self._transition.start(self._enter_region)
+
     def _field_interact(self, kind: str, data: dict) -> None:
         """Resolve an on-the-ground interaction against the shared GameState."""
-        if not self.explore:
+        s = self.state
+        if not s:
             return
-        s = self.explore.state
-        if kind == "waypoint":
-            nwp = len(assets.WAYPOINTS)
-            s.current_wp = min(int(data.get("wp_index", s.current_wp + 1)), nwp - 1)
-            name = assets.WAYPOINTS[s.current_wp]["name"]
-            s.food = max(0, s.food - 6)
-            s.advance_date()
-            s.add_journal(f"The Corps reaches {name}.")
-            s.clamp()
+        if kind == "landmark":
+            if data["id"] not in s.landmarks_visited:
+                s.landmarks_visited.append(data["id"])
+                if "waypoint" in data:
+                    s.current_wp = max(s.current_wp, int(data["waypoint"]))
+                s.add_journal(f"{data['name']} — {data.get('desc', '')}".rstrip(" —"))
         elif kind == "hunt":
             s.food = min(100, s.food + 12)
             s.morale = min(100, s.morale + 2)
             s.add_journal("The hunting party brings back fresh game. (+12 food)")
             s.clamp()
-        elif kind == "tribe":
-            s.add_journal("You reach a village — open the map to trade and parley.")
-            self._open_map()
+        elif kind == "depart":
+            self._open_map(DEPART)
 
     def _dispatch(self, event, actions):
         """Send one event (and its actions) to the scene active when it arrived.
@@ -211,17 +223,10 @@ class App:
             self.cinematic.handle(event)
             for a in actions:
                 self.cinematic.handle_action(a)
-        elif scene == AppScene.GAME and self.game_screen:
-            self.game_screen.handle(
-                event, self._new_game, self._save_game, self._load_game
-            )
+        elif scene == AppScene.EXPEDITION and self.expedition:
+            self.expedition.handle(event)
             for a in actions:
-                if a == Action.TOGGLE_MAP:
-                    self._open_field()
-                elif a == Action.MENU:
-                    self._new_game()
-                else:
-                    self.game_screen.handle_action(a, self._save_game)
+                self.expedition.handle_action(a)
         elif scene == AppScene.EXPLORE and self.explore:
             for a in actions:
                 self.explore.handle_action(a)
@@ -234,9 +239,9 @@ class App:
         self._transition.start(switch)
 
     def _save_game(self):
-        if not self.game_screen:
+        if not self.state:
             return
-        save_expedition_json(self.game_screen.state.to_dict())
+        save_expedition_json(self.state.to_dict())
 
     def _load_game(self):
         data = load_expedition_json()
@@ -280,8 +285,8 @@ class App:
                 self.title.draw(assets.screen)
             elif self.scene == AppScene.CINEMATIC and self.cinematic:
                 self.cinematic.draw(assets.screen)
-            elif self.scene == AppScene.GAME and self.game_screen:
-                self.game_screen.draw(assets.screen)
+            elif self.scene == AppScene.EXPEDITION and self.expedition:
+                self.expedition.draw(assets.screen)
             elif self.scene == AppScene.EXPLORE and self.explore:
                 self.explore.draw(assets.screen)
 

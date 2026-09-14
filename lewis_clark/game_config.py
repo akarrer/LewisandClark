@@ -41,4 +41,6 @@ class GameConfig:
     SPECIAL_CHARACTERS: Any
     EVENTS: Any
     CINE_SCENES: Any
+    REGIONS: Dict[str, Any]
+    START_REGION: str
     HEX_CONTENTS: Dict[Any, Any]

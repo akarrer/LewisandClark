@@ -114,20 +114,10 @@ class AbilitiesMixin:
         s = self.state
         if not s.winter_locked:
             return
-        months_to_march = (3 - s.current_month) % 12 or 12
-        penalty = min(months_to_march * 6, 40)
-        s.health = max(5, s.health - penalty)
-        s.food = max(0, s.food - months_to_march * 4)
-        s.morale = max(0, s.morale - months_to_march * 3)
-        # The lock only fires in Nov/Dec (see _check_calendar_gates), so the
-        # thaw is always the following March — advance the year by one.
-        s.current_year += 1
-        s.current_month = 3
-        s.winter_locked = False
+        penalty = s.sit_out_winter()
         s.add_journal(
             f"Spring thaw — the corps resumes. The mountain winter cost {penalty} health."
         )
-        s.clamp()
 
     # ------------------------------------------------------------------ P4
 

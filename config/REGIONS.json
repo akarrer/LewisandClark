@@ -1,0 +1,153 @@
+{
+  "start": "lower_missouri",
+  "regions": [
+    {
+      "id": "lower_missouri",
+      "name": "The Lower Missouri",
+      "span": "May – July 1804",
+      "biome": "woodland",
+      "winter_quarters": false,
+      "length": 72,
+      "landmarks": [
+        {"id": "camp_dubois", "lonlat": [-90.12, 38.8], "name": "Camp Dubois", "waypoint": 0, "desc": "The Corps' winter camp at the mouth of the Missouri. The journey begins."},
+        {"id": "st_charles", "lonlat": [-90.48, 38.78], "name": "St. Charles", "desc": "The last French village of any size on the river. Lewis joins the Corps here."},
+        {"id": "fort_osage_site", "lonlat": [-94.18, 39.19], "name": "Fire Prairie", "waypoint": 1, "desc": "Clark marks a commanding bluff as a fine place for a fort."}
+      ],
+      "legs": [
+        {"to": "sioux_country", "options": [
+          {"name": "Up the Missouri", "tag": "river", "days": 78, "food": -8, "health": 0, "morale": 3, "risk": "low", "desc": "Pole and tow the keelboat against the current. Slow, steady, safe."},
+          {"name": "Overland Trail", "tag": "land", "days": 64, "food": -13, "health": -6, "morale": 0, "risk": "medium", "desc": "Hunters march the prairie while the boats follow. Faster, but it wears the men down."}
+        ]}
+      ]
+    },
+    {
+      "id": "sioux_country",
+      "name": "Sioux Country",
+      "span": "August – September 1804",
+      "biome": "prairie",
+      "winter_quarters": false,
+      "length": 96,
+      "landmarks": [
+        {"id": "council_bluff", "lonlat": [-96.02, 41.46], "name": "Council Bluff", "waypoint": 2, "desc": "The first council with the Otoe and Missouria."},
+        {"id": "floyds_bluff", "lonlat": [-96.38, 42.4], "name": "Floyd's Bluff", "desc": "Where Sergeant Charles Floyd was buried."},
+        {"id": "calumet_bluff", "lonlat": [-97.49, 42.86], "name": "Calumet Bluff", "waypoint": 3, "desc": "Council with the Yankton Sioux beneath the bluff."},
+        {"id": "bad_river", "lonlat": [-100.38, 44.35], "name": "Mouth of the Bad River", "desc": "The Teton Sioux under Black Buffalo hold the river here."}
+      ],
+      "legs": [
+        {"to": "mandan_villages", "options": [
+          {"name": "Main Channel", "tag": "river", "days": 81, "food": -10, "health": 0, "morale": 0, "risk": "medium", "desc": "Push straight up the main channel before the cold sets in."},
+          {"name": "Hug the Banks", "tag": "river", "days": 92, "food": -12, "health": 2, "morale": 2, "risk": "low", "desc": "Slower going close to shore, with good hunting along the way."}
+        ]}
+      ]
+    },
+    {
+      "id": "mandan_villages",
+      "name": "The Mandan Villages",
+      "span": "October 1804 – April 1805",
+      "biome": "prairie",
+      "winter_quarters": true,
+      "winter_until": [4, 7],
+      "length": 64,
+      "landmarks": [
+        {"id": "knife_river", "lonlat": [-101.39, 47.33], "name": "Knife River Villages", "desc": "The busy earth-lodge towns of the Mandan and Hidatsa."},
+        {"id": "fort_mandan", "lonlat": [-101.03, 47.3], "name": "Fort Mandan", "waypoint": 4, "desc": "The Corps' winter fort across the river from the villages."}
+      ],
+      "legs": [
+        {"to": "upper_missouri", "options": [
+          {"name": "Up the Missouri", "tag": "river", "days": 18, "food": -12, "health": -4, "morale": 5, "risk": "medium", "desc": "The keelboat goes home; the Corps moves on in pirogues and dugouts."},
+          {"name": "Overland March", "tag": "land", "days": 14, "food": -15, "health": -9, "morale": 0, "risk": "high", "desc": "Cut across the plains and meet the canoes upriver."}
+        ]}
+      ]
+    },
+    {
+      "id": "upper_missouri",
+      "name": "The Upper Missouri",
+      "span": "April – May 1805",
+      "biome": "prairie",
+      "winter_quarters": false,
+      "length": 80,
+      "landmarks": [
+        {"id": "yellowstone", "lonlat": [-104.04, 47.98], "name": "Yellowstone Confluence", "waypoint": 5, "desc": "Where the Yellowstone joins the Missouri. Game everywhere."},
+        {"id": "white_cliffs", "lonlat": [-110.33, 47.83], "name": "The White Cliffs", "desc": "Wind-carved sandstone Lewis called 'scenes of visionary enchantment'."}
+      ],
+      "legs": [
+        {"to": "great_falls", "options": [
+          {"name": "River Trail", "tag": "river", "days": 36, "food": -10, "health": 0, "morale": 3, "risk": "medium", "desc": "Tow the canoes through the shallows."},
+          {"name": "Bluff Shortcut", "tag": "land", "days": 28, "food": -8, "health": -14, "morale": -5, "risk": "high", "desc": "Climb over the breaks and save days at a cost."}
+        ]}
+      ]
+    },
+    {
+      "id": "great_falls",
+      "name": "The Great Falls",
+      "span": "June – July 1805",
+      "biome": "mountain",
+      "winter_quarters": false,
+      "length": 80,
+      "landmarks": [
+        {"id": "marias", "lonlat": [-110.5, 47.93], "name": "Marias River", "desc": "Two rivers of equal size. Which one is the Missouri?"},
+        {"id": "great_falls", "lonlat": [-111.2, 47.55], "name": "The Great Falls", "waypoint": 6, "desc": "Five cascades and an eighteen-mile portage."},
+        {"id": "white_bear_islands", "lonlat": [-111.26, 47.45], "name": "White Bear Islands", "desc": "The portage's end, and grizzly country."}
+      ],
+      "legs": [
+        {"to": "shoshone_country", "options": [
+          {"name": "Canoes Upriver", "tag": "river", "days": 51, "food": -10, "health": -4, "morale": 2, "risk": "medium", "desc": "Paddle and pole through the Gates of the Mountains."},
+          {"name": "March the Bank", "tag": "land", "days": 42, "food": -14, "health": -10, "morale": -4, "risk": "high", "desc": "Walk ahead of the canoes, hoping to find the Shoshone sooner."}
+        ]}
+      ]
+    },
+    {
+      "id": "shoshone_country",
+      "name": "Shoshone Country",
+      "span": "July – August 1805",
+      "biome": "mountain",
+      "winter_quarters": false,
+      "length": 80,
+      "landmarks": [
+        {"id": "three_forks", "lonlat": [-111.49, 45.93], "name": "Three Forks", "desc": "The Missouri divides into three rivers."},
+        {"id": "beaverhead_rock", "lonlat": [-112.45, 45.39], "name": "Beaverhead Rock", "desc": "Sacagawea recognises the land of her people."},
+        {"id": "lemhi_pass", "lonlat": [-113.44, 44.97], "name": "Lemhi Pass", "waypoint": 7, "desc": "The Continental Divide — and endless mountains beyond."}
+      ],
+      "legs": [
+        {"to": "bitterroots", "options": [
+          {"name": "Guided Trail", "tag": "mountain", "days": 41, "food": -10, "health": 0, "morale": 5, "risk": "low", "desc": "Follow a Shoshone guide along the trail the people use."},
+          {"name": "Ridge Route", "tag": "mountain", "days": 30, "food": -8, "health": -16, "morale": -12, "risk": "very_high", "desc": "Strike out alone along the high ridges."}
+        ]}
+      ]
+    },
+    {
+      "id": "bitterroots",
+      "name": "The Bitterroots",
+      "span": "September 1805",
+      "biome": "mountain",
+      "winter_quarters": false,
+      "length": 88,
+      "landmarks": [
+        {"id": "travelers_rest", "lonlat": [-114.1, 46.75], "name": "Travelers' Rest", "waypoint": 8, "desc": "The last camp before the mountain crossing."},
+        {"id": "lolo_pass", "lonlat": [-114.58, 46.63], "name": "Lolo Pass", "desc": "Early snow, no game, and a trail that is hard to follow."},
+        {"id": "weippe_prairie", "lonlat": [-115.94, 46.38], "name": "Weippe Prairie", "desc": "The starving Corps comes out of the mountains among the Nez Perce."}
+      ],
+      "legs": [
+        {"to": "columbia", "options": [
+          {"name": "Dugouts Downriver", "tag": "river", "days": 40, "food": -10, "health": 3, "morale": 10, "risk": "low", "desc": "Burn out dugout canoes and ride the Clearwater, Snake, and Columbia."},
+          {"name": "Run the Rapids", "tag": "river", "days": 32, "food": -12, "health": -6, "morale": 4, "risk": "medium", "desc": "Shoot the rapids rather than portage around them."}
+        ]}
+      ]
+    },
+    {
+      "id": "columbia",
+      "name": "Down the Columbia",
+      "span": "October – December 1805",
+      "biome": "coast",
+      "winter_quarters": true,
+      "winter_until": [3, 23],
+      "length": 88,
+      "landmarks": [
+        {"id": "celilo_falls", "lonlat": [-121.16, 45.65], "name": "Celilo Falls", "desc": "The great fishing and trading place of the river peoples."},
+        {"id": "cape_disappointment", "lonlat": [-124.05, 46.28], "name": "Cape Disappointment", "desc": "The Pacific Ocean at last."},
+        {"id": "fort_clatsop", "lonlat": [-123.88, 46.13], "name": "Fort Clatsop", "waypoint": 9, "desc": "A wet winter fort near the Clatsop people."}
+      ],
+      "legs": []
+    }
+  ]
+}

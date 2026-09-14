@@ -84,3 +84,16 @@ def test_main_module_imports_without_prefilled_assets():
         timeout=60,
     )
     assert r.returncode == 0, r.stderr or r.stdout or "(no output)"
+
+
+def test_map_view_zoom_always_covers_a_tall_rect():
+    """A rect taller than the fitted canvas must not leave the canvas stretched."""
+    import pygame
+
+    mv = MapView()
+    mv.set_map_rect(pygame.Rect(0, 0, 1000, 900))
+    mv.set_map_mode("region")
+    for zoom_step in (lambda: None, mv.zoom_out, mv.zoom_out):
+        zoom_step()
+        cw, ch = mv._canvas_dims()
+        assert mv.zoom * cw >= 1000 - 1 and mv.zoom * ch >= 900 - 1

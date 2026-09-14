@@ -56,6 +56,10 @@ _Avoid_: waypoint, POI
 The strategic overview of the whole route, used to plan and undertake Legs and to review Discoveries.
 _Avoid_: hex map, world map, overworld
 
+**Landing**:
+The spot at the upstream end of a Region where the Corps sets out on a Leg.
+_Avoid_: exit, dock, travel point
+
 **Leg**:
 A journey between two Regions taken on the Expedition Map, costing days or weeks on the Calendar.
 _Avoid_: fast travel, trip
@@ -67,6 +71,10 @@ _Avoid_: game time
 **Calendar**:
 The historical date of the expedition, which drives seasons.
 _Avoid_: day clock, turn
+
+**Winter Quarters**:
+A Region where the Corps can safely see out the winter, such as the Mandan Villages; setting out from one into winter means wintering there first.
+_Avoid_: safe zone, fort
 
 **Winter Lock**:
 Being caught by winter before reaching safe ground, forcing the Corps to halt until spring at great cost.

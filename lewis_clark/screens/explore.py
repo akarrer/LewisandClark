@@ -1,9 +1,9 @@
 """On-the-ground 3/4 isometric exploration scene.
 
-The player walks a tiled world in real time; the strategic hex map (GameScreen)
-is opened with M. The Corps follows behind, wildlife roams, and waypoints / camps
-sit in the world as things you walk up to and interact with (E) — reaching a
-waypoint advances the real expedition (shared GameState).
+The Leader walks the current Region in real time while the Day Clock runs. The
+Corps follows behind, wildlife roams, and the Region's Landmarks sit along the
+river as things to walk up to and interact with. The landing at the upstream
+end is where the Corps departs on a Leg (via the Expedition Map).
 
 Art is placeholder-procedural for now — the sprite-smith agent replaces the
 character, companions, and tiles with baked isometric PNGs, dropped in through the
@@ -20,18 +20,17 @@ import pygame
 from lewis_clark import assets, iso
 from lewis_clark.drawing import darken, draw_text, lighten
 from lewis_clark.input import Action, InputState
-
-# Tile ids
-GRASS, DIRT, WATER, SAND, ROCK = range(5)
-_WALKABLE = {GRASS, DIRT, SAND}
+from lewis_clark.region import BIOMES, DIRT, ROCK, SAND, WATER
 
 _TILE_TOP = {
-    GRASS: (74, 108, 52),
     DIRT: (120, 92, 54),
     WATER: (44, 86, 120),
     SAND: (196, 174, 118),
     ROCK: (110, 104, 96),
 }
+
+# Day Clock pace: 2 in-game hours per real minute.
+GAME_MINUTES_PER_FRAME = 120 / (60 * 60)
 
 # Party members that trail the player (drawn as tinted explorers).
 _COMPANIONS = [
@@ -46,21 +45,25 @@ class ExploreScreen:
     """Real-time isometric field. Shares GameState with the map screen."""
 
     MOVE_SPEED = 0.075  # tiles per frame at base scale
-    W, H = 64, 64  # world size in tiles
     INTERACT_RADIUS = 1.4  # tiles
 
-    def __init__(self, state, on_open_map, on_quit, on_interact=None, inp=None):
+    def __init__(self, state, world, on_open_map, on_quit, on_interact=None, inp=None):
         self.state = state
+        self.world = world
         self.inp = inp or InputState()
         self.on_open_map = on_open_map
         self.on_quit = on_quit
         self.on_interact = on_interact or (lambda kind, data: None)
         self.frame = 0
-        self._rng = random.Random(1804)
-        self._build_world()
-        self.px, self.py = self._find_spawn()
-        self.facing = "S"
+        self._rng = random.Random(world.region_id)
+        self.W, self.H = world.width, world.height
+        self.tiles = world.tiles
+        self.props = world.props
+        self._grass = BIOMES.get(world.biome, BIOMES["woodland"])["grass"]
+        self.px, self.py = world.spawn
+        self.facing = "N"
         self._moving = False
+        self._clock_acc = 0.0
         self._trail: deque = deque(maxlen=_TRAIL_SPACING * (len(_COMPANIONS) + 2))
         self._build_entities()
         self.cam_x = 0.0
@@ -68,88 +71,32 @@ class ExploreScreen:
         self._nearby = None  # (kind, data, wx, wy) currently interactable
         self._snap_camera()
 
-    # ---------------------------------------------------------------- world
-
-    def _build_world(self):
-        rng = self._rng
-        self.tiles = [[GRASS] * self.W for _ in range(self.H)]
-        river_x = self.W // 2
-        for y in range(self.H):
-            river_x += rng.choice((-1, 0, 0, 1))
-            river_x = max(3, min(self.W - 4, river_x))
-            for dx in (-1, 0, 1):
-                self.tiles[y][river_x + dx] = WATER
-            for dx in (-2, 2):
-                if 0 <= river_x + dx < self.W and self.tiles[y][river_x + dx] != WATER:
-                    self.tiles[y][river_x + dx] = SAND
-        for _ in range(110):
-            x, y = rng.randrange(self.W), rng.randrange(self.H)
-            if self.tiles[y][x] == GRASS:
-                self.tiles[y][x] = rng.choice((DIRT, DIRT, ROCK))
-        self.props = []
-        for _ in range(160):
-            x, y = rng.randrange(self.W), rng.randrange(self.H)
-            if self.tiles[y][x] == GRASS:
-                self.props.append((x + 0.5, y + 0.5, "tree"))
-
-    def _find_spawn(self) -> tuple[float, float]:
-        cx, cy = self.W // 2, self.H // 2
-        for r in range(self.W):
-            for dy in range(-r, r + 1):
-                for dx in range(-r, r + 1):
-                    x, y = cx + dx, cy + dy
-                    if 0 <= x < self.W and 0 <= y < self.H and self.tiles[y][x] in _WALKABLE:
-                        return x + 0.5, y + 0.5
-        return cx + 0.5, cy + 0.5
-
-    def _random_walkable(self) -> tuple[float, float]:
-        rng = self._rng
-        for _ in range(200):
-            x, y = rng.randrange(self.W), rng.randrange(self.H)
-            if self.tiles[y][x] == GRASS:
-                return x + 0.5, y + 0.5
-        return self._find_spawn()
-
     def _walkable(self, wx: float, wy: float) -> bool:
-        if wx < 0 or wy < 0:
-            return False
-        tx, ty = int(wx), int(wy)
-        if not (0 <= tx < self.W and 0 <= ty < self.H):
-            return False
-        return self.tiles[ty][tx] in _WALKABLE
+        return self.world.walkable(wx, wy)
 
     # -------------------------------------------------------------- entities
 
     def _build_entities(self):
-        """Companions (follow the player), wildlife (wander), and interactables
-        (the next waypoint + a tribe camp) placed in the world."""
+        """Companions follow the Leader; wildlife wanders; Landmarks and the
+        landing come from the Region world."""
         self.companions = [
-            {"name": n, "col": c, "wx": self.px, "wy": self.py, "facing": "S"}
+            {"name": n, "col": c, "wx": self.px, "wy": self.py, "facing": "N"}
             for n, c in _COMPANIONS
         ]
-        self.wildlife = []
-        for _ in range(5):
-            wx, wy = self._random_walkable()
-            self.wildlife.append(
-                {"wx": wx, "wy": wy, "heading": self._rng.uniform(0, 2 * math.pi),
-                 "species": self._rng.choice(("elk", "buffalo")), "timer": 0}
-            )
-        # A tribe camp somewhere on grass.
-        tx, ty = self._random_walkable()
-        self.tribe = {"wx": tx, "wy": ty}
-        self.waypoint = None
-        self._refresh_waypoint()
+        self.wildlife = [
+            {"wx": wx, "wy": wy, "heading": self._rng.uniform(0, 2 * math.pi),
+             "species": species, "timer": 0}
+            for wx, wy, species in self.world.wildlife_spawns
+        ]
+        self.landmarks = self.world.landmarks
+        lx, ly = self.world.landing
+        self.landing = {"wx": lx, "wy": ly}
 
-    def _refresh_waypoint(self):
-        """Place a marker for the next waypoint ahead of the player."""
-        nwp = len(getattr(assets, "WAYPOINTS", []))
-        nxt = self.state.current_wp + 1
-        if nwp == 0 or nxt >= nwp:
-            self.waypoint = None
-            return
-        wx, wy = self._random_walkable()
-        self.waypoint = {"wx": wx, "wy": wy, "wp_index": nxt,
-                         "name": assets.WAYPOINTS[nxt]["name"]}
+    def _visited(self, lm) -> bool:
+        return lm["id"] in self.state.landmarks_visited
+
+    def next_landmark(self):
+        return next((lm for lm in self.landmarks if not self._visited(lm)), None)
 
     # --------------------------------------------------------------- camera
 
@@ -177,12 +124,15 @@ class ExploreScreen:
         self.on_interact(kind, data)
         if kind == "hunt" and data in self.wildlife:
             self.wildlife.remove(data)
-        if kind == "waypoint":
-            self._refresh_waypoint()
         self._nearby = None
 
     def update(self):
         self.frame += 1
+        self._clock_acc += GAME_MINUTES_PER_FRAME
+        if self._clock_acc >= 1.0:
+            whole = int(self._clock_acc)
+            self._clock_acc -= whole
+            self.state.advance_minutes(whole)
         us = getattr(assets, "UI_SCALE", 1.0)
         speed = self.MOVE_SPEED * max(0.8, us)
         dx, dy = iso.screen_dir_to_world(*self.inp.move_vector())
@@ -230,11 +180,10 @@ class ExploreScreen:
     def _update_nearby(self):
         best = None
         best_d = self.INTERACT_RADIUS
-        candidates = []
-        if self.waypoint:
-            candidates.append(("waypoint", self.waypoint, self.waypoint["wx"], self.waypoint["wy"]))
-        if self.tribe:
-            candidates.append(("tribe", self.tribe, self.tribe["wx"], self.tribe["wy"]))
+        candidates = [
+            ("landmark", lm, lm["wx"], lm["wy"]) for lm in self.landmarks if not self._visited(lm)
+        ]
+        candidates.append(("depart", self.landing, self.landing["wx"], self.landing["wy"]))
         for a in self.wildlife:
             candidates.append(("hunt", a, a["wx"], a["wy"]))
         for kind, data, wx, wy in candidates:
@@ -272,10 +221,9 @@ class ExploreScreen:
 
         # Depth-sorted sprites: props, entities, companions, player.
         drawables = [(iso.depth(wx, wy), "tree", (wx, wy)) for (wx, wy, _k) in self.props]
-        if self.waypoint:
-            drawables.append((iso.depth(self.waypoint["wx"], self.waypoint["wy"]), "waypoint", self.waypoint))
-        if self.tribe:
-            drawables.append((iso.depth(self.tribe["wx"], self.tribe["wy"]), "tribe", self.tribe))
+        for lm in self.landmarks:
+            drawables.append((iso.depth(lm["wx"], lm["wy"]), "landmark", lm))
+        drawables.append((iso.depth(self.landing["wx"], self.landing["wy"]), "landing", self.landing))
         for a in self.wildlife:
             drawables.append((iso.depth(a["wx"], a["wy"]), "animal", a))
         for comp in self.companions:
@@ -294,16 +242,17 @@ class ExploreScreen:
                 self._draw_tree(surf, sx + ox, sy + oy)
             elif kind == "animal":
                 self._draw_animal(surf, payload, ox, oy)
-            elif kind == "waypoint":
-                self._draw_waypoint(surf, payload, ox, oy)
-            elif kind == "tribe":
-                self._draw_tribe(surf, payload, ox, oy)
+            elif kind == "landmark":
+                self._draw_landmark(surf, payload, ox, oy)
+            elif kind == "landing":
+                self._draw_landing(surf, payload, ox, oy)
 
+        self._draw_night(surf)
         self._draw_prompt(surf, ox, oy)
         self._draw_hud(surf)
 
     def _draw_tile(self, surf, cx, cy, tid):
-        top = _TILE_TOP[tid]
+        top = _TILE_TOP.get(tid, self._grass)
         hw, hh = iso.TILE_W / 2, iso.TILE_H / 2
         pts = [(cx, cy - hh), (cx + hw, cy), (cx, cy + hh), (cx - hw, cy)]
         pygame.draw.polygon(surf, top, pts)
@@ -375,40 +324,64 @@ class ExploreScreen:
             pygame.draw.line(surf, (90, 70, 40), (cx + 8, cy - 22), (cx + 12, cy - 28), 1)
             pygame.draw.line(surf, (90, 70, 40), (cx + 9, cy - 22), (cx + 6, cy - 28), 1)
 
-    def _draw_waypoint(self, surf, wp, ox, oy):
-        sx, sy = iso.world_to_screen(wp["wx"], wp["wy"])
+    def _draw_landmark(self, surf, lm, ox, oy):
+        sx, sy = iso.world_to_screen(lm["wx"], lm["wy"])
         cx, cy = int(sx + ox), int(sy + oy)
-        pulse = 3 + int(2 * math.sin(self.frame * 0.15))
-        # Glowing ring on the ground.
-        ring = pygame.Surface((60, 30), pygame.SRCALPHA)
-        pygame.draw.ellipse(ring, (244, 198, 68, 70), (0, 0, 60, 30), 3 + pulse // 2)
-        surf.blit(ring, (cx - 30, cy - 15))
-        # Flag pole + banner.
+        visited = self._visited(lm)
+        flag = darken(assets.GOLD, 0.55) if visited else assets.GOLD
+        if not visited:
+            pulse = 3 + int(2 * math.sin(self.frame * 0.15))
+            ring = pygame.Surface((60, 30), pygame.SRCALPHA)
+            pygame.draw.ellipse(ring, (244, 198, 68, 70), (0, 0, 60, 30), 3 + pulse // 2)
+            surf.blit(ring, (cx - 30, cy - 15))
         pygame.draw.line(surf, (90, 70, 40), (cx, cy - 4), (cx, cy - 40), 2)
-        pygame.draw.polygon(surf, assets.GOLD, [(cx, cy - 40), (cx + 18, cy - 34), (cx, cy - 28)])
-        pygame.draw.polygon(surf, darken(assets.GOLD, 0.6), [(cx, cy - 40), (cx + 18, cy - 34), (cx, cy - 28)], 1)
+        pts = [(cx, cy - 40), (cx + 18, cy - 34), (cx, cy - 28)]
+        pygame.draw.polygon(surf, flag, pts)
+        pygame.draw.polygon(surf, darken(flag, 0.6), pts, 1)
 
-    def _draw_tribe(self, surf, tr, ox, oy):
-        sx, sy = iso.world_to_screen(tr["wx"], tr["wy"])
+    def _draw_landing(self, surf, landing, ox, oy):
+        """A beached dugout and a post: where the Corps sets out on a Leg."""
+        sx, sy = iso.world_to_screen(landing["wx"], landing["wy"])
         cx, cy = int(sx + ox), int(sy + oy)
-        for off, col in ((-14, (150, 120, 84)), (14, (150, 120, 84)), (0, (176, 146, 104))):
-            bx = cx + off
-            pygame.draw.polygon(surf, col, [(bx, cy - 34), (bx - 13, cy - 2), (bx + 13, cy - 2)])
-            pygame.draw.polygon(surf, darken(col, 0.7), [(bx, cy - 34), (bx - 13, cy - 2), (bx + 13, cy - 2)], 1)
-            pygame.draw.line(surf, (90, 70, 40), (bx, cy - 34), (bx, cy - 40), 1)
+        pulse = 3 + int(2 * math.sin(self.frame * 0.12))
+        ring = pygame.Surface((70, 34), pygame.SRCALPHA)
+        pygame.draw.ellipse(ring, (140, 200, 230, 70), (0, 0, 70, 34), 3 + pulse // 2)
+        surf.blit(ring, (cx - 35, cy - 17))
+        hull = [(cx - 26, cy - 6), (cx + 22, cy - 14), (cx + 28, cy - 10), (cx - 20, cy)]
+        pygame.draw.polygon(surf, (98, 68, 40), hull)
+        pygame.draw.polygon(surf, (60, 40, 22), hull, 1)
+        pygame.draw.line(surf, (90, 70, 40), (cx + 10, cy - 12), (cx + 10, cy - 44), 3)
+        pygame.draw.rect(surf, (230, 226, 210), (cx + 11, cy - 44, 16, 10))
+
+    def _draw_night(self, surf):
+        """Darken the field between dusk and dawn."""
+        hour = self.state.minute_of_day / 60
+        if 7 <= hour < 18:
+            return
+        if 18 <= hour < 21:
+            k = (hour - 18) / 3
+        elif 5 <= hour < 7:
+            k = 1 - (hour - 5) / 2
+        else:
+            k = 1.0
+        shade = getattr(self, "_night_surf", None)
+        if shade is None or shade.get_size() != (assets.SW, assets.SH):
+            shade = self._night_surf = pygame.Surface((assets.SW, assets.SH), pygame.SRCALPHA)
+        shade.fill((10, 16, 44, int(150 * k)))
+        surf.blit(shade, (0, 0))
 
     def _draw_prompt(self, surf, ox, oy):
         if not self._nearby:
             return
         kind, data, wx, wy = self._nearby
         label = {
-            "waypoint": f"Arrive at {data.get('name', 'waypoint')}",
-            "tribe": "Approach the village",
+            "landmark": f"Visit {data.get('name', 'landmark')}",
+            "depart": "Depart upriver",
             "hunt": f"Hunt the {data.get('species', 'game')}",
         }.get(kind, "Interact")
         sx, sy = iso.world_to_screen(wx, wy)
         cx, cy = int(sx + ox), int(sy + oy)
-        txt = f"E — {label}"
+        txt = f"{self.inp.hint(Action.INTERACT)} — {label}"
         ts = assets.F["small"].render(txt, True, assets.CREAM)
         pad = 6
         bw, bh = ts.get_width() + pad * 2, ts.get_height() + pad
@@ -422,9 +395,18 @@ class ExploreScreen:
     def _draw_hud(self, surf):
         s = self.state
         pad = 10
-        draw_text(surf, f"{s.season}  ·  {s.date_str}", assets.F["subhead"], assets.CREAM, (pad + 4, pad + 2))
+        line = assets.F["small"].get_linesize()
+        draw_text(surf, self.world.name, assets.F["subhead"], assets.CREAM, (pad + 4, pad + 2))
+        y = pad + 6 + assets.F["subhead"].get_linesize()
+        draw_text(surf, f"{s.full_date_str}  ·  {s.clock_str}  ·  {s.season}",
+                  assets.F["small"], assets.PARCH_LT, (pad + 4, y))
+        y += line
         draw_text(surf, f"Food {s.food}   Health {s.health}   Morale {s.morale}",
-                  assets.F["small"], assets.PARCH_LT, (pad + 4, pad + 6 + assets.F["subhead"].get_linesize()))
+                  assets.F["small"], assets.PARCH_LT, (pad + 4, y))
+        y += line
+        nxt = self.next_landmark()
+        goal = f"Next: {nxt['name']}" if nxt else "All landmarks visited — make for the landing upriver"
+        draw_text(surf, goal, assets.F["small"], assets.GOLD, (pad + 4, y))
         h = self.inp.hint
         hint = (f"{h('move')} — walk      {h(Action.INTERACT)} — interact      "
                 f"{h(Action.TOGGLE_MAP)} — map      {h(Action.MENU)} — menu")

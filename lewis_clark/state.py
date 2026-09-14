@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import calendar
 import copy
 from dataclasses import dataclass, field, fields
 from typing import Any, Dict, List
@@ -45,6 +46,11 @@ class GameState:
     winter_locked: bool = False
     # P4 — regional reputation shared across tribe regions
     tribal_reputation: int = 50
+    # Open world — Calendar day, Day Clock, and where the Corps is
+    current_day: int = 14
+    minute_of_day: int = 8 * 60
+    current_region: str = ""
+    landmarks_visited: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.tribe_relations:
@@ -57,6 +63,8 @@ class GameState:
             self.hex_trail = [(self.hex_col, self.hex_row)]
         if not self.visited_hexes:
             self.visited_hexes = [(self.hex_col, self.hex_row)]
+        if not self.current_region:
+            self.current_region = assets.START_REGION
 
     @property
     def season(self):
@@ -81,11 +89,48 @@ class GameState:
         ]
         return f"{M[self.current_month]} {self.current_year}"
 
+    @property
+    def full_date_str(self):
+        return f"{calendar.month_name[self.current_month]} {self.current_day}, {self.current_year}"
+
+    @property
+    def clock_str(self):
+        return f"{self.minute_of_day // 60:02d}:{self.minute_of_day % 60:02d}"
+
     def advance_date(self, days=14):
-        self.current_month += 1
-        if self.current_month > 12:
-            self.current_month = 1
+        """Move the Calendar forward by whole days (month and year roll over)."""
+        self.current_day += int(days)
+        while True:
+            dim = calendar.monthrange(self.current_year, self.current_month)[1]
+            if self.current_day <= dim:
+                break
+            self.current_day -= dim
+            self.current_month += 1
+            if self.current_month > 12:
+                self.current_month = 1
+                self.current_year += 1
+
+    def advance_minutes(self, minutes):
+        """Run the Day Clock forward; each midnight passed advances the Calendar."""
+        total = self.minute_of_day + int(minutes)
+        days, self.minute_of_day = divmod(total, 24 * 60)
+        if days:
+            self.advance_date(days)
+
+    def sit_out_winter(self) -> int:
+        """Winter Lock: the Corps halts until March and pays for it. Returns health lost."""
+        months_to_march = (3 - self.current_month) % 12 or 12
+        penalty = min(months_to_march * 6, 40)
+        self.health = max(5, self.health - penalty)
+        self.food = max(0, self.food - months_to_march * 4)
+        self.morale = max(0, self.morale - months_to_march * 3)
+        if self.current_month >= 3:  # caught in autumn: the thaw is next year
             self.current_year += 1
+        self.current_month = 3
+        self.current_day = 1
+        self.winter_locked = False
+        self.clamp()
+        return penalty
 
     def add_journal(self, e):
         self.journal.append(f"[{self.date_str}] {e}")
@@ -144,6 +189,10 @@ class GameState:
             "pending_triggers",
             "winter_locked",
             "tribal_reputation",
+            "current_day",
+            "minute_of_day",
+            "current_region",
+            "landmarks_visited",
         }
     )
 
@@ -173,8 +222,22 @@ class GameState:
         s.pending_triggers = d.get("pending_triggers", [])
         s.winter_locked = d.get("winter_locked", False)
         s.tribal_reputation = d.get("tribal_reputation", 50)
+        s.current_day = d.get("current_day", 1)
+        s.minute_of_day = d.get("minute_of_day", 8 * 60)
+        s.current_region = d.get("current_region") or _region_for_waypoint(cw)
+        s.landmarks_visited = d.get("landmarks_visited", [])
         s.characters = copy.deepcopy(assets.SPECIAL_CHARACTERS)
         for k, v in d.get("characters", {}).items():
             if k in s.characters:
                 s.characters[k]["active"] = v["active"]
         return s
+
+
+def _region_for_waypoint(wp: int) -> str:
+    """Region a pre-open-world save belongs in: the last one whose Landmarks the Corps has reached."""
+    found = assets.START_REGION
+    for rid, region in assets.REGIONS.items():
+        wps = [lm["waypoint"] for lm in region["landmarks"] if "waypoint" in lm]
+        if wps and min(wps) <= wp:
+            found = rid
+    return found
