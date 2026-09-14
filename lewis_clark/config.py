@@ -117,6 +117,7 @@ def load_game_config() -> GameConfig:
         CINE_SCENES=_hydrate_cine_scenes(_load("CINE_SCENES")),
         REGIONS=_index_regions(regions),
         START_REGION=regions["start"],
+        CONDITIONS=_load("CONDITIONS"),
         HEX_CONTENTS={},
     )
 

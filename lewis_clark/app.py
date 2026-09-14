@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
+import random
 import sys
 from enum import Enum, auto
 
 import pygame
 
-from lewis_clark import assets, legs
+from lewis_clark import assets, corps, legs
 from lewis_clark.fonts import load_fonts
 from lewis_clark.input import InputState
 from lewis_clark.region import build_world
 from lewis_clark.save_load import load_expedition_json, save_expedition_json
 from lewis_clark.screens.cinematic import CinematicScreen
+from lewis_clark.screens.ending import EndingScreen
 from lewis_clark.screens.expedition import DEPART, VIEW, ExpeditionMapScreen
 from lewis_clark.screens.explore import ExploreScreen
 from lewis_clark.screens.title import TitleScreen
@@ -34,6 +36,7 @@ class AppScene(Enum):
     CINEMATIC = auto()
     EXPLORE = auto()  # walking the current Region
     EXPEDITION = auto()  # Expedition Map: route overview and Legs
+    ENDING = auto()  # how the expedition concluded
 
 
 class Transition:
@@ -94,6 +97,7 @@ class App:
         self.state = None
         self.explore = None
         self.expedition = None
+        self.ending = None
         self._transition = Transition()
         self.input = InputState()
         self.input.init_controllers()
@@ -161,11 +165,11 @@ class App:
 
         self._transition.start(switch)
 
-    def _enter_region(self):
+    def _enter_region(self, news_from=None):
         """Build the current Region's world and put the Corps on the ground in it."""
         world = build_world(self.state.current_region)
         self.explore = ExploreScreen(
-            self.state, world, self._open_map, self._new_game, self._field_interact, self.input
+            self.state, world, self._open_map, self._new_game, self._field_interact, self.input, news_from
         )
         self.expedition = None
         self.scene = AppScene.EXPLORE
@@ -186,8 +190,23 @@ class App:
             self.scene = AppScene.EXPLORE
 
     def _take_leg(self, option):
-        legs.take_leg(self.state, option)
-        self._transition.start(self._enter_region)
+        mark = len(self.state.journal)
+        legs.take_leg(self.state, option, random.Random())
+        if not self.state.ending:
+            self._transition.start(lambda: self._enter_region(news_from=mark))
+
+    def _maybe_end(self):
+        """Once the expedition has an Ending, show it."""
+        if not self.state or not self.state.ending or self._transition.active:
+            return
+        if self.scene in (AppScene.ENDING, AppScene.TITLE):
+            return
+
+        def switch():
+            self.ending = EndingScreen(self.state, self._new_game)
+            self.scene = AppScene.ENDING
+
+        self._transition.start(switch)
 
     def _field_interact(self, kind: str, data: dict) -> None:
         """Resolve an on-the-ground interaction against the shared GameState."""
@@ -200,6 +219,8 @@ class App:
                 if "waypoint" in data:
                     s.current_wp = max(s.current_wp, int(data["waypoint"]))
                 s.add_journal(f"{data['name']} — {data.get('desc', '')}".rstrip(" —"))
+                corps.update_roster(s)
+                corps.check_ending(s)
         elif kind == "hunt":
             s.food = min(100, s.food + 12)
             s.morale = min(100, s.morale + 2)
@@ -223,6 +244,9 @@ class App:
             self.cinematic.handle(event)
             for a in actions:
                 self.cinematic.handle_action(a)
+        elif scene == AppScene.ENDING and self.ending:
+            for a in actions:
+                self.ending.handle_action(a)
         elif scene == AppScene.EXPEDITION and self.expedition:
             self.expedition.handle(event)
             for a in actions:
@@ -233,6 +257,7 @@ class App:
 
     def _new_game(self):
         def switch():
+            self.state = None
             self.scene = AppScene.TITLE
             self.title = TitleScreen(self._start_cinematic, self._load_game)
 
@@ -279,6 +304,7 @@ class App:
                 and not self._transition.active
             ):
                 self.explore.update()
+            self._maybe_end()
 
             assets.screen.fill(assets.UI_BG)
             if self.scene == AppScene.TITLE:
@@ -287,6 +313,8 @@ class App:
                 self.cinematic.draw(assets.screen)
             elif self.scene == AppScene.EXPEDITION and self.expedition:
                 self.expedition.draw(assets.screen)
+            elif self.scene == AppScene.ENDING and self.ending:
+                self.ending.draw(assets.screen)
             elif self.scene == AppScene.EXPLORE and self.explore:
                 self.explore.draw(assets.screen)
 

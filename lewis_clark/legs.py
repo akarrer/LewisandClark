@@ -16,9 +16,10 @@ from __future__ import annotations
 
 import calendar
 import copy
+import random
 from dataclasses import dataclass
 
-from lewis_clark import assets
+from lewis_clark import assets, corps
 
 WINTER_MONTHS = frozenset({11, 12, 1, 2})
 ARRIVAL_MINUTE = 8 * 60  # the Corps makes landfall in the morning
@@ -121,33 +122,56 @@ def winter_lock_risk(state, option: LegOption) -> bool:
     return plan(state, option).winter_lock
 
 
-def take_leg(state, option: LegOption) -> None:
+def starving_days(state, option: LegOption) -> int:
+    """Days at the end of a Leg the Corps would go without food, if supplies can't cover it."""
+    if option.food >= 0:
+        return 0
+    short = max(0, -option.food - state.food)
+    return round(option.days * short / -option.food)
+
+
+def _days_until(state, ymd: tuple[int, int, int]) -> int:
+    probe = copy.copy(state)
+    days = 0
+    while _ymd(probe) < ymd:
+        probe.advance_date(1)
+        days += 1
+    return days
+
+
+def take_leg(state, option: LegOption, rng: random.Random | None = None) -> None:
     """Resolve a Leg against the shared state: winter if need be, pay, travel, arrive."""
+    rng = rng or random.Random()
     origin = assets.REGIONS[state.current_region]["name"]
     p = plan(state, option)
 
     if p.winter_until:
-        state.current_year, state.current_month, state.current_day = p.winter_until
         state.food += WINTERING_FOOD
         state.clamp()
         state.add_journal(f"The Corps winters at {origin} until {date_str(p.winter_until)}.")
+        corps.pass_days(state, _days_until(state, p.winter_until), rng)
+        if state.ending:
+            return
 
+    hungry = starving_days(state, option)
     state.food += option.food
     state.health += option.health
     state.morale += option.morale
     state.clamp()
-    state.advance_date(option.days)
-    state.minute_of_day = ARRIVAL_MINUTE
     state.route_taken.append(f"{state.current_region}->{option.to}:{option.name}")
     state.add_journal(
         f"Left {origin} by the {option.name} — {option.days} days to {option.destination_name}."
     )
+    corps.leg_hazards(state, option, rng)
+    corps.pass_days(state, option.days, rng, starving_days=hungry)
+    state.minute_of_day = ARRIVAL_MINUTE
 
-    if p.winter_lock:
+    if p.winter_lock and not state.ending:
         state.winter_locked = True
         state.add_journal(
             "Winter closes in before the Corps reaches shelter. We must halt until spring."
         )
+        corps.winter_lock_hardship(state, rng)
         lost = state.sit_out_winter()
         state.add_journal(f"The thaw comes at last. The winter cost {lost} health.")
 

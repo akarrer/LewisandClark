@@ -1,0 +1,32 @@
+{
+  "conditions": {
+    "wounded": {"name": "Wounded", "desc": "Hurt badly enough to slow them and keep them from their best work.", "health_per_day": -1, "days": 10, "blocks_ability": true, "move_mult": 0.8},
+    "sick": {"name": "Sick", "desc": "Fever or dysentery. It drains strength fast until it breaks.", "health_per_day": -3, "days": 6, "blocks_ability": true, "move_mult": 0.85},
+    "frostbitten": {"name": "Frostbitten", "desc": "Frozen fingers and feet that heal slowly, if at all.", "health_per_day": -2, "days": 14, "blocks_ability": true, "move_mult": 0.8},
+    "exhausted": {"name": "Exhausted", "desc": "Worn to the bone. Nothing a few days' ease won't mend.", "health_per_day": 0, "days": 3, "blocks_ability": true, "move_mult": 0.75},
+    "starving": {"name": "Starving", "desc": "There is no food. Lasts until the Corps eats again.", "health_per_day": -2, "days": null, "blocks_ability": false, "move_mult": 0.85}
+  },
+  "leg_hazards": {
+    "chance_per_companion": {"low": 0.05, "medium": 0.12, "high": 0.22, "very_high": 0.35},
+    "by_tag": {
+      "river": {"sick": 2, "wounded": 1},
+      "land": {"exhausted": 2, "wounded": 1},
+      "mountain": {"exhausted": 2, "wounded": 1, "frostbitten": 1}
+    }
+  },
+  "corps": {
+    "leader": "lewis",
+    "starting_strength": 29,
+    "collapse_below": 12,
+    "mutiny_after_days": 5,
+    "daily_ration": 2,
+    "corps_health_per_starving_day": -1,
+    "companion_regen_per_day": 1,
+    "attrition_chance_starving": 0.1,
+    "attrition_chance_low_health": 0.03,
+    "low_health_below": 15,
+    "winter_lock_frostbite_chance": 0.5,
+    "lost_season_food_below": 20,
+    "pacific_landmark": "fort_clatsop"
+  }
+}

@@ -42,5 +42,6 @@ class GameConfig:
     EVENTS: Any
     CINE_SCENES: Any
     REGIONS: Dict[str, Any]
+    CONDITIONS: Dict[str, Any]
     START_REGION: str
     HEX_CONTENTS: Dict[Any, Any]

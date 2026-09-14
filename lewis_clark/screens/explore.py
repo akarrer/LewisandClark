@@ -17,7 +17,7 @@ import random
 from collections import deque
 
 import pygame
-from lewis_clark import assets, iso
+from lewis_clark import assets, corps, iso
 from lewis_clark.drawing import darken, draw_text, lighten
 from lewis_clark.input import Action, InputState
 from lewis_clark.region import BIOMES, DIRT, ROCK, SAND, WATER
@@ -32,13 +32,16 @@ _TILE_TOP = {
 # Day Clock pace: 2 in-game hours per real minute.
 GAME_MINUTES_PER_FRAME = 120 / (60 * 60)
 
-# Party members that trail the player (drawn as tinted explorers).
-_COMPANIONS = [
-    ("Clark", (150, 120, 70)),
-    ("York", (120, 84, 52)),
-    ("Drouillard", (70, 104, 66)),
-]
+# Coat colour of each Companion walking behind the Leader.
+_COATS = {
+    "clark": (150, 120, 70),
+    "york": (120, 84, 52),
+    "drouillard": (70, 104, 66),
+    "sacagawea": (146, 84, 64),
+}
 _TRAIL_SPACING = 14  # frames of lag between each conga-line follower
+_MAX_FOLLOWERS = len(_COATS)
+_TOAST_FRAMES = 330  # how long a new journal line stays on screen
 
 
 class ExploreScreen:
@@ -47,7 +50,7 @@ class ExploreScreen:
     MOVE_SPEED = 0.075  # tiles per frame at base scale
     INTERACT_RADIUS = 1.4  # tiles
 
-    def __init__(self, state, world, on_open_map, on_quit, on_interact=None, inp=None):
+    def __init__(self, state, world, on_open_map, on_quit, on_interact=None, inp=None, news_from=None):
         self.state = state
         self.world = world
         self.inp = inp or InputState()
@@ -64,7 +67,14 @@ class ExploreScreen:
         self.facing = "N"
         self._moving = False
         self._clock_acc = 0.0
-        self._trail: deque = deque(maxlen=_TRAIL_SPACING * (len(_COMPANIONS) + 2))
+        self._trail: deque = deque(maxlen=_TRAIL_SPACING * (_MAX_FOLLOWERS + 2))
+        # Followers start in a line downstream of the Leader, not stacked on them.
+        for k in range(self._trail.maxlen, 0, -1):
+            self._trail.append((self.px, self.py + k * 0.05, "N"))
+        self._time_rng = random.Random()
+        # Journal lines from ``news_from`` on (e.g. what happened on the Leg here) show on arrival.
+        self._journal_seen = len(state.journal) if news_from is None else max(news_from, len(state.journal) - 4)
+        self.toasts: list[list] = []  # [text, frames_left]
         self._build_entities()
         self.cam_x = 0.0
         self.cam_y = 0.0
@@ -79,10 +89,10 @@ class ExploreScreen:
     def _build_entities(self):
         """Companions follow the Leader; wildlife wanders; Landmarks and the
         landing come from the Region world."""
-        self.companions = [
-            {"name": n, "col": c, "wx": self.px, "wy": self.py, "facing": "N"}
-            for n, c in _COMPANIONS
-        ]
+        self.companions = {
+            key: {"key": key, "col": col, "wx": self.px, "wy": self.py, "facing": "N"}
+            for key, col in _COATS.items()
+        }
         self.wildlife = [
             {"wx": wx, "wy": wy, "heading": self._rng.uniform(0, 2 * math.pi),
              "species": species, "timer": 0}
@@ -132,13 +142,14 @@ class ExploreScreen:
         if self._clock_acc >= 1.0:
             whole = int(self._clock_acc)
             self._clock_acc -= whole
-            self.state.advance_minutes(whole)
+            corps.pass_minutes(self.state, whole, self._time_rng)
         us = getattr(assets, "UI_SCALE", 1.0)
         speed = self.MOVE_SPEED * max(0.8, us)
+        leader_speed = speed * corps.move_multiplier(self.state, corps.rules()["leader"])
         dx, dy = iso.screen_dir_to_world(*self.inp.move_vector())
         self._moving = bool(dx or dy)
         if self._moving:
-            dx, dy = dx * speed, dy * speed
+            dx, dy = dx * leader_speed, dy * leader_speed
             self.facing = self._facing_for(dx, dy)
             if self._walkable(self.px + dx, self.py):
                 self.px += dx
@@ -148,17 +159,31 @@ class ExploreScreen:
         self._update_companions()
         self._update_wildlife(speed)
         self._update_nearby()
+        self._update_toasts()
         # Smooth camera follow.
         sx, sy = iso.world_to_screen(self.px, self.py)
         self.cam_x += (-sx - self.cam_x) * 0.15
         self.cam_y += (-sy - self.cam_y) * 0.15
 
+    def walking_companions(self) -> list[dict]:
+        return [self.companions[k] for k in corps.followers(self.state) if k in self.companions]
+
     def _update_companions(self):
         trail = self._trail
-        for i, comp in enumerate(self.companions):
+        for i, comp in enumerate(self.walking_companions()):
             lag = (i + 1) * _TRAIL_SPACING
             if len(trail) > lag:
                 comp["wx"], comp["wy"], comp["facing"] = trail[len(trail) - 1 - lag]
+
+    def _update_toasts(self):
+        journal = self.state.journal
+        for entry in journal[self._journal_seen:]:
+            text = entry.split("] ", 1)[-1]
+            self.toasts.append([text, _TOAST_FRAMES])
+        self._journal_seen = len(journal)
+        for t in self.toasts:
+            t[1] -= 1
+        self.toasts = [t for t in self.toasts if t[1] > 0][-4:]
 
     def _update_wildlife(self, speed):
         rng = self._rng
@@ -226,7 +251,7 @@ class ExploreScreen:
         drawables.append((iso.depth(self.landing["wx"], self.landing["wy"]), "landing", self.landing))
         for a in self.wildlife:
             drawables.append((iso.depth(a["wx"], a["wy"]), "animal", a))
-        for comp in self.companions:
+        for comp in self.walking_companions():
             drawables.append((iso.depth(comp["wx"], comp["wy"]), "companion", comp))
         drawables.append((iso.depth(self.px, self.py), "player", None))
         drawables.sort(key=lambda d: d[0])
@@ -401,12 +426,62 @@ class ExploreScreen:
         draw_text(surf, f"{s.full_date_str}  ·  {s.clock_str}  ·  {s.season}",
                   assets.F["small"], assets.PARCH_LT, (pad + 4, y))
         y += line
-        draw_text(surf, f"Food {s.food}   Health {s.health}   Morale {s.morale}",
+        draw_text(surf, f"Food {s.food}   Morale {s.morale}   Corps {s.corps_strength} men (health {s.health})",
                   assets.F["small"], assets.PARCH_LT, (pad + 4, y))
         y += line
         nxt = self.next_landmark()
         goal = f"Next: {nxt['name']}" if nxt else "All landmarks visited — make for the landing upriver"
         draw_text(surf, goal, assets.F["small"], assets.GOLD, (pad + 4, y))
+        self._draw_party(surf)
+        self._draw_toasts(surf)
+
+    def _draw_party(self, surf):
+        """Each Companion's health and Conditions, bottom-left."""
+        s = self.state
+        F = assets.F
+        keys = [k for k in s.party if s.characters[k].get("active") or not s.party[k]["alive"]]
+        row_h = F["small"].get_linesize() * 2 + 6
+        w = 250
+        h = row_h * len(keys) + 12
+        x, y = 12, assets.SH - h - 12
+        bg = pygame.Surface((w, h), pygame.SRCALPHA)
+        bg.fill((0, 0, 0, 120))
+        surf.blit(bg, (x, y))
+        y += 6
+        for key in keys:
+            m = s.party[key]
+            nm = corps.name(key)
+            if not m["alive"]:
+                draw_text(surf, f"{nm} — died", F["small_i"], (150, 140, 130), (x + 10, y))
+                y += row_h
+                continue
+            draw_text(surf, nm, F["small"], assets.CREAM, (x + 10, y))
+            bx, bw, bh = x + 100, w - 150, 7
+            by = y + F["small"].get_linesize() // 2 - bh // 2
+            hp = m["health"]
+            col = (110, 170, 90) if hp > 60 else (214, 170, 72) if hp > 30 else (206, 80, 60)
+            pygame.draw.rect(surf, (40, 34, 28), (bx, by, bw, bh))
+            pygame.draw.rect(surf, col, (bx, by, int(bw * hp / 100), bh))
+            draw_text(surf, str(hp), F["small"], assets.PARCH_LT, (x + w - 10, y), anchor="topright")
+            conds = ", ".join(corps.condition(c["id"])["name"] for c in m["conditions"])
+            if conds:
+                draw_text(surf, conds, F["small_i"], (220, 150, 110), (x + 10, y + F["small"].get_linesize()))
+            y += row_h
+
+    def _draw_toasts(self, surf):
+        """New journal lines, briefly, top-right."""
+        F = assets.F["small"]
+        y = 12
+        for text, left in self.toasts:
+            alpha = min(255, left * 6)
+            ts = F.render(text, True, assets.CREAM)
+            bg = pygame.Surface((ts.get_width() + 20, ts.get_height() + 8), pygame.SRCALPHA)
+            bg.fill((0, 0, 0, min(150, alpha)))
+            ts.set_alpha(alpha)
+            x = assets.SW - bg.get_width() - 12
+            surf.blit(bg, (x, y))
+            surf.blit(ts, (x + 10, y + 4))
+            y += bg.get_height() + 4
         h = self.inp.hint
         hint = (f"{h('move')} — walk      {h(Action.INTERACT)} — interact      "
                 f"{h(Action.TOGGLE_MAP)} — map      {h(Action.MENU)} — menu")

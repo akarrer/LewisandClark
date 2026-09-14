@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import random
+
 import pytest
 from lewis_clark import assets, legs
 from lewis_clark.region import build_world
@@ -94,13 +96,13 @@ def test_take_leg_pays_travels_and_arrives():
     s = GameState(current_month=5, current_day=20, food=90, health=90, morale=70)
     s.minute_of_day = 20 * 60
     opt = legs.options_from("lower_missouri")[1]  # Overland Trail, 64 days
-    legs.take_leg(s, opt)
+    legs.take_leg(s, opt, random.Random(1))
     assert s.current_region == "sioux_country"
     assert (s.current_month, s.current_day) == (7, 23)
     assert (s.food, s.health, s.morale) == (77, 84, 70)
     assert s.minute_of_day == legs.ARRIVAL_MINUTE
     assert not s.winter_locked
-    assert "Overland Trail" in s.journal[-2]
+    assert any("Left The Lower Missouri by the Overland Trail" in j for j in s.journal)
 
 
 def test_arrival_preview_does_not_change_state():

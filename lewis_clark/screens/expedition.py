@@ -10,7 +10,7 @@ Opened two ways:
 from __future__ import annotations
 
 import pygame
-from lewis_clark import assets, expedition_map, legs
+from lewis_clark import assets, corps, expedition_map, legs
 from lewis_clark.drawing import darken, draw_text
 from lewis_clark.input import Action
 from lewis_clark.map_view import MapView
@@ -135,7 +135,17 @@ class ExpeditionMapScreen:
 
         y = draw_text(surf, "EXPEDITION MAP", F["title"], assets.GOLD, (x, y)) + 6
         y = draw_text(surf, f"{s.full_date_str}  ·  {s.season}", F["body_i"], assets.PARCH_LT, (x, y)) + 4
-        y = draw_text(surf, f"Food {s.food}   Health {s.health}   Morale {s.morale}", F["small"], assets.PARCH_LT, (x, y)) + 12
+        y = draw_text(surf, f"Food {s.food}   Morale {s.morale}   Corps {s.corps_strength} men (health {s.health})",
+                      F["small"], assets.PARCH_LT, (x, y)) + 4
+        party = []
+        for key in s.party:
+            m = s.party[key]
+            if not m["alive"]:
+                party.append(f"{corps.name(key)} (died)")
+            elif s.characters[key].get("active"):
+                conds = "".join(f", {corps.condition(c['id'])['name'].lower()}" for c in m["conditions"])
+                party.append(f"{corps.name(key)} {m['health']}{conds}")
+        y = draw_text(surf, "  ·  ".join(party), F["small_i"], assets.PARCH_LT, (x, y), max_w=w) + 12
 
         # Route: every Region in order, marking where the Corps is.
         order = list(assets.REGIONS)
@@ -230,9 +240,14 @@ class ExpeditionMapScreen:
             y = draw_text(surf, f"{opt.days} days  ·  arrive {legs.date_str(p.arrive)}", F["small"], assets.CREAM, (inner, y)) + 2
             cost = f"Food {opt.food:+d}   Health {opt.health:+d}   Morale {opt.morale:+d}"
             draw_text(surf, cost, F["small"], assets.PARCH_LT, (inner, y))
-            draw_text(surf, f"Risk: {opt.risk.replace('_', ' ')}", F["small"], _RISK_COL.get(opt.risk, assets.CREAM),
-                      (inner + iw, y), anchor="topright")
+            pct = int(assets.CONDITIONS["leg_hazards"]["chance_per_companion"].get(opt.risk, 0) * 100)
+            draw_text(surf, f"Risk: {opt.risk.replace('_', ' ')} ({pct}% each)", F["small"],
+                      _RISK_COL.get(opt.risk, assets.CREAM), (inner + iw, y), anchor="topright")
             y += F["small"].get_linesize() + 2
+            hungry = legs.starving_days(s, opt)
+            if hungry:
+                y = draw_text(surf, f"Supplies run out: about {hungry} days without food.", F["small"],
+                              (220, 90, 70), (inner, y)) + 2
             if p.winter_lock:
                 y = draw_text(surf, "Winter will catch the Corps on this Leg.", F["small"], (220, 90, 70), (inner, y)) + 2
             y += 8

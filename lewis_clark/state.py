@@ -11,6 +11,12 @@ from lewis_clark import assets
 from lewis_clark.hex_grid import get_season
 
 
+def new_party() -> dict:
+    from lewis_clark.corps import new_party as _new_party
+
+    return _new_party()
+
+
 @dataclass
 class GameState:
     current_wp: int = 0
@@ -51,6 +57,11 @@ class GameState:
     minute_of_day: int = 8 * 60
     current_region: str = ""
     landmarks_visited: List[str] = field(default_factory=list)
+    # The Corps — named Companions' health/Conditions, headcount, Endings
+    party: Dict = field(default_factory=dict)
+    corps_strength: int = -1
+    zero_morale_days: int = 0
+    ending: str = ""
 
     def __post_init__(self):
         if not self.tribe_relations:
@@ -65,6 +76,10 @@ class GameState:
             self.visited_hexes = [(self.hex_col, self.hex_row)]
         if not self.current_region:
             self.current_region = assets.START_REGION
+        if not self.party:
+            self.party = new_party()
+        if self.corps_strength < 0:
+            self.corps_strength = assets.CONDITIONS["corps"]["starting_strength"]
 
     @property
     def season(self):
@@ -193,6 +208,10 @@ class GameState:
             "minute_of_day",
             "current_region",
             "landmarks_visited",
+            "party",
+            "corps_strength",
+            "zero_morale_days",
+            "ending",
         }
     )
 
@@ -226,6 +245,10 @@ class GameState:
         s.minute_of_day = d.get("minute_of_day", 8 * 60)
         s.current_region = d.get("current_region") or _region_for_waypoint(cw)
         s.landmarks_visited = d.get("landmarks_visited", [])
+        s.party = d.get("party") or new_party()
+        s.corps_strength = d.get("corps_strength", assets.CONDITIONS["corps"]["starting_strength"])
+        s.zero_morale_days = d.get("zero_morale_days", 0)
+        s.ending = d.get("ending", "")
         s.characters = copy.deepcopy(assets.SPECIAL_CHARACTERS)
         for k, v in d.get("characters", {}).items():
             if k in s.characters:
