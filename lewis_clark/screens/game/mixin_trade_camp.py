@@ -45,9 +45,13 @@ class TradeCampMixin:
             f"{g}: {s.inventory.get(g, 0)}" for g in tribe["wants"]
         )
         offers_str = "  ·  ".join(tribe["offers"])
+        rep = s.tribal_reputation
+        rep_str = "Esteemed" if rep >= 70 else "Known" if rep >= 50 else "Strangers"
+        region_lbl = assets.TRIBES[tribe_key].get("region", "region").capitalize()
 
         body = (
-            f"Relations: {rt} ({er}/100).\n\n"
+            f"Relations: {rt} ({er}/100).  Regional Rep: {rep_str} ({rep}/100).\n\n"
+            f"Word of your deeds has spread across the {region_lbl}.\n\n"
             f"They desire: {wants_str}\n\nThey offer: {offers_str}"
         )
         if not _resize_only:
@@ -235,10 +239,11 @@ class TradeCampMixin:
     def _resolve_trade(self, action, tribe_key):
         s = self.state
         tribe = assets.TRIBES[tribe_key]
-        {k: v["active"] for k, v in s.characters.items()}
         rel = s.tribe_relations.get(tribe_key, 50)
+        delta = 0
         if action == "sacagawea_speak":
-            s.tribe_relations[tribe_key] = min(100, rel + 30)
+            delta = 30
+            s.tribe_relations[tribe_key] = min(100, rel + delta)
             for g in tribe["offers"]:
                 s.inventory[g] = s.inventory.get(g, 0) + 2
             s.add_journal(
@@ -246,27 +251,34 @@ class TradeCampMixin:
             )
             s.morale = min(100, s.morale + 16)
         elif action == "gifts":
+            delta = 15
             s.inventory["Tobacco"] = max(0, s.inventory.get("Tobacco", 0) - 2)
             s.inventory["Trade Beads"] = max(0, s.inventory.get("Trade Beads", 0) - 3)
-            s.tribe_relations[tribe_key] = min(100, rel + 15)
+            s.tribe_relations[tribe_key] = min(100, rel + delta)
             s.add_journal(f"Offered gifts to {tribe['name']}. Good will established.")
         elif action == "goods":
+            delta = 12
             for g in tribe["wants"]:
                 if s.inventory.get(g, 0) > 0:
                     s.inventory[g] = max(0, s.inventory[g] - 2)
             for g in tribe["offers"]:
                 s.inventory[g] = s.inventory.get(g, 0) + 1
-            s.tribe_relations[tribe_key] = min(100, rel + 12)
+            s.tribe_relations[tribe_key] = min(100, rel + delta)
             s.add_journal(f"Traded with {tribe['name']}.")
         elif action == "medal":
+            delta = 20
             s.inventory["Jefferson Medals"] = max(
                 0, s.inventory.get("Jefferson Medals", 0) - 1
             )
-            s.tribe_relations[tribe_key] = min(100, rel + 20)
+            s.tribe_relations[tribe_key] = min(100, rel + delta)
             s.add_journal(f"Presented Jefferson Medal to {tribe['name']} chief.")
         elif action == "maps":
-            s.tribe_relations[tribe_key] = min(100, rel + 8)
+            delta = 8
+            s.tribe_relations[tribe_key] = min(100, rel + delta)
             s.add_journal(f"Shared route knowledge with {tribe['name']}.")
+        # P4 — propagate reputation change to same-region tribes
+        if delta:
+            self._propagate_tribal_reputation(tribe_key, delta)
         if (
             s.tribe_relations.get(tribe_key, 50) >= 60
             and tribe_key not in s.traded_tribes

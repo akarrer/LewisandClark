@@ -81,7 +81,41 @@ def test_from_dict_rejects_incomplete_save():
 
 
 def test_advance_date_rolls_year():
-    s = GameState(current_month=12, current_year=1804)
-    s.advance_date()
-    assert s.current_month == 1
-    assert s.current_year == 1805
+    s = GameState(current_month=12, current_day=20, current_year=1804)
+    s.advance_date(14)
+    assert (s.current_year, s.current_month, s.current_day) == (1805, 1, 3)
+
+
+def test_advance_date_counts_real_month_lengths():
+    s = GameState(current_month=2, current_day=28, current_year=1805)
+    s.advance_date(1)  # 1805 is not a leap year
+    assert (s.current_month, s.current_day) == (3, 1)
+    s = GameState(current_month=5, current_day=14, current_year=1804)
+    s.advance_date(36)
+    assert (s.current_month, s.current_day) == (6, 19)
+
+
+def test_day_clock_rolls_into_calendar():
+    s = GameState(current_month=8, current_day=31, minute_of_day=23 * 60)
+    s.advance_minutes(90)
+    assert (s.current_month, s.current_day, s.clock_str) == (9, 1, "00:30")
+
+
+def test_new_game_starts_in_start_region():
+    assert GameState().current_region == assets.START_REGION
+
+
+def test_pre_open_world_save_lands_in_matching_region():
+    s = GameState(current_wp=3)
+    d = s.to_dict()
+    for k in ("current_day", "minute_of_day", "current_region", "landmarks_visited"):
+        d.pop(k)
+    loaded = GameState.from_dict(d)
+    assert loaded.current_region == "sioux_country"
+    assert loaded.landmarks_visited == []
+
+
+def test_sit_out_winter_from_january_keeps_year():
+    s = GameState(current_month=1, current_year=1806)
+    s.sit_out_winter()
+    assert (s.current_year, s.current_month, s.current_day) == (1806, 3, 1)
