@@ -13,6 +13,7 @@ from lewis_clark.drawing import (
     draw_text,
     lighten,
 )
+from lewis_clark.input import Action
 from lewis_clark.ui.button import Button
 
 
@@ -2241,23 +2242,23 @@ class CinematicScreen:
         )
         surf.blit(ds_dp, ds_dp.get_rect(centerx=W // 2, bottom=H - 14))
 
-    def handle(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_RIGHT):
-                if self.cine_line >= len(self.scene["narration"]):
-                    if self.idx < len(assets.CINE_SCENES) - 1:
-                        self.advance()
-                    else:
-                        self.on_done()
+    def handle_action(self, action):
+        if action in (Action.CONFIRM, Action.NEXT):
+            if self.cine_line >= len(self.scene["narration"]):
+                if self.idx < len(assets.CINE_SCENES) - 1:
+                    self.advance()
                 else:
-                    # Skip typewriter — show all text immediately
-                    self.cine_line = len(self.scene["narration"])
-                    self.cine_char = 0
-            elif event.key == pygame.K_LEFT:
-                self.retreat()
-            elif event.key == pygame.K_ESCAPE:
-                self.on_done()
+                    self.on_done()
+            else:
+                # Skip typewriter — show all text immediately
+                self.cine_line = len(self.scene["narration"])
+                self.cine_char = 0
+        elif action in (Action.PREV, Action.BACK):
+            self.retreat()
+        elif action == Action.MENU:
+            self.on_done()
 
+    def handle(self, event):
         if self.skip_btn.handle(event):
             self.on_done()
         if self.back_btn.handle(event) and self.idx > 0:

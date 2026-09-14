@@ -9,6 +9,7 @@ import pygame
 
 from lewis_clark import assets
 from lewis_clark.fonts import load_fonts
+from lewis_clark.input import Action, InputState
 from lewis_clark.save_load import load_expedition_json, save_expedition_json
 from lewis_clark.screens.cinematic import CinematicScreen
 from lewis_clark.screens.explore import ExploreScreen
@@ -92,6 +93,9 @@ class App:
         self.game_screen = None
         self.explore = None
         self._transition = Transition()
+        self.input = InputState()
+        self.input.init_controllers()
+        self._running = True
 
     def _maybe_resize_with_keyboard(self, event: pygame.event.Event) -> None:
         """Keyboard window sizing for hosts where mouse resize does not reach SDL (WSLg, RDP, etc.)."""
@@ -153,7 +157,7 @@ class App:
             self.game_screen = GameScreen(st, self._new_game)
             # Both screens share one GameState; start on the ground.
             self.explore = ExploreScreen(
-                st, self._open_map, self._new_game, self._field_interact
+                st, self._open_map, self._new_game, self._field_interact, self.input
             )
             self.scene = AppScene.EXPLORE
 
@@ -162,6 +166,9 @@ class App:
     def _open_map(self):
         if self.game_screen:
             self.scene = AppScene.GAME
+
+    def _quit(self):
+        self._running = False
 
     def _open_field(self):
         if self.explore:
@@ -189,6 +196,36 @@ class App:
             s.add_journal("You reach a village — open the map to trade and parley.")
             self._open_map()
 
+    def _dispatch(self, event, actions):
+        """Send one event (and its actions) to the scene active when it arrived.
+
+        The scene is captured up front so an action that switches scenes (M on
+        the map opening the field) is never re-delivered to the new scene.
+        """
+        scene = self.scene
+        if scene == AppScene.TITLE:
+            self.title.handle(event, self._start_cinematic, self._load_game)
+            for a in actions:
+                self.title.handle_action(a, self._start_cinematic, self._quit)
+        elif scene == AppScene.CINEMATIC and self.cinematic:
+            self.cinematic.handle(event)
+            for a in actions:
+                self.cinematic.handle_action(a)
+        elif scene == AppScene.GAME and self.game_screen:
+            self.game_screen.handle(
+                event, self._new_game, self._save_game, self._load_game
+            )
+            for a in actions:
+                if a == Action.TOGGLE_MAP:
+                    self._open_field()
+                elif a == Action.MENU:
+                    self._new_game()
+                else:
+                    self.game_screen.handle_action(a, self._save_game)
+        elif scene == AppScene.EXPLORE and self.explore:
+            for a in actions:
+                self.explore.handle_action(a)
+
     def _new_game(self):
         def switch():
             self.scene = AppScene.TITLE
@@ -207,8 +244,7 @@ class App:
             self._start_game(state=GameState.from_dict(data))
 
     def run(self):
-        running = True
-        while running:
+        while self._running:
             assets.clock.tick(assets.FPS)
             # Some platforms (incl. some Windows/SDL builds) omit VIDEORESIZE; sync from surface.
             surf = pygame.display.get_surface()
@@ -217,40 +253,20 @@ class App:
                 if (cw, ch) != (assets.SW, assets.SH):
                     self._apply_window_resize(cw, ch)
 
-            events = pygame.event.get()
-            for event in events:
+            for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    self._running = False
                 if event.type == pygame.VIDEORESIZE:
                     w = getattr(event, "w", None) or event.size[0]
                     h = getattr(event, "h", None) or event.size[1]
                     self._apply_window_resize(w, h)
                 if event.type == pygame.KEYDOWN:
                     self._maybe_resize_with_keyboard(event)
-                    if event.key == pygame.K_ESCAPE:
-                        if self.scene == AppScene.GAME:
-                            self._new_game()
-                        elif self.scene == AppScene.EXPLORE:
-                            pass  # ExploreScreen.handle owns Esc
-                        else:
-                            running = False
-                    elif (
-                        event.key in (pygame.K_m, pygame.K_TAB)
-                        and self.scene == AppScene.GAME
-                    ):
-                        self._open_field()  # map -> back to the ground
 
+                # Held state must track every event, even mid-transition.
+                actions = self.input.handle_event(event)
                 if not self._transition.active:
-                    if self.scene == AppScene.TITLE:
-                        self.title.handle(event, self._start_cinematic, self._load_game)
-                    elif self.scene == AppScene.CINEMATIC and self.cinematic:
-                        self.cinematic.handle(event)
-                    elif self.scene == AppScene.GAME and self.game_screen:
-                        self.game_screen.handle(
-                            event, self._new_game, self._save_game, self._load_game
-                        )
-                    elif self.scene == AppScene.EXPLORE and self.explore:
-                        self.explore.handle(event)
+                    self._dispatch(event, actions)
 
             if (
                 self.scene == AppScene.EXPLORE

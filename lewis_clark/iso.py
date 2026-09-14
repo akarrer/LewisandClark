@@ -29,3 +29,13 @@ def screen_to_world(sx: float, sy: float) -> tuple[float, float]:
 def depth(wx: float, wy: float) -> float:
     """Painter's-algorithm key: larger = nearer the camera (drawn later)."""
     return wx + wy
+
+
+def screen_dir_to_world(sx: float, sy: float) -> tuple[float, float]:
+    """Screen-space movement intent (x right, y down) -> tile-space step.
+
+    "Up" on screen walks diagonally into the tile grid (−x, −y). The input's
+    magnitude is preserved, so a half-tilted stick walks at half speed.
+    """
+    s = 2**-0.5
+    return (sx + sy) * s, (sy - sx) * s

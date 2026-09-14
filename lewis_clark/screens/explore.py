@@ -17,9 +17,9 @@ import random
 from collections import deque
 
 import pygame
-
 from lewis_clark import assets, iso
 from lewis_clark.drawing import darken, draw_text, lighten
+from lewis_clark.input import Action, InputState
 
 # Tile ids
 GRASS, DIRT, WATER, SAND, ROCK = range(5)
@@ -49,8 +49,9 @@ class ExploreScreen:
     W, H = 64, 64  # world size in tiles
     INTERACT_RADIUS = 1.4  # tiles
 
-    def __init__(self, state, on_open_map, on_quit, on_interact=None):
+    def __init__(self, state, on_open_map, on_quit, on_interact=None, inp=None):
         self.state = state
+        self.inp = inp or InputState()
         self.on_open_map = on_open_map
         self.on_quit = on_quit
         self.on_interact = on_interact or (lambda kind, data: None)
@@ -161,14 +162,13 @@ class ExploreScreen:
 
     # ---------------------------------------------------------------- input
 
-    def handle(self, event, *_):
-        if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_m, pygame.K_TAB):
-                self.on_open_map()
-            elif event.key == pygame.K_ESCAPE:
-                self.on_quit()
-            elif event.key in (pygame.K_e, pygame.K_RETURN, pygame.K_SPACE):
-                self._interact()
+    def handle_action(self, action: Action):
+        if action == Action.TOGGLE_MAP:
+            self.on_open_map()
+        elif action == Action.MENU:
+            self.on_quit()
+        elif action in (Action.INTERACT, Action.CONFIRM):
+            self._interact()
 
     def _interact(self):
         if not self._nearby:
@@ -183,22 +183,12 @@ class ExploreScreen:
 
     def update(self):
         self.frame += 1
-        keys = pygame.key.get_pressed()
         us = getattr(assets, "UI_SCALE", 1.0)
         speed = self.MOVE_SPEED * max(0.8, us)
-        dx = dy = 0.0
-        if keys[pygame.K_w] or keys[pygame.K_UP]:
-            dx -= 1; dy -= 1
-        if keys[pygame.K_s] or keys[pygame.K_DOWN]:
-            dx += 1; dy += 1
-        if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            dx -= 1; dy += 1
-        if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            dx += 1; dy -= 1
+        dx, dy = iso.screen_dir_to_world(*self.inp.move_vector())
         self._moving = bool(dx or dy)
         if self._moving:
-            mag = (dx * dx + dy * dy) ** 0.5
-            dx, dy = dx / mag * speed, dy / mag * speed
+            dx, dy = dx * speed, dy * speed
             self.facing = self._facing_for(dx, dy)
             if self._walkable(self.px + dx, self.py):
                 self.px += dx
@@ -435,7 +425,9 @@ class ExploreScreen:
         draw_text(surf, f"{s.season}  ·  {s.date_str}", assets.F["subhead"], assets.CREAM, (pad + 4, pad + 2))
         draw_text(surf, f"Food {s.food}   Health {s.health}   Morale {s.morale}",
                   assets.F["small"], assets.PARCH_LT, (pad + 4, pad + 6 + assets.F["subhead"].get_linesize()))
-        hint = "WASD / Arrows — walk      E — interact      M — map      Esc — menu"
+        h = self.inp.hint
+        hint = (f"{h('move')} — walk      {h(Action.INTERACT)} — interact      "
+                f"{h(Action.TOGGLE_MAP)} — map      {h(Action.MENU)} — menu")
         hs = assets.F["small"].render(hint, True, assets.PARCH_LT)
         bg = pygame.Surface((hs.get_width() + 20, hs.get_height() + 10), pygame.SRCALPHA)
         bg.fill((0, 0, 0, 110))
