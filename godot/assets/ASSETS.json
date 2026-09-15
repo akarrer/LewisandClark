@@ -1,0 +1,503 @@
+{
+ "note": "Third-party assets are downloaded by tools/fetch_assets.py into assets/third_party/ (gitignored).",
+ "packs": [
+  {
+   "name": "Stylized Nature MegaKit (poly.pizza mirror)",
+   "creator": "Quaternius",
+   "licence": "CC0 1.0",
+   "source": "https://quaternius.com/packs/stylizednaturemegakit.html",
+   "files": [
+    {
+     "file": "nature/bush_1.glb",
+     "url": "https://static.poly.pizza/5d3066f4-58ac-46d4-899c-39d9e566e9df.glb",
+     "title": "Bush",
+     "page": "https://poly.pizza/m/EoTERLq3z2",
+     "bytes": 164712
+    },
+    {
+     "file": "nature/clover_1.glb",
+     "url": "https://static.poly.pizza/b03d60f5-bcfa-487b-9064-65f3b0f8ad6b.glb",
+     "title": "Clover",
+     "page": "https://poly.pizza/m/IQ9NVyVpUw",
+     "bytes": 694432
+    },
+    {
+     "file": "nature/clover_2.glb",
+     "url": "https://static.poly.pizza/319982c7-df90-47d7-bde1-68453148dc63.glb",
+     "title": "Clover",
+     "page": "https://poly.pizza/m/u5SOgBFiut",
+     "bytes": 703820
+    },
+    {
+     "file": "nature/bush_with_flowers_1.glb",
+     "url": "https://static.poly.pizza/af83abca-9b41-4229-9652-e336a5f5eaba.glb",
+     "title": "Bush with Flowers",
+     "page": "https://poly.pizza/m/U1ymDy8tbY",
+     "bytes": 809728
+    },
+    {
+     "file": "nature/tree_1.glb",
+     "url": "https://static.poly.pizza/2c5938cb-4005-4958-829b-e191be39b3b9.glb",
+     "title": "Tree",
+     "page": "https://poly.pizza/m/QVOop92WmG",
+     "bytes": 2430844
+    },
+    {
+     "file": "nature/tree_2.glb",
+     "url": "https://static.poly.pizza/856b5db4-21c1-406b-a800-d96843d1ec69.glb",
+     "title": "Tree",
+     "page": "https://poly.pizza/m/YWjGDJ9F7g",
+     "bytes": 2385192
+    },
+    {
+     "file": "nature/tree_3.glb",
+     "url": "https://static.poly.pizza/7bf2aa94-cc44-40d9-a93c-9489eb09e008.glb",
+     "title": "Tree",
+     "page": "https://poly.pizza/m/aVOxaHRPWe",
+     "bytes": 2479888
+    },
+    {
+     "file": "nature/tree_4.glb",
+     "url": "https://static.poly.pizza/24cf9df9-435f-408e-971b-640d670ce973.glb",
+     "title": "Tree",
+     "page": "https://poly.pizza/m/qZtx0AHhcy",
+     "bytes": 2540428
+    },
+    {
+     "file": "nature/dead_tree_1.glb",
+     "url": "https://static.poly.pizza/c02771ac-10db-420b-9426-86f26ae0869a.glb",
+     "title": "Dead Tree",
+     "page": "https://poly.pizza/m/n8FhMgMldD",
+     "bytes": 2600420
+    },
+    {
+     "file": "nature/dead_tree_2.glb",
+     "url": "https://static.poly.pizza/64d345fd-02d5-44c5-9968-439a8b799acd.glb",
+     "title": "Dead Tree",
+     "page": "https://poly.pizza/m/oM95bD8buf",
+     "bytes": 2604428
+    },
+    {
+     "file": "nature/tree_5.glb",
+     "url": "https://static.poly.pizza/7f84a768-ac30-48d4-9c5d-f760492e7867.glb",
+     "title": "Tree",
+     "page": "https://poly.pizza/m/t9KbsfYdXz",
+     "bytes": 2385268
+    },
+    {
+     "file": "nature/dead_tree_3.glb",
+     "url": "https://static.poly.pizza/41121684-abaa-4298-a42e-5b538184d11e.glb",
+     "title": "Dead Tree",
+     "page": "https://poly.pizza/m/MlmK5488ou",
+     "bytes": 2607636
+    },
+    {
+     "file": "nature/dead_tree_4.glb",
+     "url": "https://static.poly.pizza/d12c21bd-a5d1-41c9-b370-28e3708e61cc.glb",
+     "title": "Dead Tree",
+     "page": "https://poly.pizza/m/Mcd2zYqyww",
+     "bytes": 2623500
+    },
+    {
+     "file": "nature/grass_1.glb",
+     "url": "https://static.poly.pizza/0a84d74b-eb09-4794-ad58-dd10eed6b11e.glb",
+     "title": "Grass",
+     "page": "https://poly.pizza/m/vUJjrRsFp4",
+     "bytes": 79796
+    },
+    {
+     "file": "nature/grass_wispy_1.glb",
+     "url": "https://static.poly.pizza/12298e95-47ef-4af3-bfde-1241dd5ecbb9.glb",
+     "title": "Grass Wispy",
+     "page": "https://poly.pizza/m/Msr9zx66VU",
+     "bytes": 97188
+    },
+    {
+     "file": "nature/tall_grass_1.glb",
+     "url": "https://static.poly.pizza/83f8e6d6-fa7e-4cd8-a0ef-8c51d0ff4e88.glb",
+     "title": "Tall Grass",
+     "page": "https://poly.pizza/m/JSIYtscPmP",
+     "bytes": 88020
+    },
+    {
+     "file": "nature/grass_wispy_2.glb",
+     "url": "https://static.poly.pizza/b81bea53-a5a8-4c01-a43c-e1f6a3d5d170.glb",
+     "title": "Grass Wispy",
+     "page": "https://poly.pizza/m/6EzB7VA6vb",
+     "bytes": 101412
+    },
+    {
+     "file": "nature/flower_petal_1.glb",
+     "url": "https://static.poly.pizza/cc3aeea6-d375-492c-b9b4-54c4154561cd.glb",
+     "title": "Flower Petal",
+     "page": "https://poly.pizza/m/HifQHnKf4h",
+     "bytes": 531668
+    },
+    {
+     "file": "nature/flower_petal_2.glb",
+     "url": "https://static.poly.pizza/81d9c096-d3ed-456c-84c1-96fffff28509.glb",
+     "title": "Flower Petal",
+     "page": "https://poly.pizza/m/eVE0j49ux9",
+     "bytes": 531684
+    },
+    {
+     "file": "nature/flower_petal_3.glb",
+     "url": "https://static.poly.pizza/4f6caac4-7e02-42d6-90c6-780cffc9b718.glb",
+     "title": "Flower Petal",
+     "page": "https://poly.pizza/m/niuBUEJdvM",
+     "bytes": 532064
+    },
+    {
+     "file": "nature/flower_petal_4.glb",
+     "url": "https://static.poly.pizza/bd493bed-7158-4d85-99eb-bdb66e777184.glb",
+     "title": "Flower Petal",
+     "page": "https://poly.pizza/m/LqvxG9OBOU",
+     "bytes": 531608
+    },
+    {
+     "file": "nature/flower_petal_5.glb",
+     "url": "https://static.poly.pizza/9c894451-7eb5-4e40-976c-aaa3b35b48a9.glb",
+     "title": "Flower Petal",
+     "page": "https://poly.pizza/m/tzG4JcqYWs",
+     "bytes": 531684
+    },
+    {
+     "file": "nature/fern_1.glb",
+     "url": "https://static.poly.pizza/f94d836f-4eb4-4db0-aa53-3ecdddffa527.glb",
+     "title": "Fern",
+     "page": "https://poly.pizza/m/jqcanvH7D6",
+     "bytes": 692724
+    },
+    {
+     "file": "nature/pebble_square_1.glb",
+     "url": "https://static.poly.pizza/802d6e7e-73a5-4a54-8848-54ae9350077c.glb",
+     "title": "Pebble Square",
+     "page": "https://poly.pizza/m/2YtLzwgsWp",
+     "bytes": 813288
+    },
+    {
+     "file": "nature/pebble_round_1.glb",
+     "url": "https://static.poly.pizza/15475cf5-3def-4aa4-bebe-d7afc7851f41.glb",
+     "title": "Pebble Round",
+     "page": "https://poly.pizza/m/icVsN3lmVy",
+     "bytes": 814208
+    },
+    {
+     "file": "nature/pebble_round_2.glb",
+     "url": "https://static.poly.pizza/8f06f984-622f-41bc-8ef6-fa7b98a87aeb.glb",
+     "title": "Pebble Round",
+     "page": "https://poly.pizza/m/kAMfq1uJUY",
+     "bytes": 814628
+    },
+    {
+     "file": "nature/pebble_square_2.glb",
+     "url": "https://static.poly.pizza/665397de-6ded-408f-89e3-08e25679bbf6.glb",
+     "title": "Pebble Square",
+     "page": "https://poly.pizza/m/s71L3q1nXN",
+     "bytes": 814756
+    },
+    {
+     "file": "nature/pebble_square_3.glb",
+     "url": "https://static.poly.pizza/ebeeacea-63cd-48a1-b778-1db933d84d60.glb",
+     "title": "Pebble Square",
+     "page": "https://poly.pizza/m/iwxxjMtXRF",
+     "bytes": 812940
+    },
+    {
+     "file": "nature/pebble_round_3.glb",
+     "url": "https://static.poly.pizza/9ab92cc2-6cae-485b-bc34-8f99d6ba12fc.glb",
+     "title": "Pebble Round",
+     "page": "https://poly.pizza/m/KYtJ6JNXh2",
+     "bytes": 813788
+    },
+    {
+     "file": "nature/pebble_round_4.glb",
+     "url": "https://static.poly.pizza/c653d0c7-e728-458d-9129-3d5dcddd52a6.glb",
+     "title": "Pebble Round",
+     "page": "https://poly.pizza/m/jecVTh3aQV",
+     "bytes": 813872
+    },
+    {
+     "file": "nature/pebble_square_4.glb",
+     "url": "https://static.poly.pizza/7b90f9f3-dc02-4202-8841-c44b4df876e4.glb",
+     "title": "Pebble Square",
+     "page": "https://poly.pizza/m/Mm4RMgwNO8",
+     "bytes": 815108
+    },
+    {
+     "file": "nature/pebble_square_5.glb",
+     "url": "https://static.poly.pizza/5e6a2aa3-8c02-4151-b60a-cbd044953c42.glb",
+     "title": "Pebble Square",
+     "page": "https://poly.pizza/m/6juX57sLHe",
+     "bytes": 816036
+    },
+    {
+     "file": "nature/pebble_square_6.glb",
+     "url": "https://static.poly.pizza/7a9ecf1d-2181-4290-8605-2e1dd7019934.glb",
+     "title": "Pebble Square",
+     "page": "https://poly.pizza/m/l5XiYQj1oD",
+     "bytes": 814232
+    },
+    {
+     "file": "nature/pebble_round_5.glb",
+     "url": "https://static.poly.pizza/506c1ab2-61fc-4768-8a65-8236e8804853.glb",
+     "title": "Pebble Round",
+     "page": "https://poly.pizza/m/nMf8LHOsbM",
+     "bytes": 815064
+    },
+    {
+     "file": "nature/flower_single_1.glb",
+     "url": "https://static.poly.pizza/358cce00-6e7e-4411-b889-8514eae139ce.glb",
+     "title": "Flower Single",
+     "page": "https://poly.pizza/m/rHBoS64rRL",
+     "bytes": 1222572
+    },
+    {
+     "file": "nature/mushroom_1.glb",
+     "url": "https://static.poly.pizza/abade6e4-375f-457a-898e-66644673f54e.glb",
+     "title": "Mushroom",
+     "page": "https://poly.pizza/m/aOW08oSrd4",
+     "bytes": 1208932
+    },
+    {
+     "file": "nature/flower_group_1.glb",
+     "url": "https://static.poly.pizza/89f163b2-af28-4dd7-bd09-ed7b80fde2b7.glb",
+     "title": "Flower Group",
+     "page": "https://poly.pizza/m/hfPzQAedOe",
+     "bytes": 1242384
+    },
+    {
+     "file": "nature/flower_single_2.glb",
+     "url": "https://static.poly.pizza/9fbc2eff-4a06-4450-801e-cdb700722ff0.glb",
+     "title": "Flower Single",
+     "page": "https://poly.pizza/m/GvfHo0roi3",
+     "bytes": 1237772
+    },
+    {
+     "file": "nature/mushroom_laetiporus_1.glb",
+     "url": "https://static.poly.pizza/65e92d92-b597-4719-b759-866b8d6a8f5d.glb",
+     "title": "Mushroom Laetiporus",
+     "page": "https://poly.pizza/m/mxDOl0n6zt",
+     "bytes": 1262996
+    },
+    {
+     "file": "nature/flower_group_2.glb",
+     "url": "https://static.poly.pizza/48045fd1-cc1b-410d-871e-3501db7262fd.glb",
+     "title": "Flower Group",
+     "page": "https://poly.pizza/m/LqTljN6Wg2",
+     "bytes": 1282616
+    },
+    {
+     "file": "nature/pine_1.glb",
+     "url": "https://static.poly.pizza/3fc02c15-0e5e-4757-a553-2d065e3d0f44.glb",
+     "title": "Pine",
+     "page": "https://poly.pizza/m/rfnxJv0Rqa",
+     "bytes": 2228032
+    },
+    {
+     "file": "nature/dead_tree_5.glb",
+     "url": "https://static.poly.pizza/4db29f97-8e10-413d-be54-39ecda1a7c8d.glb",
+     "title": "Dead Tree",
+     "page": "https://poly.pizza/m/CD4edbPSGm",
+     "bytes": 2597644
+    },
+    {
+     "file": "nature/plant_big_1.glb",
+     "url": "https://static.poly.pizza/ddf51174-fd7b-4225-9696-1dce54f945c2.glb",
+     "title": "Plant Big",
+     "page": "https://poly.pizza/m/uwJ1rwrZlB",
+     "bytes": 683868
+    },
+    {
+     "file": "nature/plant_1.glb",
+     "url": "https://static.poly.pizza/35b5f5ed-871c-4b5b-8c92-80c06138d5b1.glb",
+     "title": "Plant",
+     "page": "https://poly.pizza/m/NrJN7UcglF",
+     "bytes": 685820
+    },
+    {
+     "file": "nature/plant_big_2.glb",
+     "url": "https://static.poly.pizza/e2b7d78c-f237-4ee8-be1a-62a809097d64.glb",
+     "title": "Plant Big",
+     "page": "https://poly.pizza/m/MbhbP7JrTI",
+     "bytes": 698784
+    },
+    {
+     "file": "nature/plant_2.glb",
+     "url": "https://static.poly.pizza/bee11796-05ba-4026-b3c5-3dc8bac8fb07.glb",
+     "title": "Plant",
+     "page": "https://poly.pizza/m/xH5gNlQxAZ",
+     "bytes": 681168
+    },
+    {
+     "file": "nature/rock_path_square_smal_1.glb",
+     "url": "https://static.poly.pizza/28009465-11d7-49ec-98a6-9030cbb5ffd7.glb",
+     "title": "Rock Path Square Smal",
+     "page": "https://poly.pizza/m/w4TKZMjjcw",
+     "bytes": 847876
+    },
+    {
+     "file": "nature/rock_path_square_smal_2.glb",
+     "url": "https://static.poly.pizza/d2722c69-df8f-4899-b742-cb6bca325e82.glb",
+     "title": "Rock Path Square Smal",
+     "page": "https://poly.pizza/m/cI9XBpVijV",
+     "bytes": 862728
+    },
+    {
+     "file": "nature/rock_path_square_smal_3.glb",
+     "url": "https://static.poly.pizza/15be90b0-cf21-4656-a0c1-8b814133b9bb.glb",
+     "title": "Rock Path Square Smal",
+     "page": "https://poly.pizza/m/ClCOmVUtWx",
+     "bytes": 848472
+    },
+    {
+     "file": "nature/rock_path_square_thin_1.glb",
+     "url": "https://static.poly.pizza/12e1e9fa-bff3-48fe-ab47-dd13e61f50bc.glb",
+     "title": "Rock Path Square Thin",
+     "page": "https://poly.pizza/m/HAux7BIMfm",
+     "bytes": 931564
+    },
+    {
+     "file": "nature/rock_path_round_small_1.glb",
+     "url": "https://static.poly.pizza/b5dc8c0b-53cb-43c1-8c8f-43cbd7c16665.glb",
+     "title": "Rock Path Round Small",
+     "page": "https://poly.pizza/m/QnRnpe7dd0",
+     "bytes": 876836
+    },
+    {
+     "file": "nature/rock_path_round_small_2.glb",
+     "url": "https://static.poly.pizza/ba5d50a8-a7bb-4978-90fd-562c04667aba.glb",
+     "title": "Rock Path Round Small",
+     "page": "https://poly.pizza/m/yHEdadj5I0",
+     "bytes": 876940
+    },
+    {
+     "file": "nature/rock_path_round_thin_1.glb",
+     "url": "https://static.poly.pizza/e658a6fe-8888-433b-90ae-633c009f913b.glb",
+     "title": "Rock Path Round Thin",
+     "page": "https://poly.pizza/m/L1GeXpXEPY",
+     "bytes": 961044
+    },
+    {
+     "file": "nature/rock_path_round_small_3.glb",
+     "url": "https://static.poly.pizza/1dba35fe-ba78-4b97-b749-ca2d4c5839fc.glb",
+     "title": "Rock Path Round Small",
+     "page": "https://poly.pizza/m/GMttpOEFKT",
+     "bytes": 885132
+    },
+    {
+     "file": "nature/rock_path_round_wide_1.glb",
+     "url": "https://static.poly.pizza/141c00d2-f62c-45e3-b9b7-4048b4d566af.glb",
+     "title": "Rock Path Round Wide",
+     "page": "https://poly.pizza/m/mWb3XxOctl",
+     "bytes": 1044552
+    },
+    {
+     "file": "nature/rock_path_square_wide_1.glb",
+     "url": "https://static.poly.pizza/d4b8dc53-4a35-4e09-bac2-4eda41c07d48.glb",
+     "title": "Rock Path Square Wide",
+     "page": "https://poly.pizza/m/8wDmuvrSya",
+     "bytes": 963296
+    },
+    {
+     "file": "nature/rock_medium_1.glb",
+     "url": "https://static.poly.pizza/aaf0aaa7-c244-430a-908b-2ac57567d81c.glb",
+     "title": "Rock Medium",
+     "page": "https://poly.pizza/m/KZdEP3uUpa",
+     "bytes": 1060940
+    },
+    {
+     "file": "nature/rock_medium_2.glb",
+     "url": "https://static.poly.pizza/be5fef3a-4fa1-4d08-b2d4-82e02284588d.glb",
+     "title": "Rock Medium",
+     "page": "https://poly.pizza/m/s1OJ3bBzqc",
+     "bytes": 1064792
+    },
+    {
+     "file": "nature/rock_medium_3.glb",
+     "url": "https://static.poly.pizza/73b7e249-300d-4d4b-9c31-a610b8a1ffec.glb",
+     "title": "Rock Medium",
+     "page": "https://poly.pizza/m/JQxF95498B",
+     "bytes": 1071636
+    },
+    {
+     "file": "nature/pine_2.glb",
+     "url": "https://static.poly.pizza/712aaefa-ae7f-4cb3-8834-a1b8860df3b2.glb",
+     "title": "Pine",
+     "page": "https://poly.pizza/m/igSu0cPoBz",
+     "bytes": 2147312
+    },
+    {
+     "file": "nature/pine_3.glb",
+     "url": "https://static.poly.pizza/082c2026-56af-4e3f-bea7-9ae5de71101f.glb",
+     "title": "Pine",
+     "page": "https://poly.pizza/m/79gmlLnweB",
+     "bytes": 2221932
+    },
+    {
+     "file": "nature/pine_4.glb",
+     "url": "https://static.poly.pizza/c55b8641-4679-4a85-8bd8-2a20e79abecd.glb",
+     "title": "Pine",
+     "page": "https://poly.pizza/m/699sFuLCN2",
+     "bytes": 2261060
+    },
+    {
+     "file": "nature/pine_5.glb",
+     "url": "https://static.poly.pizza/be462d46-2e48-401e-8da9-2f4d9bc9df0c.glb",
+     "title": "Pine",
+     "page": "https://poly.pizza/m/Zt62gceKXZ",
+     "bytes": 2219996
+    },
+    {
+     "file": "nature/twisted_tree_1.glb",
+     "url": "https://static.poly.pizza/c6b8d04d-8ca3-4898-a180-e2ca2b936863.glb",
+     "title": "Twisted Tree",
+     "page": "https://poly.pizza/m/9aWlx82xUf",
+     "bytes": 3048260
+    },
+    {
+     "file": "nature/twisted_tree_2.glb",
+     "url": "https://static.poly.pizza/0e8292f8-f8ac-4483-987f-93386f07ea58.glb",
+     "title": "Twisted Tree",
+     "page": "https://poly.pizza/m/GVTsMmuzv7",
+     "bytes": 3028976
+    },
+    {
+     "file": "nature/twisted_tree_3.glb",
+     "url": "https://static.poly.pizza/229336e6-4632-4bc7-af2e-ec1f3c8245f7.glb",
+     "title": "Twisted Tree",
+     "page": "https://poly.pizza/m/7PDBpElkQr",
+     "bytes": 3075984
+    },
+    {
+     "file": "nature/twisted_tree_4.glb",
+     "url": "https://static.poly.pizza/7ca42e52-d57b-45c6-89c6-0216dda8b97e.glb",
+     "title": "Twisted Tree",
+     "page": "https://poly.pizza/m/edSPJNECM7",
+     "bytes": 3119328
+    },
+    {
+     "file": "nature/twisted_tree_5.glb",
+     "url": "https://static.poly.pizza/24873d46-c90a-4c3e-8981-a98d3bd816c5.glb",
+     "title": "Twisted Tree",
+     "page": "https://poly.pizza/m/8oraKn9m0x",
+     "bytes": 3089768
+    }
+   ]
+  },
+  {
+   "name": "Universal Animation Library (Standard)",
+   "creator": "Quaternius",
+   "licence": "CC0 1.0",
+   "source": "https://opengameart.org/content/universal-animation-library",
+   "files": [
+    {
+     "file": "animation/universal_animation_library_standard.zip",
+     "url": "https://opengameart.org/sites/default/files/universal_animation_librarystandard.zip",
+     "title": "Universal Animation Library Standard",
+     "unzip": true
+    }
+   ]
+  }
+ ]
+}
