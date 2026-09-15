@@ -97,7 +97,13 @@ func _scatter(kind: String, variants: Array, attempts: int, smin: float, smax: f
 
 
 func _dist_to_river(p: Vector3) -> float:
-	return absf(p.x - terrain.river_x(p.z)) - terrain.river_half_width(p.z)
+	return terrain.river_distance(p.x, p.z) - terrain.river_half_width()
+
+
+func _in_draw(p: Vector3) -> bool:
+	## Wooded ravines cut into the loess uplands: moderately steep, above the bottomland.
+	var ny := terrain.normal_at(p.x, p.z).y
+	return ny < 0.97 and ny > 0.75 and not terrain.is_bottomland(p.x, p.z)
 
 
 func _near_point(p: Vector3, radius: float) -> bool:
@@ -114,8 +120,7 @@ func _grass_ok(p: Vector3) -> bool:
 
 func _bush_ok(p: Vector3) -> bool:
 	var d := _dist_to_river(p)
-	var near_bluff := absf(p.x - terrain.bluff_x(p.z)) < 50.0
-	return d > 10.0 and (d < 90.0 or near_bluff) and rng.randf() < 0.6 and not _near_point(p, 10.0)
+	return d > 10.0 and (d < 90.0 or _in_draw(p)) and rng.randf() < 0.6 and not _near_point(p, 10.0)
 
 
 func _rock_ok(p: Vector3) -> bool:
@@ -136,15 +141,16 @@ func _scatter_cottonwoods() -> void:
 
 
 func _scatter_groves() -> void:
-	## Groves of smaller trees in the draws at the foot of the bluffs.
+	## Groves of smaller trees (bur oak country) in the ravines of the uplands.
 	var variants := ["tree_1", "tree_2", "tree_3", "tree_4", "tree_5", "dead_tree_1", "dead_tree_3"]
-	for g in 26:
-		var z := rng.randf() * Terrain.SIZE
-		var cx := terrain.bluff_x(z) + rng.randf_range(-20.0, 30.0)
-		for i in rng.randi_range(4, 11):
-			var x := cx + rng.randf_range(-22.0, 22.0)
-			var zz := z + rng.randf_range(-22.0, 22.0)
-			var p := Vector3(x, terrain.height_at(x, zz), zz)
-			if _dist_to_river(p) < 12.0 or _near_point(p, 12.0):
+	for g in 900:
+		var p := _random_point()
+		if not _in_draw(p) or rng.randf() > 0.55:
+			continue
+		for i in rng.randi_range(1, 4):
+			var x := p.x + rng.randf_range(-12.0, 12.0)
+			var zz := p.z + rng.randf_range(-12.0, 12.0)
+			p = Vector3(x, terrain.height_at(x, zz), zz)
+			if _dist_to_river(p) < 12.0 or _near_point(p, 12.0) or not _in_draw(p):
 				continue
 			_add("grove", variants[rng.randi() % variants.size()], p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0)

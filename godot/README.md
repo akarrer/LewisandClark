@@ -9,6 +9,9 @@ Council Bluff country in August 1804 with the Corps, a Day Clock, and Trail Mome
 2. Fetch the CC0 assets (not committed): `python godot/tools/fetch_assets.py`
 3. Import once: `godot --headless --path godot --import`
 
+The baked terrain in `data/terrain/` is committed. To rebuild it from the USGS tiles (after
+step 2): `python godot/tools/build_heightmap.py` — this also writes a shaded-relief preview.
+
 ## Run
 
 - Play: `godot --path godot`
@@ -29,7 +32,8 @@ Council Bluff country in August 1804 with the Corps, a Day Clock, and Trail Mome
 ## Layout
 
 - `scripts/rules/` — engine-agnostic rules ported from the Python build (`ExpeditionState`, `TrailMomentDirector`)
-- `scripts/world/` — terrain (placeholder noise until the USGS tile), foliage, sky and weather, props
+- `scripts/world/` — terrain (real USGS elevation, 1804 river course), foliage, sky and weather, props
+- `tools/build_heightmap.py` — bakes `data/terrain/` from USGS 3DEP tiles
 - `scripts/player/` — the Leader's third-person controller and the Corps following behind
 - `data/trail_moments.json` — the six spike Trail Moments
 - `assets/ASSETS.json` — third-party asset manifest (all CC0, Quaternius)

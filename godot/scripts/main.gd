@@ -55,7 +55,7 @@ func _spawn_corps() -> void:
 	leader.name = "Lewis"
 	leader.setup("lewis", "Lewis", Color(0.20, 0.27, 0.45))
 	leader.position = start + Vector3(0, 0.5, 0)
-	leader._yaw = 180.0  # face upriver, toward Council Bluff
+	leader._yaw = 0.0  # face north, upriver toward Council Bluff
 	add_child(leader)
 	corps["lewis"] = leader
 	var line := [
@@ -72,7 +72,7 @@ func _spawn_corps() -> void:
 		f.setup(line[i][0], line[i][1], line[i][2], line[i][3])
 		f.leader = leader
 		f.place = i + 1
-		f.position = start + Vector3(0.8 * (1 if i % 2 else -1), 0.5, -(i + 1) * 2.2)
+		f.position = start + Vector3(0.8 * (1 if i % 2 else -1), 0.5, (i + 1) * 2.2)
 		leader.trail.push_front(f.position)
 		add_child(f)
 		leader.spring.add_excluded_object(f.get_rid())

@@ -18,6 +18,8 @@ var _stuck_t := 0.0
 var _last_pos := Vector3.ZERO
 var _storm_shot := false
 var _detour := ""
+var _debug_t := 0.0
+var _blocked := 0
 
 
 func begin(p_main) -> void:
@@ -33,7 +35,7 @@ func begin(p_main) -> void:
 	_steps = [
 		["wait", 3.0], ["shot", "start"],
 		["walk_to", "prairie_dog_town", 6.0], ["wait", 7.5], ["shot", "prairie_dogs"],
-		["walk_to", "council_bluff_base", 30.0],
+		["walk_to", "bluff_approach", 20.0],
 		["walk_to", "council_bluff", 4.0], ["interact"], ["wait", 1.0], ["face_river"], ["wait", 1.2], ["shot", "council_bluff_overlook"],
 		["report"],
 	]
@@ -70,9 +72,9 @@ func _process(delta: float) -> void:
 			_next()
 		"face_river":
 			var l: Leader = main.leader
-			var rx: float = main.terrain.river_x(l.global_position.z)
-			l._yaw = rad_to_deg(atan2(-(rx - l.global_position.x), -0.0001)) if rx > l.global_position.x else l._yaw
-			l._pitch = -18.0
+			var to: Vector3 = main.terrain.toward_river(l.global_position.x, l.global_position.z)
+			l._yaw = rad_to_deg(atan2(-to.x, -to.z))
+			l._pitch = -16.0
 			_next()
 		"report":
 			_report()
@@ -112,29 +114,48 @@ func _point(name: String) -> Vector3:
 	if name == "herd":
 		var herd = main.get_node_or_null("ElkHerd")
 		return herd.global_position if herd else main.leader.global_position
-	if name == "council_bluff_base":
-		var b: Vector3 = main.terrain.points["council_bluff"]
-		return Vector3(b.x + 90.0, 0, b.z - 60.0)
 	return main.terrain.points[name]
 
 
-func _drive_toward(p: Vector3, arrive: float, delta: float) -> bool:
+var _route: Array[Vector3] = []
+var _route_goal := Vector3.INF
+
+
+func _drive_toward(goal: Vector3, arrive: float, delta: float) -> bool:
 	var l: Leader = main.leader
-	var to := Vector2(p.x - l.global_position.x, p.z - l.global_position.z)
-	if to.length() < arrive:
+	var to_goal := Vector2(goal.x - l.global_position.x, goal.z - l.global_position.z)
+	if to_goal.length() < arrive:
+		_route_goal = Vector3.INF
 		return true
+	if goal.distance_to(_route_goal) > 3.0:
+		_route = main.terrain.find_route(l.global_position, goal)
+		_route_goal = goal
+	while _route.size() > 1 and Vector2(_route[0].x - l.global_position.x, _route[0].z - l.global_position.z).length() < 5.0:
+		_route.pop_front()
+	var p: Vector3 = _route[0] if not _route.is_empty() else goal  # no route: head straight
+	_debug_t += delta
+	if _debug_t > 15.0:
+		_debug_t = 0.0
+		print("AP t=%.0f pos=(%.0f,%.1f,%.0f) goal=(%.0f,%.0f) wp=(%.0f,%.0f) route=%d stuck=%.1f floor=%s speed=%.1f" % [_t, l.global_position.x, l.global_position.y, l.global_position.z, goal.x, goal.z, p.x, p.z, _route.size(), _stuck_t, l.is_on_floor(), l.ground_speed()])
+	var to := Vector2(p.x - l.global_position.x, p.z - l.global_position.z)
 	# Face the target; the Leader walks where the camera looks.
 	var desired := rad_to_deg(atan2(-to.x, -to.y))
 	l._yaw = lerp_angle_deg(l._yaw, desired, clampf(delta * 3.0, 0.0, 1.0))
 	l._pitch = lerpf(l._pitch, -10.0, delta)
 	Input.action_press("move_forward", 1.0)
-	# Unstick: if blocked, sidestep for a moment.
-	if l.global_position.distance_to(_last_pos) < 0.02:
-		_stuck_t += delta
-	else:
+	# Unstick: less than half a metre of progress in a second means blocked —
+	# sidestep for a moment, then plan a fresh route from here.
+	_stuck_t += delta
+	if _stuck_t > 1.0:
+		if l.global_position.distance_to(_last_pos) < 0.5:
+			_blocked += 1
+			_route = main.terrain.find_route(l.global_position, goal)
+			print("AP blocked at (%.0f,%.0f) — replanned, %d waypoints" % [l.global_position.x, l.global_position.z, _route.size()])
+		else:
+			_blocked = 0
 		_stuck_t = 0.0
-	_last_pos = l.global_position
-	if _stuck_t > 0.6:
+		_last_pos = l.global_position
+	if _blocked > 0 and fmod(_t, 1.0) < 0.4:
 		Input.action_press("move_right", 1.0)
 	else:
 		Input.action_release("move_right")

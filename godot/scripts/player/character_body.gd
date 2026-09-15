@@ -37,6 +37,7 @@ func _ready() -> void:
 
 	model = (load(LIBRARY) as PackedScene).instantiate()
 	add_child(model)
+	model.rotation.y = PI  # the mannequin faces +Z; start facing north (-Z)
 	anim = model.find_children("*", "AnimationPlayer", true, false)[0]
 	var mesh: MeshInstance3D = model.find_children("*", "MeshInstance3D", true, false)[0]
 	var body_mat := StandardMaterial3D.new()

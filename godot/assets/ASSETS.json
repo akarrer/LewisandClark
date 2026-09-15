@@ -498,6 +498,26 @@
      "unzip": true
     }
    ]
+  },
+  {
+   "name": "USGS 3DEP 1 arc-second elevation (Council Bluff)",
+   "creator": "U.S. Geological Survey",
+   "licence": "Public domain",
+   "source": "https://www.usgs.gov/3d-elevation-program",
+   "files": [
+    {
+     "file": "elevation/USGS_1_n42w097_20220218.tif",
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/historical/n42w097/USGS_1_n42w097_20220218.tif",
+     "title": "n42w097",
+     "bytes": 52124550
+    },
+    {
+     "file": "elevation/USGS_1_n42w096_20221218.tif",
+     "url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/historical/n42w096/USGS_1_n42w096_20221218.tif",
+     "title": "n42w096",
+     "bytes": 54784489
+    }
+   ]
   }
  ]
 }
