@@ -18,8 +18,10 @@ void fragment() {
 	float n2 = noise(w * 0.31 - vec2(TIME * flow_speed * 3.0, 0.0));
 	float ripple = n1 * 0.6 + n2 * 0.4;
 	ALBEDO = mix(deep_color.rgb, shallow_color.rgb, ripple * 0.5);
-	ROUGHNESS = 0.35 + ripple * 0.2;
-	SPECULAR = 0.3;
+	// Rougher with distance: grazing glints far off otherwise alias into sparkles that glow blows up.
+	float dist = length(VERTEX);
+	ROUGHNESS = mix(0.35, 0.85, smoothstep(30.0, 250.0, dist)) + ripple * 0.1;
+	SPECULAR = mix(0.3, 0.12, smoothstep(30.0, 250.0, dist));
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 4.0);
 	EMISSION = vec3(0.55, 0.65, 0.75) * fres * 0.25;
 	NORMAL_MAP = normalize(vec3(n1 - 0.5, n2 - 0.5, 4.0)) * 0.5 + 0.5;

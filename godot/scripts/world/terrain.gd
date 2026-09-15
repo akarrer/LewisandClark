@@ -39,12 +39,11 @@ func build() -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = "Ground"
 	mi.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.vertex_color_is_srgb = true
-	mat.roughness = 1.0
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://scripts/world/ground.gdshader")
 	mi.material_override = mat
 	add_child(mi)
+	add_child(_build_distant_hills(mat))
 
 	var body := StaticBody3D.new()
 	body.name = "GroundBody"
@@ -257,9 +256,63 @@ func _build_mesh() -> ArrayMesh:
 	return st.commit()
 
 
+func _build_distant_hills(mat: Material) -> MeshInstance3D:
+	## Low-detail country beyond the map edge so the world doesn't end at 1 km:
+	## the edge heights carried outward, rising into hazy hills with distance.
+	var noise := FastNoiseLite.new()
+	noise.seed = 404
+	noise.frequency = 1.0 / 700.0
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var step := 64.0
+	var lo := -2048.0
+	var n := int((SIZE - 2.0 * lo) / step) + 1
+	var verts: Array[Vector3] = []
+	for j in n:
+		for i in n:
+			var x := lo + i * step
+			var z := lo + j * step
+			var cx := clampf(x, 0.0, SIZE)
+			var cz := clampf(z, 0.0, SIZE)
+			var out := Vector2(x - cx, z - cz).length()
+			var h := height_at(cx, cz)
+			h = lerpf(h, 12.0 + noise.get_noise_2d(x, z) * 45.0 + out * 0.012, smoothstep(0.0, 900.0, out))
+			if out < 1.0:
+				h -= 0.4  # meet the playable edge just below it
+			verts.append(Vector3(x, h, z))
+	for j in n:
+		for i in n:
+			var v := verts[j * n + i]
+			var e := verts[j * n + mini(i + 1, n - 1)] - verts[j * n + maxi(i - 1, 0)]
+			var f := verts[mini(j + 1, n - 1) * n + i] - verts[maxi(j - 1, 0) * n + i]
+			var nor := f.cross(e).normalized()
+			if nor.y < 0.0:
+				nor = -nor
+			var slope := 1.0 - nor.y
+			var c := Color(0.60, 0.56, 0.32).lerp(Color(0.42, 0.48, 0.26), noise.get_noise_2d(v.x * 3.0, v.z * 3.0) * 0.5 + 0.5)
+			c = c.lerp(Color(0.62, 0.50, 0.33), clampf(slope * 3.0, 0.0, 1.0))
+			st.set_color(c)
+			st.set_normal(nor)
+			st.add_vertex(v)
+	for j in n - 1:
+		for i in n - 1:
+			var a := j * n + i
+			var inside := verts[a].x >= 0.0 and verts[a].x + step <= SIZE and verts[a].z >= 0.0 and verts[a].z + step <= SIZE
+			if inside:
+				continue
+			st.add_index(a); st.add_index(a + 1); st.add_index(a + n)
+			st.add_index(a + 1); st.add_index(a + n + 1); st.add_index(a + n)
+	var mi := MeshInstance3D.new()
+	mi.name = "DistantHills"
+	mi.mesh = st.commit()
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
+
+
 func _build_water() -> MeshInstance3D:
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(SIZE, SIZE)
+	plane.size = Vector2(SIZE * 5.0, SIZE * 5.0)
 	plane.subdivide_width = 8
 	plane.subdivide_depth = 8
 	var mi := MeshInstance3D.new()

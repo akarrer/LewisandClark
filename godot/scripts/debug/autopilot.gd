@@ -32,6 +32,9 @@ func begin(p_main) -> void:
 		main.director.cadence_max = 20.0
 		main.director._schedule()
 	DirAccess.make_dir_recursive_absolute(shots_dir)
+	if "--scenery" in OS.get_cmdline_user_args():
+		_steps = _scenery_steps()
+		return
 	_steps = [
 		["wait", 3.0], ["shot", "start"],
 		["walk_to", "prairie_dog_town", 6.0], ["wait", 7.5], ["shot", "prairie_dogs"],
@@ -39,6 +42,75 @@ func begin(p_main) -> void:
 		["walk_to", "council_bluff", 4.0], ["interact"], ["wait", 1.0], ["face_river"], ["wait", 1.2], ["shot", "council_bluff_overlook"],
 		["report"],
 	]
+
+
+func _scenery_steps() -> Array:
+	## Fixed viewpoints at fixed hours, for before/after comparisons of the look.
+	main.director.cadence_min = 1e9
+	main.director.cadence_max = 1e9
+	main.director._schedule()
+	main.hud.visible = false
+	var tr: Terrain = main.terrain
+	var bluff: Vector3 = tr.points["council_bluff"]
+	var dogs: Vector3 = tr.points["prairie_dog_town"]
+	var start: Vector3 = tr.points["start"]
+	var ridge: Vector3 = tr.points["smoke_ridge"]
+	var steps: Array = [["wait", 2.0]]
+	# A spot among the cottonwoods ~60 m from the water, upriver of the start.
+	var grove := start
+	var best := INF
+	for dx in range(-120, 121, 8):
+		for dz in range(-240, -120, 8):
+			var gx := start.x + dx
+			var gz := start.z + dz
+			var d := absf(tr.river_distance(gx, gz) - 62.0)
+			if tr.walkable(gx, gz) and d < best:
+				best = d
+				grove = Vector3(gx, 0, gz)
+	for f in main.corps.values():
+		if f != main.leader:
+			f.visible = false
+			f.process_mode = Node.PROCESS_MODE_DISABLED
+	# name, x, z, yaw (0 = north, 90 = west, -90 = east), pitch, hour, storm
+	var views := [
+		["river_morning", start.x, start.z, 5.0, -6.0, 7.5, 0.0],
+		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
+		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
+		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],
+		["bluff_sunset_east", bluff.x, bluff.z, -90.0, -10.0, 19.2, 0.0],
+		["bluff_sunset_west", bluff.x, bluff.z, 100.0, 4.0, 19.2, 0.0],
+		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
+		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
+	]
+	var args := OS.get_cmdline_user_args()
+	for a in args:
+		if a.begins_with("--only="):
+			views = views.filter(func(v): return v[0] == a.substr(7))
+	if "--no-glow" in args:
+		main.sky.env.glow_enabled = false
+	if "--no-grass" in args:
+		main.get_node("GrassField").visible = false
+	if "--no-foliage" in args:
+		main.foliage.visible = false
+	if "--plain-ground" in args:
+		var plain := StandardMaterial3D.new()
+		plain.vertex_color_use_as_albedo = true
+		plain.vertex_color_is_srgb = true
+		main.terrain.get_node("Ground").material_override = plain
+	if "--no-water" in args:
+		main.terrain.get_node("Missouri").visible = false
+	if "--no-hills" in args:
+		main.terrain.get_node("DistantHills").visible = false
+	if "--no-corps" in args:
+		main.leader.visible = false
+	if "--no-ssao" in args:
+		main.sky.env.ssao_enabled = false
+	for v in views:
+		steps.append(["view"] + v)
+		steps.append(["wait", 2.5])
+		steps.append(["shot", v[0]])
+	steps.append(["report"])
+	return steps
 
 
 func _process(delta: float) -> void:
@@ -78,6 +150,25 @@ func _process(delta: float) -> void:
 			_next()
 		"report":
 			_report()
+			_next()
+		"view":
+			var l: Leader = main.leader
+			var x: float = s[2]
+			var z: float = s[3]
+			var pos := Vector3(x, main.terrain.height_at(x, z) + 0.3, z)
+			l.global_position = pos
+			l.velocity = Vector3.ZERO
+			l._yaw = s[4]
+			l._pitch = s[5]
+			l.camera_rig.global_position = pos + Vector3(0, 1.65, 0)
+			l.trail.clear()
+			l.trail.append(pos)
+			main.state.minute_of_day = int(float(s[6]) * 60.0)
+			main._clock = 0.0
+			main.sky._storm_target = s[7]
+			main.sky.storm = s[7]
+			main.sky._storm_hold = 999.0 if s[7] > 0.0 else 0.0
+			_log.append("view " + str(s[1]))
 			_next()
 		"clear_detour":
 			_detour = ""

@@ -1,0 +1,60 @@
+shader_type particles;
+render_mode disable_velocity, disable_force;
+// Lays grass clumps on a world-anchored grid around the node (which follows the
+// camera), reading ground height and the river from the baked terrain textures.
+// Clumps are hidden (scale 0) in the water, on steep ground and past the fade radius.
+
+uniform sampler2D height_tex : filter_linear, repeat_disable;
+uniform sampler2D river_tex : filter_linear, repeat_disable;
+uniform float map_size = 1024.0;
+uniform float cell = 4.0;
+uniform float spacing = 0.5;
+uniform int rows = 200;
+uniform float river_clear = 48.0;
+uniform float max_dist = 46.0;
+
+float hash(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+void start() {
+	ACTIVE = true;
+}
+
+void process() {
+	vec3 center = EMISSION_TRANSFORM[3].xyz;
+	int idx = int(INDEX);
+	vec2 grid = vec2(float(idx % rows), float(idx / rows)) - float(rows / 2);
+	vec2 c = floor(center.xz / spacing) + grid;
+	vec2 jitter = vec2(hash(c), hash(c + 17.3)) - 0.5;
+	vec2 p = (c + 0.5 + jitter * 1.7) * spacing;  // overlap neighbours so no rows show
+	vec2 uv = p / map_size;
+	float h = texture(height_tex, uv).r;
+	float river = texture(river_tex, uv).r;
+	float e = cell / map_size;
+	float hx = texture(height_tex, uv + vec2(e, 0.0)).r - texture(height_tex, uv - vec2(e, 0.0)).r;
+	float hz = texture(height_tex, uv + vec2(0.0, e)).r - texture(height_tex, uv - vec2(0.0, e)).r;
+	float slope = length(vec2(hx, hz)) / (2.0 * cell);
+	float d = length(p - center.xz);
+	float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+	// Patchy prairie: some ground thick with grass, some thin.
+	float patch = smoothstep(0.25, 0.75, hash(floor(p / 7.0)) * 0.6 + hash(floor(p / 2.3)) * 0.4);
+	float keep = inside * smoothstep(river_clear - 2.0, river_clear + 6.0, river)
+			* (1.0 - smoothstep(0.7, 1.1, slope))
+			* (1.0 - smoothstep(max_dist * 0.7, max_dist, d))
+			* step(0.18, patch * 0.85 + hash(c + 3.3) * 0.3);
+	float s = keep * mix(0.6, 1.2, hash(c + 5.1)) * mix(0.8, 1.15, patch);
+	float ang = hash(c + 9.7) * 6.2831;
+	float ca = cos(ang);
+	float sa = sin(ang);
+	float tall = mix(0.75, 1.35, hash(c + 2.2));
+	TRANSFORM = mat4(
+		vec4(ca * s, 0.0, -sa * s, 0.0),
+		vec4(0.0, s * tall, 0.0, 0.0),
+		vec4(sa * s, 0.0, ca * s, 0.0),
+		vec4(p.x, h - 0.04, p.y, 1.0));
+	CUSTOM = vec4(hash(c + 11.1), h, patch, 0.0);
+	VELOCITY = vec3(0.0);
+}

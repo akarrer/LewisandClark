@@ -67,6 +67,10 @@ func _physics_process(delta: float) -> void:
 		speed = WALK / 0.55  # analog half-tilt walks
 	var target := dir * speed if move.length() > 0.05 else Vector3.ZERO
 	apply_locomotion(target, delta)
+	# The map is 1 km; beyond it is scenery only.
+	var inset := 6.0
+	global_position.x = clampf(global_position.x, inset, Terrain.SIZE - inset)
+	global_position.z = clampf(global_position.z, inset, Terrain.SIZE - inset)
 
 	if trail.is_empty() or global_position.distance_to(trail[-1]) > 0.4:
 		trail.append(global_position)

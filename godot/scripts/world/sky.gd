@@ -4,7 +4,7 @@ extends Node3D
 
 var sun := DirectionalLight3D.new()
 var env := Environment.new()
-var sky_mat := ProceduralSkyMaterial.new()
+var sky_mat := ShaderMaterial.new()
 var storm := 0.0  # 0 clear .. 1 full storm
 var _storm_target := 0.0
 var _storm_hold := 0.0
@@ -12,6 +12,20 @@ var _flash := 0.0
 var rain: GPUParticles3D
 var follow: Node3D  # rain follows this (the camera)
 var _rng := RandomNumberGenerator.new()
+
+## Time-of-day palette: hour, zenith, horizon, glow, light colour, light energy, ambient.
+const KEYS := [
+	[0.0, Color(0.02, 0.03, 0.08), Color(0.07, 0.09, 0.17), Color(0.10, 0.12, 0.20), Color(0.55, 0.62, 0.85), 0.22, 0.35],
+	[4.6, Color(0.02, 0.03, 0.08), Color(0.07, 0.09, 0.17), Color(0.10, 0.12, 0.20), Color(0.55, 0.62, 0.85), 0.22, 0.35],
+	[5.6, Color(0.12, 0.16, 0.32), Color(0.86, 0.52, 0.40), Color(1.00, 0.55, 0.30), Color(1.00, 0.56, 0.32), 0.40, 0.45],
+	[7.0, Color(0.28, 0.46, 0.74), Color(0.95, 0.80, 0.66), Color(1.00, 0.75, 0.50), Color(1.00, 0.82, 0.62), 0.95, 0.75],
+	[10.0, Color(0.20, 0.42, 0.80), Color(0.68, 0.79, 0.90), Color(1.00, 0.90, 0.75), Color(1.00, 0.97, 0.92), 1.25, 1.00],
+	[16.0, Color(0.20, 0.42, 0.80), Color(0.68, 0.79, 0.90), Color(1.00, 0.90, 0.75), Color(1.00, 0.97, 0.92), 1.25, 1.00],
+	[18.3, Color(0.25, 0.41, 0.70), Color(0.98, 0.78, 0.55), Color(1.00, 0.62, 0.30), Color(1.00, 0.72, 0.45), 1.00, 0.85],
+	[19.5, Color(0.17, 0.21, 0.45), Color(0.98, 0.50, 0.30), Color(1.00, 0.45, 0.20), Color(1.00, 0.50, 0.30), 0.45, 0.55],
+	[20.6, Color(0.05, 0.06, 0.16), Color(0.30, 0.20, 0.30), Color(0.50, 0.25, 0.30), Color(0.55, 0.62, 0.85), 0.25, 0.38],
+	[24.0, Color(0.02, 0.03, 0.08), Color(0.07, 0.09, 0.17), Color(0.10, 0.12, 0.20), Color(0.55, 0.62, 0.85), 0.22, 0.35],
+]
 
 
 func build() -> void:
@@ -21,19 +35,32 @@ func build() -> void:
 	sun.directional_shadow_max_distance = 140.0
 	add_child(sun)
 
+	sky_mat.shader = load("res://scripts/world/sky.gdshader")
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
+	sky.process_mode = Sky.PROCESS_MODE_REALTIME
+	sky.radiance_size = Sky.RADIANCE_SIZE_128
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.05
 	env.glow_enabled = true
-	env.glow_intensity = 0.4
+	env.glow_intensity = 0.5
+	env.glow_bloom = 0.0
+	env.glow_hdr_threshold = 1.4
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.72, 0.76, 0.80)
-	env.fog_density = 0.0009
-	env.fog_sky_affect = 0.35
-	env.ssao_enabled = false
+	env.fog_density = 0.0006
+	env.fog_sky_affect = 0.15
+	env.fog_aerial_perspective = 0.4
+	env.ssao_enabled = true
+	env.ssao_radius = 1.2
+	env.ssao_intensity = 1.6
+	env.ssao_power = 1.4
+	env.adjustment_enabled = true
+	env.adjustment_saturation = 1.08
+	env.adjustment_contrast = 1.04
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -73,6 +100,18 @@ func _build_rain() -> void:
 	add_child(rain)
 
 
+static func palette(hour: float) -> Array:
+	## Interpolated [zenith, horizon, glow, light colour, light energy, ambient] for ``hour``.
+	var h := fposmod(hour, 24.0)
+	for i in range(KEYS.size() - 1):
+		var a: Array = KEYS[i]
+		var b: Array = KEYS[i + 1]
+		if h >= a[0] and h <= b[0]:
+			var k := smoothstep(0.0, 1.0, (h - a[0]) / max(b[0] - a[0], 0.001))
+			return [a[1].lerp(b[1], k), a[2].lerp(b[2], k), a[3].lerp(b[3], k), a[4].lerp(b[4], k), lerpf(a[5], b[5], k), lerpf(a[6], b[6], k)]
+	return [KEYS[0][1], KEYS[0][2], KEYS[0][3], KEYS[0][4], KEYS[0][5], KEYS[0][6]]
+
+
 func update(hour: float, delta: float) -> void:
 	# Storm envelope.
 	if _storm_hold > 0.0:
@@ -87,35 +126,45 @@ func update(hour: float, delta: float) -> void:
 	if storm > 0.7 and _rng.randf() < delta * 0.18:
 		_flash = 1.0
 
-	# Sun path: rises ~5:45, sets ~19:30 in August.
+	# Sun path: rises ~5:45, sets ~19:30 in August. At night the light becomes the moon, high in the south-east.
 	var day_t := clampf((hour - 5.75) / (19.5 - 5.75), -0.15, 1.15)
-	var elevation := sin(day_t * PI)  # -..1
+	var elevation := sin(day_t * PI)
+	var is_day := elevation > 0.02
 	var pitch := -rad_to_deg(asin(clampf(elevation, -1.0, 1.0))) * 0.95
-	# At night the light hangs high (moonlight) instead of pointing up from below.
-	sun.rotation_degrees = Vector3(min(pitch, -2.0) if elevation > 0.05 else -38.0, 150.0 - day_t * 120.0, 0.0)
-	var low := 1.0 - clampf(elevation * 2.2, 0.0, 1.0)
-	var day := clampf(elevation * 4.0 + 0.3, 0.0, 1.0)
-	var sun_col := Color(1.0, 0.97, 0.9).lerp(Color(1.0, 0.62, 0.35), low)
-	# Below the horizon the "sun" stands in for a cool moonlight, never full dark.
-	var moon := Color(0.52, 0.60, 0.85)
-	sun.light_color = moon.lerp(sun_col, day).lerp(Color(0.55, 0.62, 0.8), storm * 0.7)
-	sun.light_energy = lerpf(0.22, 1.25, day) * (1.0 - storm * 0.75) + _flash * 1.5
+	sun.rotation_degrees = Vector3(min(pitch, -1.5) if is_day else -40.0, 150.0 - day_t * 120.0 if is_day else 35.0, 0.0)
 
-	var top_day := Color(0.30, 0.50, 0.80)
-	var horizon_day := Color(0.76, 0.80, 0.84)
-	var night := Color(0.07, 0.09, 0.18)
-	var dusk := Color(0.95, 0.55, 0.35)
-	var storm_top := Color(0.22, 0.24, 0.28)
-	var storm_hor := Color(0.40, 0.42, 0.45)
-	var top := night.lerp(top_day, day)
-	var hor := night.lerp(horizon_day.lerp(dusk, low * 0.75), day)
-	top = top.lerp(storm_top * max(day, 0.2), storm)
-	hor = hor.lerp(storm_hor * max(day, 0.2), storm)
-	sky_mat.sky_top_color = top
-	sky_mat.sky_horizon_color = hor
-	sky_mat.ground_horizon_color = hor
-	sky_mat.ground_bottom_color = hor.darkened(0.4)
-	sky_mat.sky_energy_multiplier = 1.0 + _flash * 2.0
-	env.ambient_light_energy = lerpf(0.45, 1.0, day) * (1.0 - storm * 0.4)
-	env.fog_light_color = hor
-	env.fog_density = 0.0009 + storm * 0.006
+	var p := palette(hour)
+	var zenith: Color = p[0]
+	var horizon: Color = p[1]
+	var glow: Color = p[2]
+	var light_col: Color = p[3]
+	var grey := Color(0.36, 0.38, 0.42)
+	zenith = zenith.lerp(grey * 0.8 * (0.3 + 0.7 * p[5]), storm * 0.85)
+	horizon = horizon.lerp(grey * (0.3 + 0.7 * p[5]), storm * 0.85)
+	var night := 1.0 - smoothstep(0.36, 0.8, p[5])  # full night when ambient is at its floor
+
+	sun.light_color = light_col.lerp(Color(0.6, 0.65, 0.75), storm * 0.6)
+	sun.light_energy = p[4] * (1.0 - storm * 0.7) + _flash * 1.8
+	sun.shadow_opacity = 1.0 - storm * 0.6
+
+	sky_mat.set_shader_parameter("zenith_color", zenith)
+	sky_mat.set_shader_parameter("horizon_color", horizon.lerp(Color.WHITE, _flash * 0.5))
+	sky_mat.set_shader_parameter("ground_color", horizon.darkened(0.55))
+	sky_mat.set_shader_parameter("glow_color", glow)
+	sky_mat.set_shader_parameter("glow_amount", 0.55 if is_day else 0.0)
+	sky_mat.set_shader_parameter("sun_color", light_col if is_day else Color.BLACK)
+	sky_mat.set_shader_parameter("cloud_darkness", storm)
+	sky_mat.set_shader_parameter("cloud_light", Color(1.0, 0.98, 0.95).lerp(glow, 0.35).lerp(Color(0.16, 0.18, 0.26), night))
+	sky_mat.set_shader_parameter("cloud_shadow", horizon.lerp(zenith, 0.5).darkened(0.25).lerp(Color(0.04, 0.05, 0.09), night))
+	sky_mat.set_shader_parameter("cloud_coverage", lerpf(lerpf(0.42, 0.3, night), 1.0, storm))
+	sky_mat.set_shader_parameter("star_amount", night * (1.0 - storm))
+	sky_mat.set_shader_parameter("moon_amount", night * (1.0 - storm))
+	sky_mat.set_shader_parameter("moon_dir", sun.global_transform.basis.z)
+
+	env.ambient_light_energy = p[5] * (1.0 - storm * 0.35)
+	env.fog_light_color = horizon
+	env.fog_density = 0.0006 + storm * 0.006
+	# Morning haze pooling in the bottomland.
+	var haze := clampf(1.0 - absf(hour - 6.8) / 2.2, 0.0, 1.0)
+	env.fog_height = 3.0
+	env.fog_height_density = 0.04 * haze
