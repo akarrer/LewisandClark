@@ -19,6 +19,18 @@ float hash(vec2 p) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+// Same field as grass_patch() in ground.gdshader, so the ground matches the blades.
+float grass_patch(vec2 p) {
+	return smoothstep(0.25, 0.75, vnoise(p / 9.0) * 0.65 + vnoise(p / 2.3) * 0.35);
+}
+
 void start() {
 	ACTIVE = true;
 }
@@ -40,12 +52,13 @@ void process() {
 	float d = length(p - center.xz);
 	float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
 	// Patchy prairie: some ground thick with grass, some thin.
-	float patch = smoothstep(0.25, 0.75, hash(floor(p / 7.0)) * 0.6 + hash(floor(p / 2.3)) * 0.4);
+	float patch = grass_patch(p);
 	float keep = inside * smoothstep(river_clear - 2.0, river_clear + 6.0, river)
-			* (1.0 - smoothstep(0.7, 1.1, slope))
+			* (1.0 - smoothstep(1.0, 1.35, slope))  // loess bluffs stay grassed to ~50 degrees
 			* (1.0 - smoothstep(max_dist * 0.7, max_dist, d))
-			* step(0.18, patch * 0.85 + hash(c + 3.3) * 0.3);
-	float s = keep * mix(0.6, 1.2, hash(c + 5.1)) * mix(0.8, 1.15, patch);
+			* step(0.08, patch * 0.5 + hash(c + 3.3) * 0.5);
+	// Thin patches are short, sparse grass rather than bare ground.
+	float s = keep * mix(0.6, 1.2, hash(c + 5.1)) * mix(0.8, 1.2, patch);
 	float ang = hash(c + 9.7) * 6.2831;
 	float ca = cos(ang);
 	float sa = sin(ang);

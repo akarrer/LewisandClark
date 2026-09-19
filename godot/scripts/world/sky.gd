@@ -10,13 +10,14 @@ var _storm_target := 0.0
 var _storm_hold := 0.0
 var _flash := 0.0
 var rain: GPUParticles3D
+var rain_mat: StandardMaterial3D
 var follow: Node3D  # rain follows this (the camera)
 var _rng := RandomNumberGenerator.new()
 
 ## Time-of-day palette: hour, zenith, horizon, glow, light colour, light energy, ambient.
 const KEYS := [
-	[0.0, Color(0.02, 0.03, 0.08), Color(0.07, 0.09, 0.17), Color(0.10, 0.12, 0.20), Color(0.55, 0.62, 0.85), 0.22, 0.35],
-	[4.6, Color(0.02, 0.03, 0.08), Color(0.07, 0.09, 0.17), Color(0.10, 0.12, 0.20), Color(0.55, 0.62, 0.85), 0.22, 0.35],
+	[0.0, Color(0.02, 0.03, 0.08), Color(0.07, 0.09, 0.17), Color(0.10, 0.12, 0.20), Color(0.55, 0.62, 0.85), 0.32, 0.35],
+	[4.6, Color(0.02, 0.03, 0.08), Color(0.07, 0.09, 0.17), Color(0.10, 0.12, 0.20), Color(0.55, 0.62, 0.85), 0.32, 0.35],
 	[5.6, Color(0.12, 0.16, 0.32), Color(0.86, 0.52, 0.40), Color(1.00, 0.55, 0.30), Color(1.00, 0.56, 0.32), 0.40, 0.45],
 	[7.0, Color(0.28, 0.46, 0.74), Color(0.95, 0.80, 0.66), Color(1.00, 0.75, 0.50), Color(1.00, 0.82, 0.62), 0.95, 0.75],
 	[10.0, Color(0.20, 0.42, 0.80), Color(0.68, 0.79, 0.90), Color(1.00, 0.90, 0.75), Color(1.00, 0.97, 0.92), 1.25, 1.00],
@@ -24,7 +25,7 @@ const KEYS := [
 	[18.3, Color(0.25, 0.41, 0.70), Color(0.98, 0.78, 0.55), Color(1.00, 0.62, 0.30), Color(1.00, 0.72, 0.45), 1.00, 0.85],
 	[19.5, Color(0.17, 0.21, 0.45), Color(0.98, 0.50, 0.30), Color(1.00, 0.45, 0.20), Color(1.00, 0.50, 0.30), 0.45, 0.55],
 	[20.6, Color(0.05, 0.06, 0.16), Color(0.30, 0.20, 0.30), Color(0.50, 0.25, 0.30), Color(0.55, 0.62, 0.85), 0.25, 0.38],
-	[24.0, Color(0.02, 0.03, 0.08), Color(0.07, 0.09, 0.17), Color(0.10, 0.12, 0.20), Color(0.55, 0.62, 0.85), 0.22, 0.35],
+	[24.0, Color(0.02, 0.03, 0.08), Color(0.07, 0.09, 0.17), Color(0.10, 0.12, 0.20), Color(0.55, 0.62, 0.85), 0.32, 0.35],
 ]
 
 
@@ -39,7 +40,7 @@ func build() -> void:
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
 	sky.process_mode = Sky.PROCESS_MODE_REALTIME
-	sky.radiance_size = Sky.RADIANCE_SIZE_128
+	sky.radiance_size = Sky.RADIANCE_SIZE_256  # realtime skies only support 256
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
@@ -88,11 +89,14 @@ func _build_rain() -> void:
 	pm.gravity = Vector3(0, -9.8, 0)
 	rain.process_material = pm
 	var streak := QuadMesh.new()
-	streak.size = Vector2(0.02, 0.5)
+	streak.size = Vector2(0.012, 0.7)
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.albedo_color = Color(0.75, 0.8, 0.9, 0.35)
+	m.albedo_color = Color(0.75, 0.8, 0.9, 0.18)
+	m.proximity_fade_enabled = true  # no fat streaks right in front of the lens
+	m.proximity_fade_distance = 3.0
+	rain_mat = m
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
 	streak.material = m
 	rain.draw_pass_1 = streak
@@ -161,6 +165,13 @@ func update(hour: float, delta: float) -> void:
 	sky_mat.set_shader_parameter("moon_amount", night * (1.0 - storm))
 	sky_mat.set_shader_parameter("moon_dir", sun.global_transform.basis.z)
 
+	# Rain takes the colour of the sky behind it rather than glowing white.
+	var rc := horizon.lerp(Color(0.8, 0.84, 0.9), 0.35).lerp(Color.WHITE, _flash * 0.6)
+	rain_mat.albedo_color = Color(rc, 0.18)
+	# Sky colour for materials that fake reflections (the river's sheen); see [shader_globals].
+	RenderingServer.global_shader_parameter_set("sky_horizon", horizon.lerp(zenith, 0.3))
+	# Moonlight drains colour (scotopic vision), so warm grass doesn't glow olive at night.
+	env.adjustment_saturation = lerpf(1.08, 0.5, night)
 	env.ambient_light_energy = p[5] * (1.0 - storm * 0.35)
 	env.fog_light_color = horizon
 	env.fog_density = 0.0006 + storm * 0.006

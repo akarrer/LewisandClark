@@ -24,6 +24,7 @@ var _blocked := 0
 
 func begin(p_main) -> void:
 	main = p_main
+	main.leader.look_enabled = false
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shots="):
 			shots_dir = a.substr(8)
@@ -50,8 +51,10 @@ func _scenery_steps() -> Array:
 	main.director.cadence_max = 1e9
 	main.director._schedule()
 	main.hud.visible = false
+	main.leader.input_enabled = false
 	var tr: Terrain = main.terrain
-	var bluff: Vector3 = tr.points["council_bluff"]
+	# Stand beside the flag, not on it, so the pole doesn't split the frame.
+	var bluff: Vector3 = tr.points["council_bluff"] + Vector3(0, 0, 8)
 	var dogs: Vector3 = tr.points["prairie_dog_town"]
 	var start: Vector3 = tr.points["start"]
 	var ridge: Vector3 = tr.points["smoke_ridge"]
@@ -79,6 +82,7 @@ func _scenery_steps() -> Array:
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],
 		["bluff_sunset_east", bluff.x, bluff.z, -90.0, -10.0, 19.2, 0.0],
 		["bluff_sunset_west", bluff.x, bluff.z, 100.0, 4.0, 19.2, 0.0],
+		["landmark", bluff.x, bluff.z, 0.0, -10.0, 17.0, 0.0],
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
 	]
@@ -272,7 +276,7 @@ func _shot(name: String) -> void:
 	var img := get_viewport().get_texture().get_image()
 	var path := "%s/%02d_%s.png" % [shots_dir, _shot_n, name]
 	img.save_png(path)
-	_log.append("%.0fs shot: %s" % [_t, path.get_file()])
+	_log.append("%.0fs shot: %s  cam pitch %.1f yaw %.1f" % [_t, path.get_file(), main.leader._pitch, main.leader._yaw])
 
 
 func _report() -> void:

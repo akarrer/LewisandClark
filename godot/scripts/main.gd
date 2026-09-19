@@ -90,7 +90,7 @@ func _place_world_features() -> void:
 			bluff.enabled = false
 			bluff.label = ""
 			for c in bluff.get_children():
-				if c is MeshInstance3D and c.mesh is TorusMesh:
+				if c is Decal:
 					c.visible = false
 	add_child(bluff)
 

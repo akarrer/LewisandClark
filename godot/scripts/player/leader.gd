@@ -12,6 +12,8 @@ var _yaw := 0.0
 var _pitch := -12.0
 var spring: SpringArm3D
 var input_enabled := true
+## Off while the autopilot frames shots, so a stray mouse or stick can't move the camera.
+var look_enabled := true
 
 ## Breadcrumbs for the Corps following behind (newest last), one per 0.4 m.
 var trail: Array[Vector3] = []
@@ -45,13 +47,13 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and look_enabled:
 		_yaw -= event.relative.x * 0.12
 		_pitch = clampf(_pitch - event.relative.y * 0.1, -60.0, 30.0)
 
 
 func _physics_process(delta: float) -> void:
-	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
+	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down") if look_enabled else Vector2.ZERO
 	_yaw -= look.x * 140.0 * delta
 	_pitch = clampf(_pitch - look.y * 90.0 * delta, -60.0, 30.0)
 

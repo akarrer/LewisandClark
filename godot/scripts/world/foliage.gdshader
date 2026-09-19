@@ -49,7 +49,10 @@ void fragment() {
 	vec3 c = tex.rgb * tint.rgb * v_tint;
 	c *= mix(base_shade, 1.08, smoothstep(0.0, 0.6, v_height));
 	ALBEDO = c;
-	ALPHA = tex.a;
+	// Mip levels average leaf alpha toward the cut, so distant canopies would
+	// dissolve into bare branches; boost alpha as the mip level climbs.
+	float lod = textureQueryLod(albedo_tex, UV).x;
+	ALPHA = tex.a * (1.0 + max(lod, 0.0) * 0.28);
 	ALPHA_SCISSOR_THRESHOLD = alpha_cut;
 	ROUGHNESS = 0.85;
 	SPECULAR = 0.25;

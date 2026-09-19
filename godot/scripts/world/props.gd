@@ -51,20 +51,32 @@ static func sphere(radius: float, color: Color, pos := Vector3.ZERO, squash := V
 	return mi
 
 
-static func ring(radius: float, color: Color) -> MeshInstance3D:
-	var mi := MeshInstance3D.new()
-	var tm := TorusMesh.new()
-	tm.inner_radius = radius - 0.06
-	tm.outer_radius = radius
-	tm.rings = 32
-	mi.mesh = tm
-	var m := mat(color, 1.0, 2.5)
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.albedo_color.a = 0.35
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mi.material_override = m
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return mi
+static func ring(radius: float, color: Color) -> Decal:
+	## A soft band of warm light projected onto the ground (and the grass on it),
+	## following the slope instead of floating as a hard hoop.
+	var g := Gradient.new()
+	# Radial fill: offset 1.0 is the decal's edge.
+	var inner := (radius - 0.6) / radius
+	var mid := (radius - 0.25) / radius
+	g.offsets = PackedFloat32Array([0.0, inner, mid, 0.97, 1.0])
+	var clear := Color(color, 0.0)
+	g.colors = PackedColorArray([clear, clear, Color(color, 0.8), clear, clear])
+	var tex := GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 256
+	tex.height = 256
+	var d := Decal.new()
+	d.size = Vector3(radius * 2.0, 3.0, radius * 2.0)
+	d.texture_albedo = tex
+	d.texture_emission = tex
+	d.emission_energy = 0.1
+	d.albedo_mix = 0.5
+	d.upper_fade = 0.6
+	d.lower_fade = 0.6
+	return d
 
 
 static func smoke_column() -> GPUParticles3D:

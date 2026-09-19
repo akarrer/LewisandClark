@@ -219,16 +219,18 @@ func _color_at(x: float, z: float, h: float, n: Vector3) -> Color:
 	var grass := Color(0.62, 0.58, 0.30).lerp(Color(0.42, 0.50, 0.24), t * 0.7)
 	if is_bottomland(x, z):
 		grass = grass.lerp(Color(0.34, 0.46, 0.22), 0.5)
+	# Alpha marks prairie, which the ground shader dresses as grass.
 	var c := grass
 	if d < 0.0:
-		c = Color(0.30, 0.26, 0.20)  # riverbed
+		c = Color(0.30, 0.26, 0.20, 0.0)  # riverbed
 	elif d < 10.0:
-		c = Color(0.76, 0.68, 0.50)  # sandbar
+		c = Color(0.76, 0.68, 0.50, 0.0)  # sandbar
 	elif d < 22.0:
-		c = Color(0.76, 0.68, 0.50).lerp(grass, (d - 10.0) / 12.0)
-	if slope > 0.22:
-		var loess := Color(0.66, 0.52, 0.34)
-		c = c.lerp(loess, clampf((slope - 0.22) / 0.25, 0.0, 1.0))
+		c = Color(0.76, 0.68, 0.50, 0.0).lerp(grass, (d - 10.0) / 12.0)
+	# Only the steepest cuts show bare loess; the bluffs themselves are grassed.
+	if slope > 0.3:
+		var loess := Color(0.66, 0.52, 0.34, 0.0)
+		c = c.lerp(loess, clampf((slope - 0.3) / 0.2, 0.0, 1.0))
 	return c
 
 
@@ -290,7 +292,7 @@ func _build_distant_hills(mat: Material) -> MeshInstance3D:
 				nor = -nor
 			var slope := 1.0 - nor.y
 			var c := Color(0.60, 0.56, 0.32).lerp(Color(0.42, 0.48, 0.26), noise.get_noise_2d(v.x * 3.0, v.z * 3.0) * 0.5 + 0.5)
-			c = c.lerp(Color(0.62, 0.50, 0.33), clampf(slope * 3.0, 0.0, 1.0))
+			c = c.lerp(Color(0.62, 0.50, 0.33, 0.0), clampf(slope * 3.0, 0.0, 1.0))
 			st.set_color(c)
 			st.set_normal(nor)
 			st.add_vertex(v)

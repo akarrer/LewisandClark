@@ -37,7 +37,6 @@ static func landmark_marker(pos: Vector3, title: String) -> Interactable:
 	stripes.add_child(Props.box(Vector3(0.75, 0.56, 0.03), Color(0.12, 0.18, 0.42), Vector3(-0.52, -0.21, 0)))
 	it.add_child(stripes)
 	var r := Props.ring(3.0, Color(1.0, 0.8, 0.35))
-	r.position.y = 0.15
 	it.add_child(r)
 	return it
 

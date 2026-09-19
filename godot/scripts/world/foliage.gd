@@ -35,8 +35,8 @@ func build(t: Terrain) -> void:
 	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0)
 	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 500, 0.5, 1.3, _rock_ok, 320.0)
 	# The GPU grass field carries the prairie; these taller clumps and flowers are accents.
-	_scatter("grass", ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"], 30000, 0.5, 0.95, _grass_ok, 120.0)
-	_scatter("flowers", ["flower_group_1", "flower_single_1", "flower_group_2", "clover_1"], 9000, 0.35, 0.6, _flower_ok, 110.0)
+	_scatter("grass", ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"], 30000, 0.5, 0.95, _grass_ok, 60.0)
+	_scatter("flowers", ["flower_group_1", "flower_single_1", "flower_group_2", "clover_1"], 9000, 0.35, 0.6, _flower_ok, 70.0)
 	_flush()
 
 
@@ -197,7 +197,7 @@ func _scatter_cottonwoods() -> void:
 
 func _scatter_groves() -> void:
 	## Groves of smaller trees (bur oak country) in the ravines of the uplands.
-	var variants := ["tree_1", "tree_2", "tree_3", "tree_4", "tree_5", "dead_tree_1", "dead_tree_3"]
+	var variants := ["tree_1", "tree_2", "tree_3", "tree_4", "tree_5"]
 	for g in 900:
 		var p := _random_point()
 		if not _in_draw(p) or rng.randf() > 0.55:
@@ -208,4 +208,6 @@ func _scatter_groves() -> void:
 			p = Vector3(x, terrain.height_at(x, zz), zz)
 			if _dist_to_river(p) < 12.0 or _near_point(p, 12.0) or not _in_draw(p):
 				continue
-			_add("grove", variants[rng.randi() % variants.size()], p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0)
+			# The odd lightning-struck snag, not a burned forest.
+			var v: String = ["dead_tree_1", "dead_tree_3"][rng.randi() % 2] if rng.randf() < 0.08 else variants[rng.randi() % variants.size()]
+			_add("grove", v, p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0)

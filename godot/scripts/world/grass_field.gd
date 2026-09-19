@@ -3,8 +3,8 @@ extends GPUParticles3D
 ## Dense prairie grass drawn on the GPU in a ring around the camera. The particle
 ## shader places clumps on a world-anchored grid, so grass doesn't swim as you walk.
 
-const ROWS := 200
-const SPACING := 0.5
+const ROWS := 240
+const SPACING := 0.4
 
 var follow: Node3D
 
