@@ -21,6 +21,7 @@ const PROFILES := {
 	"bush": {"sway": 0.08, "flutter": 0.6, "translucency": 0.35, "tint": Color(0.92, 1.0, 0.82), "variation": 0.16},
 	"grass": {"sway": 0.14, "flutter": 0.3, "translucency": 0.4, "tint": Color(1.0, 0.98, 0.9), "variation": 0.18},
 	"flowers": {"sway": 0.10, "flutter": 0.3, "translucency": 0.3, "tint": Color(1, 1, 1), "variation": 0.1},
+	"willow": {"sway": 0.18, "flutter": 1.3, "translucency": 0.45, "tint": Color(0.82, 0.95, 0.78), "variation": 0.12},
 	"driftwood": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1, 1, 1), "variation": 0.08, "bark_tint": Color(2.1, 2.0, 1.85)},
 	"rock": {},
 }
@@ -34,10 +35,12 @@ func build(t: Terrain) -> void:
 	_scatter_cottonwoods()
 	_scatter_groves()
 	_scatter_driftwood()
-	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0)
-	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 500, 0.5, 1.3, _rock_ok, 320.0)
+	_scatter_sandbar()
+	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0, 0.25)
+	# Loess country has few stones: an occasional weathered boulder, mostly in the draws.
+	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0, 0.55)
 	# The GPU grass field carries the prairie; these taller clumps and flowers are accents.
-	_scatter("grass", ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"], 30000, 0.5, 0.95, _grass_ok, 60.0)
+	_scatter("grass", ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"], 30000, 0.4, 0.72, _grass_ok, 60.0)
 	_scatter("flowers", ["flower_group_1", "flower_single_1", "flower_group_2", "clover_1"], 9000, 0.35, 0.6, _flower_ok, 70.0)
 	_flush()
 
@@ -114,6 +117,7 @@ func _flush() -> void:
 			mm.set_instance_transform(i, b["xforms"][i])
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
+		mmi.set_meta("kind", b["kind"])
 		if b["visibility"] > 0.0:
 			mmi.visibility_range_end = b["visibility"]
 			mmi.visibility_range_end_margin = 12.0
@@ -130,12 +134,14 @@ func _random_point() -> Vector3:
 	return Vector3(x, terrain.height_at(x, z), z)
 
 
-func _scatter(kind: String, variants: Array, attempts: int, smin: float, smax: float, ok: Callable, visibility: float) -> void:
+func _scatter(kind: String, variants: Array, attempts: int, smin: float, smax: float, ok: Callable, visibility: float, sink := 0.05) -> void:
 	for i in attempts:
 		var p := _random_point()
 		if ok.call(p):
 			var n := terrain.normal_at(p.x, p.z)
-			_add(kind, variants[rng.randi() % variants.size()], p - Vector3(0, 0.05, 0), rng.randf_range(smin, smax), n, visibility)
+			var scale := rng.randf_range(smin, smax)
+			# Tilting to the slope lifts a model off its base, so bed it in by its size.
+			_add(kind, variants[rng.randi() % variants.size()], p - Vector3(0, sink * scale, 0), scale, n, visibility)
 
 
 func _dist_to_river(p: Vector3) -> float:
@@ -240,4 +246,45 @@ func _scatter_driftwood() -> void:
 			var lean := Vector3(cos(ang), rng.randf_range(0.6, 1.6), sin(ang))
 			var bed := Vector3(p.x, Terrain.WATER_Y - 1.2, p.z)
 			_add("driftwood", variants[rng.randi() % variants.size()], bed, rng.randf_range(0.4, 0.7), lean, 900.0)
+
+
+func _on_bar(p: Vector3, min_above: float) -> bool:
+	## Dry sand: above the river surface by ``min_above`` m, in the channel or the
+	## bare margin beside it (not the grassed bottomland).
+	return p.y > Terrain.WATER_Y - 0.35 + min_above and _dist_to_river(p) < 22.0
+
+
+func _scatter_sandbar() -> void:
+	## Life on the bars: sandbar-willow thickets and cottonwood seedlings along
+	## the landward edge, wiry grass tufts, and pebbles in the wet margin.
+	# Bars are a small part of the map, so most random points miss them.
+	for i in 9000:
+		var p := _random_point()
+		if not _on_bar(p, 0.45) or _near_point(p, 26.0) or _groves.get_noise_2d(p.x * 1.7, p.z * 1.7) < -0.2:
+			continue
+		# A thicket: a handful of tall, narrow willow clumps close together.
+		for k in rng.randi_range(3, 7):
+			var q := p + Vector3(rng.randf_range(-3.5, 3.5), 0, rng.randf_range(-3.5, 3.5))
+			q.y = terrain.height_at(q.x, q.z)
+			if not _on_bar(q, 0.3):
+				continue
+			# Sizes from knee-high suckers to two-metre stems, each leaning its own way.
+			var narrow := rng.randf_range(0.4, 0.8)
+			var lean := Vector3(rng.randf_range(-0.14, 0.14), 1.0, rng.randf_range(-0.14, 0.14))
+			_add("willow", "bush_1", q - Vector3(0, 0.1, 0), rng.randf_range(0.4, 1.35), lean, 260.0, Vector3(narrow, rng.randf_range(1.2, 2.4), narrow * rng.randf_range(0.85, 1.2)))
+		if rng.randf() < 0.45:
+			var q2 := p + Vector3(rng.randf_range(-5, 5), 0, rng.randf_range(-5, 5))
+			q2.y = terrain.height_at(q2.x, q2.z)
+			_add("grove", "tree_5", q2 - Vector3(0, 0.1, 0), rng.randf_range(0.28, 0.45), Vector3.UP, 260.0, Vector3(0.8, 1.3, 0.8))
+	var tufts := ["grass_wispy_1", "grass_wispy_2", "tall_grass_1"]
+	var stones := ["pebble_round_1", "pebble_round_2", "pebble_round_3", "pebble_round_4", "rock_path_round_small_1", "rock_path_round_small_2"]
+	for i in 26000:
+		var p := _random_point()
+		if not _on_bar(p, 0.0):
+			continue
+		var above := p.y - (Terrain.WATER_Y - 0.35)
+		if above > 0.5 and rng.randf() < 0.35:
+			_add("grass", tufts[rng.randi() % tufts.size()], p - Vector3(0, 0.05, 0), rng.randf_range(0.35, 0.7), Vector3.UP, 70.0)
+		elif above < 0.6 and rng.randf() < 0.75:
+			_add("rock", stones[rng.randi() % stones.size()], p - Vector3(0, 0.03, 0), rng.randf_range(0.35, 0.8), Vector3.UP, 55.0)
 

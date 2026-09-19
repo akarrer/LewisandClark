@@ -35,12 +35,15 @@ func _ready() -> void:
 	add_child(hud)
 
 	_spawn_corps()
+	add_child(Wildlife.populate(terrain, leader))
 	_place_world_features()
 	sky.follow = leader.camera
-	var grass := GrassField.new()
-	grass.build(terrain)
-	grass.follow = leader.camera
-	add_child(grass)
+	for grass in GrassField.fields(terrain, leader.camera):
+		add_child(grass)
+	var motes := Motes.new()
+	motes.build()
+	motes.follow = leader.camera
+	add_child(motes)
 
 	director = TrailMomentDirector.new(TrailMomentDirector.load_defs("res://data/trail_moments.json"))
 	state.journal_added.connect(hud.toast)
@@ -93,6 +96,9 @@ func _place_world_features() -> void:
 				if c is Decal:
 					c.visible = false
 	add_child(bluff)
+
+	add_child(Boats.fleet(terrain))
+	add_child(Camp.pitch(terrain))
 
 	prairie_dogs = Interactable.prairie_dog_town(terrain.points["prairie_dog_town"], terrain)
 	add_child(prairie_dogs)
@@ -210,7 +216,13 @@ func _run_moment(delta: float) -> void:
 		_moment = {}
 
 
+## Off while the autopilot frames scenery shots, so no speech marks float in them.
+var barks_enabled := true
+
+
 func _bark(speaker: String, secs: float) -> void:
+	if not barks_enabled:
+		return
 	for f in corps.values():
 		if f.display_name == speaker:
 			var label := Label3D.new()

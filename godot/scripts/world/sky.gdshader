@@ -61,23 +61,39 @@ void sky() {
 	col = mix(col, ground_color, smoothstep(0.0, -0.08, up));
 
 	if (!AT_CUBEMAP_PASS) {
-		// Clouds on a plane above the prairie.
+		// Two decks of cloud on planes above the prairie: fair-weather cumulus
+		// piling up over the plains, and thin cirrus much higher and slower.
 		if (up > 0.0) {
-			// Storms gather into bigger, softer masses; fair weather keeps crisp wisps.
-			vec2 uv = dir.xz / (up + 0.12) * mix(1.6, 0.9, cloud_darkness);
 			vec2 drift = vec2(TIME * wind_speed, TIME * wind_speed * 0.4) * (1.0 + cloud_darkness * 2.0);
+
+			// Cumulus: rounded, bright-topped heaps that grow taller in a storm.
+			vec2 uv = dir.xz / (up + 0.12) * mix(0.72, 0.5, cloud_darkness);
 			float n = fbm(uv + drift, 6);
-			float wisps = fbm(uv * 3.0 - drift * 2.0, 4);
-			float cover = mix(0.72, 0.22, cloud_coverage);
-			float edge = mix(0.22, 0.45, cloud_darkness);
-			float density = smoothstep(cover, cover + edge, n * 0.85 + wisps * mix(0.25, 0.08, cloud_darkness));
+			float billow = fbm(uv * 2.4 - drift * 1.4, 4);
+			float shape = n * 0.78 + billow * 0.22;
+			float cover = mix(0.74, 0.26, cloud_coverage);
+			float edge = mix(0.1, 0.34, cloud_darkness);
+			float density = smoothstep(cover, cover + edge, shape);
+			density = density * density * (3.0 - 2.0 * density);  // firm, rounded edges
 			// Light the tops toward the sun: sample the noise a step sunward.
-			float toward = fbm(uv + drift + normalize(sun.xz + 0.0001) * 0.08, 4);
-			float lit = clamp(0.6 + (n - toward) * 4.0, 0.0, 1.0);
-			vec3 cloud = mix(cloud_shadow, cloud_light, lit);
-			cloud = mix(cloud, glow_color * 1.1, halo * 1.4);
+			vec2 sun_step = normalize(sun.xz + 0.0001) * 0.1;
+			float toward = fbm(uv + drift + sun_step, 4);
+			float lit = clamp(0.55 + (shape - toward) * 5.0, 0.0, 1.0);
+			// Shaded bases: the underside of a heap is flat and grey.
+			float base = smoothstep(0.3, 0.015, up) * 0.65;
+			vec3 cloud = mix(cloud_shadow, cloud_light, lit * (1.0 - base));
+			cloud = mix(cloud, glow_color * 1.15, halo * 1.4);
 			cloud *= 1.0 - cloud_darkness * 0.65;
+
+			// Cirrus: fibrous streaks, stretched along the wind, high and faint.
+			vec2 cuv = dir.xz / (up + 0.035) * 0.42;
+			cuv.x *= 0.35;  // drawn out downwind
+			float cirrus = fbm(cuv + drift * 0.35, 5);
+			float cirrus_d = smoothstep(0.52, 0.78, cirrus) * (1.0 - cloud_darkness) * (0.35 + 0.35 * cloud_coverage);
+			vec3 cirrus_col = mix(cloud_light, glow_color, halo * 0.8);
+
 			float fade = smoothstep(0.0, 0.12, up);
+			col = mix(col, cirrus_col, cirrus_d * smoothstep(0.02, 0.2, up) * 0.75);
 			col = mix(col, cloud, density * fade * 0.95);
 		}
 

@@ -79,6 +79,19 @@ static func ring(radius: float, color: Color) -> Decal:
 	return d
 
 
+static func puff_texture() -> GradientTexture2D:
+	## A soft round blob: without it, smoke quads read as hard squares.
+	var puff := GradientTexture2D.new()
+	puff.fill = GradientTexture2D.FILL_RADIAL
+	puff.fill_from = Vector2(0.5, 0.5)
+	puff.fill_to = Vector2(1.0, 0.5)
+	var soft := Gradient.new()
+	soft.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	soft.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.55), Color(1, 1, 1, 0)])
+	puff.gradient = soft
+	return puff
+
+
 static func smoke_column() -> GPUParticles3D:
 	var p := GPUParticles3D.new()
 	p.amount = 90
@@ -112,15 +125,7 @@ static func smoke_column() -> GPUParticles3D:
 	m.vertex_color_use_as_albedo = true
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	var puff := GradientTexture2D.new()
-	puff.fill = GradientTexture2D.FILL_RADIAL
-	puff.fill_from = Vector2(0.5, 0.5)
-	puff.fill_to = Vector2(1.0, 0.5)
-	var soft := Gradient.new()
-	soft.set_color(0, Color(1, 1, 1, 1))
-	soft.set_color(1, Color(1, 1, 1, 0))
-	puff.gradient = soft
-	m.albedo_texture = puff
+	m.albedo_texture = puff_texture()
 	quad.material = m
 	p.draw_pass_1 = quad
 	return p

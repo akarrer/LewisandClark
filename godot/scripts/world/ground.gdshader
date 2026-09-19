@@ -11,9 +11,14 @@ uniform vec3 gold : source_color = vec3(0.72, 0.62, 0.30);
 uniform vec3 green : source_color = vec3(0.40, 0.52, 0.22);
 uniform vec3 thatch : source_color = vec3(0.30, 0.28, 0.15);
 uniform float grass_radius = 46.0;
+uniform vec2 camp = vec2(-1000.0);   // ground worn bare around the fire
+uniform float camp_radius = 9.0;
+global uniform float wetness;
 
 varying vec3 v_world;
 varying vec3 v_normal;
+#include "res://scripts/world/prairie.gdshaderinc"
+#include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 float hash(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -47,6 +52,8 @@ void fragment() {
 	// Prairie: blend the baked tint toward the grass the blades would show here.
 	float patch = grass_patch(p);
 	vec3 blades = mix(gold, green, patch * 0.8);
+	// The floodplain sits low (~y 1-3); above it the prairie proper.
+	blades = prairie_species(p, blades, smoothstep(2.0, 5.0, v_world.y));
 	vec3 tips = mix(c, blades * 1.08, 0.55);
 	float dist = length(v_world - CAMERA_POSITION_WORLD);
 	float under = 1.0 - smoothstep(grass_radius * 0.55, grass_radius * 1.05, dist);
@@ -85,7 +92,17 @@ void fragment() {
 	vec3 sandy = c * (0.9 + ripple * 0.2);
 	float wet = 1.0 - smoothstep(-0.2, 0.9, v_world.y + (vnoise(p * 0.5) - 0.5) * 0.4);
 	sandy = mix(sandy, sandy * vec3(0.62, 0.60, 0.58), wet * 0.85);
+	// Drift lines: dark bands of twigs and silt left where the river last stood.
+	float drift_line = smoothstep(0.06, 0.0, abs(fract(v_world.y * 1.3 + vnoise(p * 0.2) * 0.6) - 0.5) - 0.44);
+	sandy *= 1.0 - drift_line * 0.25 * smoothstep(0.2, 0.8, vnoise(p * 1.1));
+	// Fine grain up close: coarser sand and silt in soft flecks.
+	float grain = vnoise(p * 7.0) * 0.6 + vnoise(p * 19.0) * 0.4;
+	sandy *= 1.0 + (grain - 0.5) * 0.16 * (1.0 - smoothstep(4.0, 20.0, length(v_world - CAMERA_POSITION_WORLD)));
 	c = mix(c, sandy, sand);
+
+	// Trampled ground: the grass is worn off around a camp, the earth beaten bare.
+	float worn = 1.0 - smoothstep(camp_radius * 0.5, camp_radius, distance(p, camp) + (vnoise(p * 0.6) - 0.5) * 2.0);
+	c = mix(c, pow(vec3(0.38, 0.31, 0.23), vec3(2.2)) * (0.85 + vnoise(p * 3.0) * 0.3), worn * prairie * 0.9);
 
 	c *= 1.0 + (n - 0.5) * mottle * 2.0;
 	// Slight warm/cool drift over large areas.
@@ -95,7 +112,8 @@ void fragment() {
 	if (any(isnan(c))) {
 		c = vec3(0.25, 0.3, 0.15);
 	}
-	ALBEDO = c;
-	ROUGHNESS = 0.95;
-	SPECULAR = 0.2;
+	// Rain-soaked earth goes dark and glossy.
+	ALBEDO = c * cloud_light(v_world) * mix(1.0, 0.62, wetness);
+	ROUGHNESS = mix(0.95, 0.42, wetness);
+	SPECULAR = mix(0.2, 0.5, wetness);
 }

@@ -7,6 +7,22 @@ const STICK_DEADZONE := 0.25
 ## "keyboard" or "gamepad" — whichever the player touched last, for on-screen hints.
 var last_device := "keyboard"
 
+## The controller that drives the game, or NO_GAMEPAD. Only one is bound: racing
+## wheels, pedals and flight gear stay plugged in on many PCs, and their pedals
+## and throttles rest at full travel, which would read as a stick held down.
+var gamepad_id := NO_GAMEPAD
+const NO_GAMEPAD := 1000
+const NOT_GAMEPADS := ["wheel", "pedal", "rudder", "throttle", "hotas", "joystick", "flight", "yoke",
+		"g920", "g923", "g29", "g27", "t300", "t150", "t248", "fanatec", "shifter"]
+
+
+static func is_gamepad_name(joy_name: String) -> bool:
+	var n := joy_name.to_lower()
+	for word in NOT_GAMEPADS:
+		if n.contains(word):
+			return false
+	return true
+
 const HINTS := {
 	"keyboard": {"interact": "E", "sprint": "Shift", "toggle_map": "M", "menu": "Esc"},
 	"gamepad": {"interact": "A", "sprint": "L3", "toggle_map": "View", "menu": "Start"},
@@ -26,6 +42,21 @@ func _ready() -> void:
 	_button("back", [KEY_BACKSPACE], [JOY_BUTTON_B])
 	_button("menu", [KEY_ESCAPE], [JOY_BUTTON_START])
 	_button("toggle_map", [KEY_M, KEY_TAB], [JOY_BUTTON_BACK])
+	Input.joy_connection_changed.connect(func(_id, _connected): _bind_gamepad())
+	_bind_gamepad()
+
+
+func _bind_gamepad() -> void:
+	## Point every controller binding at the first real gamepad (or at nothing).
+	gamepad_id = NO_GAMEPAD
+	for id in Input.get_connected_joypads():
+		if is_gamepad_name(Input.get_joy_name(id)):
+			gamepad_id = id
+			break
+	for action in InputMap.get_actions():
+		for ev in InputMap.action_get_events(action):
+			if ev is InputEventJoypadButton or ev is InputEventJoypadMotion:
+				ev.device = gamepad_id
 
 func _axis(action: String, key: int, axis: int, dir: float, alt_key: int = -1) -> void:
 	_ensure(action)
@@ -57,7 +88,8 @@ func _ensure(action: String) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > STICK_DEADZONE):
-		last_device = "gamepad"
+		if event.device == gamepad_id:
+			last_device = "gamepad"
 	elif event is InputEventKey or event is InputEventMouseButton:
 		last_device = "keyboard"
 

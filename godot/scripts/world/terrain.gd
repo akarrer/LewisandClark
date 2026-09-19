@@ -41,6 +41,8 @@ func build() -> void:
 	mi.mesh = mesh
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://scripts/world/ground.gdshader")
+	var camp: Vector3 = points.get("camp", Vector3(-1000, 0, -1000))
+	mat.set_shader_parameter("camp", Vector2(camp.x, camp.z))
 	mi.material_override = mat
 	add_child(mi)
 	add_child(_build_distant_hills(mat))
@@ -157,6 +159,13 @@ func define_points() -> void:
 	points["start"] = _search(Rect2(520, 780, 70, 70), func(x, z):
 		return normal_at(x, z).y * 10.0 - absf(river_distance(x, z) - 75.0) * 0.2)
 	# Prairie dogs like a broad, flat upland rise.
+	# The Corps' camp, pitched a little back from the landing along the bank.
+	var landing: Vector3 = points["start"]
+	var to_water := toward_river(landing.x, landing.z)
+	var along := Vector3(-to_water.z, 0.0, to_water.x)
+	var camp := landing - to_water * 6.0 + along * 10.0
+	points["camp"] = Vector3(camp.x, height_at(camp.x, camp.z), camp.z)
+
 	points["prairie_dog_town"] = _search(Rect2(300, 600, 150, 170), func(x, z):
 		var h := height_at(x, z)
 		return normal_at(x, z).y * 50.0 if h > flood + 6.0 else -INF)

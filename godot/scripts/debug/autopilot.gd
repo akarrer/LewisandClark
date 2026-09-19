@@ -36,6 +36,9 @@ func begin(p_main) -> void:
 	if "--scenery" in OS.get_cmdline_user_args():
 		_steps = _scenery_steps()
 		return
+	if "--march" in OS.get_cmdline_user_args():
+		_steps = _march_steps()
+		return
 	_steps = [
 		["wait", 3.0], ["shot", "start"],
 		["walk_to", "prairie_dog_town", 6.0], ["wait", 7.5], ["shot", "prairie_dogs"],
@@ -45,6 +48,27 @@ func begin(p_main) -> void:
 	]
 
 
+func _march_steps() -> Array:
+	## The Corps on the move, filmed from beside the trail: for judging gait and pace.
+	main.director.cadence_min = 1e9
+	main.director.cadence_max = 1e9
+	main.director._schedule()
+	main.hud.visible = false
+	var steps: Array = [["wait", 2.0], ["walk_for", "prairie_dog_town", 9.0], ["sidecam"]]
+	var frames := 6
+	var every := 0.7
+	if "--stepoff" in OS.get_cmdline_user_args():
+		# From a halt: watch each man step off in his own time.
+		steps = [["walk_for", "prairie_dog_town", 6.0], ["wait", 4.0], ["sidecam", "prairie_dog_town"], ["shot", "halt"]]
+		frames = 8
+		every = 0.35
+	for i in frames:
+		steps.append(["walk_for", "prairie_dog_town", every])
+		steps.append(["shot", "march"])
+	steps.append(["report"])
+	return steps
+
+
 func _scenery_steps() -> Array:
 	## Fixed viewpoints at fixed hours, for before/after comparisons of the look.
 	main.director.cadence_min = 1e9
@@ -52,6 +76,7 @@ func _scenery_steps() -> Array:
 	main.director._schedule()
 	main.hud.visible = false
 	main.leader.input_enabled = false
+	main.barks_enabled = false
 	var tr: Terrain = main.terrain
 	# Stand beside the flag, not on it, so the pole doesn't split the frame.
 	var bluff: Vector3 = tr.points["council_bluff"] + Vector3(0, 0, 8)
@@ -83,6 +108,56 @@ func _scenery_steps() -> Array:
 				bank = Vector3(bx, 0, bz)
 	var to_water: Vector3 = tr.toward_river(bank.x, bank.z)
 	var bank_yaw := rad_to_deg(atan2(-to_water.x, -to_water.z)) + 50.0  # upriver, across the water
+	# On the bank beside the keelboat.
+	var keel := start
+	var quay := start
+	if main.has_node("Fleet"):
+		keel = main.get_node("Fleet").get_child(0).global_position
+		var inland := -tr.toward_river(keel.x, keel.z)
+		quay = keel
+		for i in 120:
+			quay += inland
+			if tr.walkable(quay.x, quay.z):
+				break
+		quay += inland * 3.0 + Vector3(-inland.z, 0, inland.x) * 9.0
+	# 130 m downhill of the first elk herd, looking up at it.
+	var herd := start
+	var herd_eye := start
+	if main.has_node("Wildlife") and main.get_node("Wildlife").get_child_count() > 0:
+		herd = main.get_node("Wildlife").get_child(0).position
+		var space: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
+		var target := herd + Vector3(0, 1.2, 0)
+		for r in range(70, 30, -10):
+			var found := false
+			for k in 24:
+				var ang := k * TAU / 24.0
+				var e := herd + Vector3(cos(ang), 0, sin(ang)) * r
+				if not tr.walkable(e.x, e.z):
+					continue
+				var eye := Vector3(e.x, tr.height_at(e.x, e.z) + 2.5, e.z)
+				if space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, target)).is_empty():
+					herd_eye = e
+					found = true
+					break
+			if found:
+				break
+		_log.append("herd at %s, viewed from %s" % [herd, herd_eye])
+	# A willow thicket on a bar, seen from the sand a few metres off.
+	var thicket := bank
+	var willows: MultiMeshInstance3D = null
+	for c in main.foliage.get_children():
+		if c is MultiMeshInstance3D and c.multimesh.instance_count > 6 and c.get_meta("kind", "") == "willow":
+			willows = c
+			break
+	if willows:
+		thicket = willows.multimesh.get_instance_transform(0).origin
+	var thicket_eye := thicket + (tr.toward_river(thicket.x, thicket.z) * 9.0).rotated(Vector3.UP, 1.1)
+	# The camp, seen from the riverward side.
+	var camp := start
+	var camp_eye := start
+	if main.has_node("Camp"):
+		camp = main.get_node("Camp").global_position
+		camp_eye = camp + tr.toward_river(camp.x, camp.z) * 11.0 + Vector3(2, 0, 2)
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -94,13 +169,20 @@ func _scenery_steps() -> Array:
 		["river_morning", start.x, start.z, 5.0, -6.0, 7.5, 0.0],
 		# Facing the Leader (who faces north at the start); with --corps, the Corps behind.
 		["portrait", start.x, start.z, 180.0, -4.0, 9.0, 0.0],
+		["landing", start.x, start.z, _yaw_to(start, main.get_node("Fleet").get_child(0).global_position if main.has_node("Fleet") else start) , -6.0, 8.5, 0.0],
+		["keelboat", quay.x, quay.z, _yaw_to(quay, keel), -4.0, 9.5, 0.0],
+		["camp", camp_eye.x, camp_eye.z, _yaw_to(camp_eye, camp), -6.0, 9.0, 0.0],
+		["camp_night", camp_eye.x, camp_eye.z, _yaw_to(camp_eye, camp), -4.0, 22.0, 0.0],
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
+		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 2.0, 17.5, 0.0],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
+		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],
 		["bluff_sunset_east", bluff.x, bluff.z, -90.0, -10.0, 19.2, 0.0],
 		["bluff_sunset_west", bluff.x, bluff.z, 100.0, 4.0, 19.2, 0.0],
 		["landmark", bluff.x, bluff.z, 0.0, -10.0, 17.0, 0.0],
+		["skyward", bluff.x, bluff.z, -60.0, 22.0, 11.0, 0.0],
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
 	]
@@ -110,7 +192,8 @@ func _scenery_steps() -> Array:
 	if "--no-glow" in args:
 		main.sky.env.glow_enabled = false
 	if "--no-grass" in args:
-		main.get_node("GrassField").visible = false
+		for n in ["GrassNear", "GrassField", "GrassFar"]:
+			main.get_node(n).visible = false
 	if "--no-foliage" in args:
 		main.foliage.visible = false
 	if "--plain-ground" in args:
@@ -126,9 +209,18 @@ func _scenery_steps() -> Array:
 		main.leader.visible = false
 	if "--no-ssao" in args:
 		main.sky.env.ssao_enabled = false
+	if "--no-ssil" in args:
+		main.sky.env.ssil_enabled = false
+	if "--no-vfog" in args:
+		main.sky.env.volumetric_fog_enabled = false
+	if "--no-grass-shadow" in args:
+		main.get_node("GrassNear").cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if "--no-far-grass" in args:
+		main.get_node("GrassField").visible = false
+		main.get_node("GrassFar").visible = false
 	for v in views:
 		steps.append(["view"] + v)
-		steps.append(["wait", 2.5])
+		steps.append(["wait", 8.0 if "--hold" in args else 2.5])
 		steps.append(["shot", v[0]])
 	steps.append(["report"])
 	return steps
@@ -191,6 +283,33 @@ func _process(delta: float) -> void:
 			main.sky._storm_hold = 999.0 if s[7] > 0.0 else 0.0
 			_log.append("view " + str(s[1]))
 			_next()
+		"walk_for":
+			_wait += delta
+			_drive_toward(_point(s[1]), 1.0, delta)
+			if _wait >= s[2]:
+				_wait = 0.0
+				_step += 1  # keep walking into the next step
+		"sidecam":
+			# A fixed camera 11 m to the side of the trail and a little ahead,
+			# looking back at the line as it passes.
+			var l: Leader = main.leader
+			var fwd := Vector3(l.velocity.x, 0, l.velocity.z).normalized()
+			if fwd.length() < 0.1 and s.size() > 1:
+				var goal := _point(s[1])
+				fwd = Vector3(goal.x - l.global_position.x, 0, goal.z - l.global_position.z).normalized()
+			if fwd.length() < 0.1:
+				fwd = l.camera_forward()
+			var side := fwd.cross(Vector3.UP)
+			var eye := l.global_position + side * 11.0 + fwd * 2.0
+			eye.y = main.terrain.height_at(eye.x, eye.z) + 1.7
+			var cam := Camera3D.new()
+			cam.fov = 50.0
+			main.add_child(cam)
+			var look := l.global_position - fwd * 7.0 + Vector3(0, 1.0, 0)
+			cam.look_at_from_position(eye, look, Vector3.UP)
+			cam.make_current()
+			main.sky.follow = cam
+			_next()
 		"clear_detour":
 			_detour = ""
 			_next()
@@ -220,6 +339,11 @@ func _watch_moments() -> void:
 		_steps.insert(saved + 4, ["clear_detour"])
 		_wait = 0.0
 		m["answered"] = true
+
+
+static func _yaw_to(from: Vector3, to: Vector3) -> float:
+	## Camera yaw (0 = north, 90 = west) that looks from ``from`` toward ``to``.
+	return rad_to_deg(atan2(-(to.x - from.x), -(to.z - from.z)))
 
 
 func _point(name: String) -> Vector3:
@@ -293,7 +417,10 @@ func _shot(name: String) -> void:
 	var img := get_viewport().get_texture().get_image()
 	var path := "%s/%02d_%s.png" % [shots_dir, _shot_n, name]
 	img.save_png(path)
-	_log.append("%.0fs shot: %s  cam pitch %.1f yaw %.1f" % [_t, path.get_file(), main.leader._pitch, main.leader._yaw])
+	var speeds := []
+	for f in main.corps.values():
+		speeds.append("%.1f" % f.ground_speed())
+	_log.append("%.1fs shot: %s  cam pitch %.1f yaw %.1f  speeds %s  lead %s" % [_t, path.get_file(), main.leader._pitch, main.leader._yaw, " ".join(speeds), main.leader.global_position.snapped(Vector3.ONE * 0.1)])
 
 
 func _report() -> void:
