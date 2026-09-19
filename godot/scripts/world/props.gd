@@ -124,7 +124,8 @@ static func smoke_column() -> GPUParticles3D:
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.vertex_color_use_as_albedo = true
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL  # so it darkens at night
+	m.disable_receive_shadows = true
 	m.albedo_texture = puff_texture()
 	quad.material = m
 	p.draw_pass_1 = quad

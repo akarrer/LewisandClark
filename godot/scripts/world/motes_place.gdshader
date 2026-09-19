@@ -42,7 +42,9 @@ void process() {
 	float low = ground + mix(0.15, 1.5, hash(vec2(i, 23.7))) + sin(TIME * 0.6 + i) * 0.25;
 	p.y = mix(p.y, low, night_amount);
 	float on_grass = step(river_clear, river);
-	float s = mix(0.6, 1.6, hash(vec2(i, 11.7))) * mix(1.0, on_grass, night_amount);
+	// Far fewer of them than there is chaff in daylight: about one in five.
+	float is_firefly = step(0.8, hash(vec2(i, 31.3)));
+	float s = mix(0.6, 1.6, hash(vec2(i, 11.7))) * mix(1.0, on_grass * is_firefly, night_amount);
 	TRANSFORM = mat4(vec4(s, 0.0, 0.0, 0.0), vec4(0.0, s, 0.0, 0.0), vec4(0.0, 0.0, s, 0.0), vec4(p, 1.0));
 	CUSTOM = vec4(hash(vec2(i, 13.1)), hash(vec2(i, 17.9)), 0.0, 0.0);
 	VELOCITY = vec3(0.0);

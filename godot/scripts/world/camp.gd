@@ -150,7 +150,9 @@ func _build_fire() -> void:
 	var squad := QuadMesh.new()
 	squad.size = Vector2(1.1, 1.1)
 	var sm := StandardMaterial3D.new()
-	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# Lit, not unshaded: smoke should be dark at night and glow by the fire.
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	sm.disable_receive_shadows = true
 	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	sm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	sm.vertex_color_use_as_albedo = true

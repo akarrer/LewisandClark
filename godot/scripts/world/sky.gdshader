@@ -101,19 +101,42 @@ void sky() {
 		float disk = smoothstep(sun_size, sun_size + 0.0003, mu);
 		col += sun_color * disk * 6.0 * (1.0 - cloud_darkness) * sun_up;
 
-		// Night: stars and a moon.
+		// Night: the prairie sky. Two grades of star, a Milky Way arching over
+		// (Cygnus high overhead in an August evening at this latitude) and its
+		// dust lanes, then the moon.
 		if (star_amount > 0.001 && up > 0.0) {
+			float clear_sky = star_amount * smoothstep(0.0, 0.2, up) * (1.0 - cloud_coverage);
 			vec2 suv = vec2(atan(dir.x, dir.z) * 160.0, asin(up) * 160.0);
+			// Bright, named stars: sparse, varied in size and colour, slow to twinkle.
 			vec2 sc = floor(suv);
 			float h = hash12(sc);
 			vec2 offs = vec2(hash12(sc + 3.1), hash12(sc + 7.9)) * 0.6 + 0.2;
-			float dot_ = smoothstep(0.12, 0.0, length(fract(suv) - offs));
-			float star = step(0.985, h) * dot_ * (0.65 + 0.35 * sin(TIME * 2.0 + h * 90.0)) * mix(0.5, 1.6, hash12(sc + 1.3));
-			col += vec3(0.9, 0.93, 1.0) * star * star_amount * smoothstep(0.0, 0.25, up) * (1.0 - cloud_coverage);
+			float d = length(fract(suv) - offs);
+			float mag = mix(0.5, 1.8, hash12(sc + 1.3));
+			float twinkle = 0.72 + 0.28 * sin(TIME * 1.7 + h * 90.0);
+			float star = step(0.985, h) * smoothstep(0.1 * mag, 0.0, d) * twinkle * mag;
+			// A few of them warm, most of them blue-white.
+			vec3 star_col = mix(vec3(0.82, 0.88, 1.0), vec3(1.0, 0.86, 0.72), step(0.7, hash12(sc + 5.7)));
+			col += star_col * star * clear_sky;
+			// Faint field: the dust of lesser stars, on a finer grid.
+			vec2 fuv = suv * 2.7;
+			vec2 fc = floor(fuv);
+			float fh = hash12(fc + 19.3);
+			float faint = step(0.955, fh) * smoothstep(0.09, 0.0, length(fract(fuv) - 0.5)) * mix(0.15, 0.5, hash12(fc + 2.2));
+			col += vec3(0.86, 0.9, 1.0) * faint * clear_sky;
+			// The Milky Way: a broad band about its own axis, curdled with dust.
+			vec3 axis = normalize(vec3(0.76, 0.16, -0.63));  // band arches near the zenith
+			float band = 1.0 - smoothstep(0.04, 0.34, abs(dot(dir, axis)));
+			float clouds_of_stars = fbm(vec2(atan(dir.x, dir.z) * 3.2, asin(up) * 4.0) + 4.0, 5);
+			float lanes = smoothstep(0.3, 0.8, clouds_of_stars);
+			col += vec3(0.62, 0.66, 0.82) * band * (0.03 + 0.045 * lanes) * clear_sky;
+			col += vec3(0.9, 0.92, 1.0) * band * faint * 2.5 * clear_sky;  // the band is thick with faint stars
 		}
+
 		float moon = smoothstep(0.99935, 0.9995, dot(dir, normalize(moon_dir)));
-		col += vec3(0.85, 0.88, 0.95) * moon * moon_amount * 1.5;
-		col += vec3(0.25, 0.3, 0.45) * pow(max(dot(dir, normalize(moon_dir)), 0.0), 40.0) * moon_amount * 0.3;
+		col += vec3(0.95, 0.94, 0.88) * moon * moon_amount * 2.2;
+		col += vec3(0.30, 0.34, 0.48) * pow(max(dot(dir, normalize(moon_dir)), 0.0), 60.0) * moon_amount * 0.35;
+		col += vec3(0.16, 0.19, 0.30) * pow(max(dot(dir, normalize(moon_dir)), 0.0), 16.0) * moon_amount * 0.07;
 	}
 
 	COLOR = col;

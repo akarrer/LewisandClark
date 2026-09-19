@@ -187,6 +187,7 @@ func _scenery_steps() -> Array:
 		["skyward", bluff.x, bluff.z, -60.0, 22.0, 11.0, 0.0],
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
+		["night_sky", bluff.x, bluff.z, 20.0, 30.0, 1.5, 0.0],
 	]
 	for a in args:
 		if a.begins_with("--only="):
