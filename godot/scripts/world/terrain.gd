@@ -267,12 +267,32 @@ func _build_mesh() -> ArrayMesh:
 	return st.commit()
 
 
+var _skirt_noise: FastNoiseLite
+
+
+func skirt_height(x: float, z: float) -> float:
+	## The country beyond the playable kilometre: edge heights carried outward,
+	## rising into hazy hills with distance. Inside the map this is height_at.
+	if _skirt_noise == null:
+		_skirt_noise = FastNoiseLite.new()
+		_skirt_noise.seed = 404
+		_skirt_noise.frequency = 1.0 / 700.0
+	var cx := clampf(x, 0.0, SIZE)
+	var cz := clampf(z, 0.0, SIZE)
+	var out := Vector2(x - cx, z - cz).length()
+	var h := height_at(cx, cz)
+	h = lerpf(h, 12.0 + _skirt_noise.get_noise_2d(x, z) * 45.0 + out * 0.012, smoothstep(0.0, 900.0, out))
+	if out > 0.0 and out < 1.0:
+		h -= 0.4  # meet the playable edge just below it
+	return h
+
+
 func _build_distant_hills(mat: Material) -> MeshInstance3D:
-	## Low-detail country beyond the map edge so the world doesn't end at 1 km:
-	## the edge heights carried outward, rising into hazy hills with distance.
-	var noise := FastNoiseLite.new()
+	## Built from skirt_height() on a coarse grid.
+	var noise := _skirt_noise if _skirt_noise != null else FastNoiseLite.new()
 	noise.seed = 404
 	noise.frequency = 1.0 / 700.0
+	_skirt_noise = noise
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var step := 64.0
@@ -283,14 +303,7 @@ func _build_distant_hills(mat: Material) -> MeshInstance3D:
 		for i in n:
 			var x := lo + i * step
 			var z := lo + j * step
-			var cx := clampf(x, 0.0, SIZE)
-			var cz := clampf(z, 0.0, SIZE)
-			var out := Vector2(x - cx, z - cz).length()
-			var h := height_at(cx, cz)
-			h = lerpf(h, 12.0 + noise.get_noise_2d(x, z) * 45.0 + out * 0.012, smoothstep(0.0, 900.0, out))
-			if out < 1.0:
-				h -= 0.4  # meet the playable edge just below it
-			verts.append(Vector3(x, h, z))
+			verts.append(Vector3(x, skirt_height(x, z), z))
 	for j in n:
 		for i in n:
 			var v := verts[j * n + i]

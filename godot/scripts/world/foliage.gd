@@ -36,6 +36,7 @@ func build(t: Terrain) -> void:
 	_scatter_groves()
 	_scatter_driftwood()
 	_scatter_sandbar()
+	_scatter_far_country()
 	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0, 0.25)
 	# Loess country has few stones: an occasional weathered boulder, mostly in the draws.
 	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0, 0.55)
@@ -287,4 +288,84 @@ func _scatter_sandbar() -> void:
 			_add("grass", tufts[rng.randi() % tufts.size()], p - Vector3(0, 0.05, 0), rng.randf_range(0.35, 0.7), Vector3.UP, 70.0)
 		elif above < 0.6 and rng.randf() < 0.75:
 			_add("rock", stones[rng.randi() % stones.size()], p - Vector3(0, 0.03, 0), rng.randf_range(0.35, 0.8), Vector3.UP, 55.0)
+
+
+func _scatter_far_country() -> void:
+	## Groves out in the country beyond the playable kilometre. Only ever a few
+	## pixels tall, so they are single blobs on a MultiMesh, unshadowed.
+	var mesh := _far_tree_mesh()
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = mesh
+	var xforms: Array[Transform3D] = []
+	var tints: Array[Color] = []
+	var far := FastNoiseLite.new()
+	far.seed = 909
+	far.frequency = 1.0 / 260.0
+	for i in 26000:
+		var x := rng.randf_range(-1700.0, Terrain.SIZE + 1700.0)
+		var z := rng.randf_range(-1700.0, Terrain.SIZE + 1700.0)
+		var out := Vector2(x - clampf(x, 0.0, Terrain.SIZE), z - clampf(z, 0.0, Terrain.SIZE)).length()
+		if out < 40.0:
+			continue  # inside the map, or hard against its edge: real trees grow there
+		# Clumped into groves and draws, thinning as the country dries out westward.
+		if far.get_noise_2d(x, z) < rng.randf_range(-0.1, 0.45):
+			continue
+		var h := terrain.skirt_height(x, z)
+		var size := rng.randf_range(6.0, 13.0) * clampf(1.4 - out / 2600.0, 0.6, 1.2)
+		var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(size * rng.randf_range(0.8, 1.2), size, size * rng.randf_range(0.8, 1.2)))
+		xforms.append(Transform3D(basis, Vector3(x, h, z)))
+		var g := rng.randf_range(-0.04, 0.05)
+		tints.append(Color(0.30 + g, 0.40 + g, 0.24 + g * 0.5))
+	mm.instance_count = xforms.size()
+	for i in xforms.size():
+		mm.set_instance_transform(i, xforms[i])
+		mm.set_instance_color(i, tints[i])
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "FarCountry"
+	mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.set_meta("kind", "far_country")
+	add_child(mmi)
+
+
+static func _far_tree_mesh() -> ArrayMesh:
+	## A crown on a stub of trunk: read as a tree at a kilometre, three dozen triangles.
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rings := 3
+	var seg := 7
+	var pts: Array = []
+	for r in rings + 1:
+		var v := float(r) / rings
+		var y := 0.35 + cos(v * PI) * -0.45 + 0.45
+		var rad := sin(v * PI) * 0.5 + 0.02
+		var row: Array = []
+		for k in seg + 1:
+			var a := TAU * k / seg
+			row.append(Vector3(cos(a) * rad, y, sin(a) * rad))
+		pts.append(row)
+	for r in rings:
+		for k in seg:
+			for v in [pts[r][k], pts[r + 1][k], pts[r + 1][k + 1], pts[r][k], pts[r + 1][k + 1], pts[r][k + 1]]:
+				st.add_vertex(v)
+	# Trunk.
+	for k in seg:
+		var a0 := TAU * k / seg
+		var a1 := TAU * (k + 1) / seg
+		var w := 0.06
+		var quad := [Vector3(cos(a0) * w, 0, sin(a0) * w), Vector3(cos(a0) * w, 0.4, sin(a0) * w),
+				Vector3(cos(a1) * w, 0.4, sin(a1) * w), Vector3(cos(a1) * w, 0, sin(a1) * w)]
+		for v in [quad[0], quad[1], quad[2], quad[0], quad[2], quad[3]]:
+			st.add_vertex(v)
+	st.generate_normals()
+	var mesh := st.commit()
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
+	m.roughness = 1.0
+	m.albedo_color = Color(1, 1, 1)
+	mesh.surface_set_material(0, m)
+	return mesh
 
