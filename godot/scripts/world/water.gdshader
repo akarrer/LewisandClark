@@ -12,6 +12,7 @@ uniform sampler2D river_tex : filter_linear, repeat_disable;  // distance to the
 uniform float map_size = 1024.0;
 uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
 global uniform vec4 sky_horizon;
+#include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
@@ -51,7 +52,7 @@ void fragment() {
 	// Lapping edge: a broken pale line where the water thins over sand.
 	float lap = smoothstep(0.35, 0.0, depth) * smoothstep(0.35, 0.65, noise(w * 1.3 + along * TIME * 0.4) * 0.6 + fine * 0.4 + sin(TIME * 1.7 + t * 0.8) * 0.1);
 	c = mix(c, foam_color, lap * 0.75);
-	ALBEDO = c;
+	ALBEDO = c * mix(1.0, cloud_light(world), 0.7);
 	ALPHA = mix(0.55, 1.0, smoothstep(0.0, 0.5, depth));
 
 	// Rougher with distance: grazing glints far off otherwise alias into sparkles that glow blows up.

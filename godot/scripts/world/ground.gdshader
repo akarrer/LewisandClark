@@ -14,6 +14,7 @@ uniform float grass_radius = 46.0;
 
 varying vec3 v_world;
 varying vec3 v_normal;
+#include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 float hash(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -95,7 +96,7 @@ void fragment() {
 	if (any(isnan(c))) {
 		c = vec3(0.25, 0.3, 0.15);
 	}
-	ALBEDO = c;
+	ALBEDO = c * cloud_light(v_world);
 	ROUGHNESS = 0.95;
 	SPECULAR = 0.2;
 }

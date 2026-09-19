@@ -191,6 +191,12 @@ func update(hour: float, delta: float) -> void:
 	var rc := horizon.lerp(Color(0.8, 0.84, 0.9), 0.35).lerp(Color.WHITE, _flash * 0.6)
 	rain_mat.albedo_color = Color(rc, 0.18)
 	# Sky colour for materials that fake reflections (the river's sheen); see [shader_globals].
+	# Cloud shadows on the land (cloud_shadow.gdshaderinc): gone at night, and under
+	# a full overcast the whole land is already in shade.
+	var coverage := lerpf(lerpf(0.42, 0.3, night), 1.0, storm)
+	RenderingServer.global_shader_parameter_set("cloud_cover", coverage)
+	RenderingServer.global_shader_parameter_set("sun_dir", sun.global_transform.basis.z)
+	RenderingServer.global_shader_parameter_set("cloud_shadow_strength", 0.55 * smoothstep(0.02, 0.2, elevation) * (1.0 - smoothstep(0.3, 0.8, storm)))
 	RenderingServer.global_shader_parameter_set("sky_horizon", horizon.lerp(zenith, 0.3))
 	# Moonlight drains colour (scotopic vision), so warm grass doesn't glow olive at night.
 	env.adjustment_saturation = lerpf(1.08, 0.5, night)

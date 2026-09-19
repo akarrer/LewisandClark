@@ -17,6 +17,7 @@ uniform float base_shade = 0.7;     // darken toward the ground (fake occlusion)
 
 varying float v_height;
 varying vec3 v_tint;
+#include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 float hash(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -46,7 +47,7 @@ void fragment() {
 	vec4 tex = texture(albedo_tex, UV);
 	vec3 c = tex.rgb * tint.rgb * v_tint;
 	c *= mix(base_shade, 1.08, smoothstep(0.0, 0.6, v_height));
-	ALBEDO = c;
+	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 	// Mip levels average leaf alpha toward the cut, so distant canopies would
 	// dissolve into bare branches; boost alpha as the mip level climbs.
 	float lod = textureQueryLod(albedo_tex, UV).x;

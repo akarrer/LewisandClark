@@ -24,6 +24,7 @@ varying float v_front;
 varying float v_hair;
 varying float v_torso;
 varying vec3 v_pos;
+#include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 void vertex() {
 	vec4 r = vec4(0.0);
@@ -91,7 +92,7 @@ void fragment() {
 	vec2 g = UV * 900.0;
 	float weave = (hash(floor(g)) - 0.5) * 0.08 + (sin(g.x * 3.14) * sin(g.y * 3.14)) * 0.03;
 	c *= 1.0 + weave * cloth;
-	ALBEDO = c;
+	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 	ROUGHNESS = mix(0.95, 0.6, r.w);
 	SPECULAR = mix(0.15, 0.35, r.w);
 	// A little light through ears and fingers.

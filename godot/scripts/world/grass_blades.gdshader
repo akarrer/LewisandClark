@@ -12,6 +12,7 @@ uniform float wind = 0.22;
 
 varying float v_t;
 varying vec3 v_col;
+#include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 void vertex() {
 	float t = UV.y;  // 0 root .. 1 tip
@@ -37,7 +38,7 @@ void vertex() {
 void fragment() {
 	vec3 c = mix(mix(root, v_col, 0.35), v_col, smoothstep(0.0, 0.5, v_t));
 	c = mix(c, v_col * 1.25 + vec3(0.05, 0.04, 0.0), smoothstep(0.75, 1.0, v_t));
-	ALBEDO = c;
+	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 	ROUGHNESS = 0.9;
 	SPECULAR = 0.15;
 	BACKLIGHT = c * 0.4;

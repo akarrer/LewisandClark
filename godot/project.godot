@@ -43,3 +43,15 @@ sky_horizon={
 "type": "color",
 "value": Color(0.68, 0.79, 0.9, 1)
 }
+cloud_cover={
+"type": "float",
+"value": 0.42
+}
+cloud_shadow_strength={
+"type": "float",
+"value": 0.0
+}
+sun_dir={
+"type": "vec3",
+"value": Vector3(0, 1, 0)
+}
