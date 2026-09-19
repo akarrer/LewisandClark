@@ -13,7 +13,8 @@ uniform float plant_height = 8.0;   // local height of the top
 uniform float flutter = 1.0;        // 0 for bark
 uniform float translucency = 0.35;  // 0 for bark
 uniform float variation = 0.12;
-uniform float base_shade = 0.7;     // darken toward the ground (fake occlusion)
+uniform float base_shade = 0.7;
+global uniform float wind_strength;     // darken toward the ground (fake occlusion)
 
 varying float v_height;
 varying vec3 v_tint;
@@ -30,10 +31,11 @@ void vertex() {
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	float h = clamp(VERTEX.y / plant_height, 0.0, 1.0);
 	float gust = sin(TIME * 0.45 + origin.x * 0.011 + origin.z * 0.008) * 0.5 + 0.5;
-	float bend = sin(TIME * 1.3 + origin.x * 0.21 + origin.z * 0.17) * (0.35 + 0.9 * gust);
-	vec3 disp = vec3(1.0, 0.0, 0.55) * bend * sway * h * h;
+	float w = clamp(wind_strength, 0.0, 4.0);
+	float bend = sin(TIME * (1.3 + w * 0.5) + origin.x * 0.21 + origin.z * 0.17) * (0.35 + 0.9 * gust);
+	vec3 disp = vec3(1.0, 0.0, 0.55) * bend * sway * w * h * h;
 	float leaf = sin(TIME * 6.5 + world.x * 1.7 + world.y * 2.3 + world.z * 1.3);
-	disp += vec3(leaf, leaf * 0.5, -leaf) * 0.035 * flutter * h * (0.5 + gust);
+	disp += vec3(leaf, leaf * 0.5, -leaf) * 0.035 * flutter * w * h * (0.5 + gust);
 	// World-space push back into local space (instances are rotated, stretched and leaning).
 	VERTEX += inverse(mat3(MODEL_MATRIX)) * disp;
 

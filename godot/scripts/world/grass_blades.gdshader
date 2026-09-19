@@ -9,6 +9,8 @@ uniform vec3 bottom_green : source_color = vec3(0.30, 0.46, 0.20);
 uniform vec3 root : source_color = vec3(0.30, 0.30, 0.16);
 uniform float floodplain_y = 1.2;
 uniform float wind = 0.22;
+global uniform float wind_strength;
+global uniform float wetness;
 
 varying float v_t;
 varying vec3 v_col;
@@ -21,7 +23,8 @@ void vertex() {
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	// Gust bands rolling across the land.
 	float band = sin(dot(world.xz, vec2(0.08, 0.05)) - TIME * 1.6) * 0.5 + 0.5;
-	float sway = (sin(TIME * 2.4 + origin.x * 0.9 + origin.z * 0.7) * 0.35 + band * 0.9) * wind * t * t;
+	float w = wind * clamp(wind_strength, 0.0, 4.0);
+	float sway = (sin(TIME * (2.4 + wind_strength) + origin.x * 0.9 + origin.z * 0.7) * 0.35 + band * 0.9) * w * t * t;
 	vec3 disp = vec3(0.8, -0.15 * band * t, 0.5) * sway;
 	mat3 m = mat3(MODEL_MATRIX);
 	float s2 = max(dot(m[0], m[0]), 0.0001);
@@ -41,8 +44,8 @@ void vertex() {
 void fragment() {
 	vec3 c = mix(mix(root, v_col, 0.35), v_col, smoothstep(0.0, 0.5, v_t));
 	c = mix(c, v_col * 1.25 + vec3(0.05, 0.04, 0.0), smoothstep(0.75, 1.0, v_t));
-	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
-	ROUGHNESS = 0.9;
+	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz) * mix(1.0, 0.78, wetness);
+	ROUGHNESS = mix(0.9, 0.55, wetness);
 	SPECULAR = 0.15;
 	BACKLIGHT = c * 0.4;
 	// Blades face up for soft, even lighting instead of flickering flat cards.

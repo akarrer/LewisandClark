@@ -11,6 +11,7 @@ uniform vec3 gold : source_color = vec3(0.72, 0.62, 0.30);
 uniform vec3 green : source_color = vec3(0.40, 0.52, 0.22);
 uniform vec3 thatch : source_color = vec3(0.30, 0.28, 0.15);
 uniform float grass_radius = 46.0;
+global uniform float wetness;
 
 varying vec3 v_world;
 varying vec3 v_normal;
@@ -105,7 +106,8 @@ void fragment() {
 	if (any(isnan(c))) {
 		c = vec3(0.25, 0.3, 0.15);
 	}
-	ALBEDO = c * cloud_light(v_world);
-	ROUGHNESS = 0.95;
-	SPECULAR = 0.2;
+	// Rain-soaked earth goes dark and glossy.
+	ALBEDO = c * cloud_light(v_world) * mix(1.0, 0.62, wetness);
+	ROUGHNESS = mix(0.95, 0.42, wetness);
+	SPECULAR = mix(0.2, 0.5, wetness);
 }
