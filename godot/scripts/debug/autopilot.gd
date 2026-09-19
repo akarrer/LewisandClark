@@ -141,6 +141,16 @@ func _scenery_steps() -> Array:
 			if found:
 				break
 		_log.append("herd at %s, viewed from %s" % [herd, herd_eye])
+	# A willow thicket on a bar, seen from the sand a few metres off.
+	var thicket := bank
+	var willows: MultiMeshInstance3D = null
+	for c in main.foliage.get_children():
+		if c is MultiMeshInstance3D and c.multimesh.instance_count > 6 and c.get_meta("kind", "") == "willow":
+			willows = c
+			break
+	if willows:
+		thicket = willows.multimesh.get_instance_transform(0).origin
+	var thicket_eye := thicket + (tr.toward_river(thicket.x, thicket.z) * 9.0).rotated(Vector3.UP, 1.1)
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -157,6 +167,7 @@ func _scenery_steps() -> Array:
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
 		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 2.0, 17.5, 0.0],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
+		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],
 		["bluff_sunset_east", bluff.x, bluff.z, -90.0, -10.0, 19.2, 0.0],

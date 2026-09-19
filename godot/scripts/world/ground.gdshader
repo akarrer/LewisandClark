@@ -89,6 +89,12 @@ void fragment() {
 	vec3 sandy = c * (0.9 + ripple * 0.2);
 	float wet = 1.0 - smoothstep(-0.2, 0.9, v_world.y + (vnoise(p * 0.5) - 0.5) * 0.4);
 	sandy = mix(sandy, sandy * vec3(0.62, 0.60, 0.58), wet * 0.85);
+	// Drift lines: dark bands of twigs and silt left where the river last stood.
+	float drift_line = smoothstep(0.06, 0.0, abs(fract(v_world.y * 1.3 + vnoise(p * 0.2) * 0.6) - 0.5) - 0.44);
+	sandy *= 1.0 - drift_line * 0.25 * smoothstep(0.2, 0.8, vnoise(p * 1.1));
+	// Fine grain up close: coarser sand and silt in soft flecks.
+	float grain = vnoise(p * 7.0) * 0.6 + vnoise(p * 19.0) * 0.4;
+	sandy *= 1.0 + (grain - 0.5) * 0.16 * (1.0 - smoothstep(4.0, 20.0, length(v_world - CAMERA_POSITION_WORLD)));
 	c = mix(c, sandy, sand);
 
 	c *= 1.0 + (n - 0.5) * mottle * 2.0;
