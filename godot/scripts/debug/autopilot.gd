@@ -36,6 +36,9 @@ func begin(p_main) -> void:
 	if "--scenery" in OS.get_cmdline_user_args():
 		_steps = _scenery_steps()
 		return
+	if "--march" in OS.get_cmdline_user_args():
+		_steps = _march_steps()
+		return
 	_steps = [
 		["wait", 3.0], ["shot", "start"],
 		["walk_to", "prairie_dog_town", 6.0], ["wait", 7.5], ["shot", "prairie_dogs"],
@@ -43,6 +46,20 @@ func begin(p_main) -> void:
 		["walk_to", "council_bluff", 4.0], ["interact"], ["wait", 1.0], ["face_river"], ["wait", 1.2], ["shot", "council_bluff_overlook"],
 		["report"],
 	]
+
+
+func _march_steps() -> Array:
+	## The Corps on the move, filmed from beside the trail: for judging gait and pace.
+	main.director.cadence_min = 1e9
+	main.director.cadence_max = 1e9
+	main.director._schedule()
+	main.hud.visible = false
+	var steps: Array = [["wait", 2.0], ["walk_for", "prairie_dog_town", 9.0], ["sidecam"]]
+	for i in 6:
+		steps.append(["walk_for", "prairie_dog_town", 0.7])
+		steps.append(["shot", "march"])
+	steps.append(["report"])
+	return steps
 
 
 func _scenery_steps() -> Array:
@@ -204,6 +221,30 @@ func _process(delta: float) -> void:
 			main.sky.storm = s[7]
 			main.sky._storm_hold = 999.0 if s[7] > 0.0 else 0.0
 			_log.append("view " + str(s[1]))
+			_next()
+		"walk_for":
+			_wait += delta
+			_drive_toward(_point(s[1]), 1.0, delta)
+			if _wait >= s[2]:
+				_wait = 0.0
+				_step += 1  # keep walking into the next step
+		"sidecam":
+			# A fixed camera 11 m to the side of the trail and a little ahead,
+			# looking back at the line as it passes.
+			var l: Leader = main.leader
+			var fwd := Vector3(l.velocity.x, 0, l.velocity.z).normalized()
+			if fwd.length() < 0.1:
+				fwd = l.camera_forward()
+			var side := fwd.cross(Vector3.UP)
+			var eye := l.global_position + side * 11.0 + fwd * 2.0
+			eye.y = main.terrain.height_at(eye.x, eye.z) + 1.7
+			var cam := Camera3D.new()
+			cam.fov = 50.0
+			main.add_child(cam)
+			var look := l.global_position - fwd * 7.0 + Vector3(0, 1.0, 0)
+			cam.look_at_from_position(eye, look, Vector3.UP)
+			cam.make_current()
+			main.sky.follow = cam
 			_next()
 		"clear_detour":
 			_detour = ""

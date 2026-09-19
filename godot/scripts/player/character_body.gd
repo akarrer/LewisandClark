@@ -16,6 +16,16 @@ var anim: AnimationPlayer
 var _current_anim := ""
 var _face_dir := Vector3.FORWARD
 
+## Each person's own way of moving, fixed per key (see _init_gait): stride length
+## sets cadence (long legs step slower), height scales the body, phase keeps
+## their walk cycle out of step with everyone else's.
+var stride := 1.0
+var height := 1.0
+var phase := 0.0
+var gait_rng := RandomNumberGenerator.new()
+## Build overrides: York was described as a tall, strongly built man.
+const BUILDS := {"york": {"height": 1.07, "stride": 1.1}, "lewis": {"height": 1.02}}
+
 ## Period dress per person for outfit.gdshader (placeholder until commissioned models).
 ## Unlisted keys get the enlisted man's kit in their own coat colour.
 const OUTFITS := {
@@ -47,7 +57,9 @@ func _ready() -> void:
 
 	model = (load(LIBRARY) as PackedScene).instantiate()
 	add_child(model)
+	_init_gait()
 	model.rotation.y = PI  # the mannequin faces +Z; start facing north (-Z)
+	model.scale = Vector3.ONE * height
 	anim = model.find_children("*", "AnimationPlayer", true, false)[0]
 	var mesh: MeshInstance3D = model.find_children("*", "MeshInstance3D", true, false)[0]
 	var outfit := _outfit_material()
@@ -131,9 +143,19 @@ func _add_hat(skeleton: Skeleton3D) -> void:
 	attach.add_child(crown)
 
 
+func _init_gait() -> void:
+	gait_rng.seed = hash(key)
+	var build: Dictionary = BUILDS.get(key, {})
+	height = build.get("height", gait_rng.randf_range(0.95, 1.04))
+	stride = build.get("stride", gait_rng.randf_range(0.86, 1.14) * lerpf(1.0, height, 0.8))
+	phase = gait_rng.randf()
+
+
 func play(name: String, blend := 0.25) -> void:
 	if name != _current_anim and anim.has_animation(name):
 		anim.play(name, blend)
+		# Start each cycle at this person's own point, so no two stride in step.
+		anim.seek(fposmod(phase + Time.get_ticks_msec() * 0.0007, 1.0) * anim.current_animation_length, false)
 		_current_anim = name
 
 
@@ -155,15 +177,15 @@ func apply_locomotion(move_velocity: Vector3, delta: float) -> void:
 	if speed < 0.25:
 		play("Idle")
 		anim.speed_scale = 1.0
-	elif speed < 2.4:
+	elif speed < 2.4 * stride:
 		play("Walk")
-		anim.speed_scale = speed / 1.6
-	elif speed < 5.0:
+		anim.speed_scale = speed / (1.6 * stride)
+	elif speed < 5.0 * stride:
 		play("Jog_Fwd")
-		anim.speed_scale = speed / 3.8
+		anim.speed_scale = speed / (3.8 * stride)
 	else:
 		play("Sprint")
-		anim.speed_scale = speed / 6.0
+		anim.speed_scale = speed / (6.0 * stride)
 
 
 func ground_speed() -> float:
