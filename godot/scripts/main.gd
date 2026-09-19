@@ -215,7 +215,13 @@ func _run_moment(delta: float) -> void:
 		_moment = {}
 
 
+## Off while the autopilot frames scenery shots, so no speech marks float in them.
+var barks_enabled := true
+
+
 func _bark(speaker: String, secs: float) -> void:
+	if not barks_enabled:
+		return
 	for f in corps.values():
 		if f.display_name == speaker:
 			var label := Label3D.new()

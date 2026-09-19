@@ -36,9 +36,9 @@ func build(t: Terrain) -> void:
 	_scatter_groves()
 	_scatter_driftwood()
 	_scatter_sandbar()
-	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0)
+	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0, 0.25)
 	# Loess country has few stones: an occasional weathered boulder, mostly in the draws.
-	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0)
+	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0, 0.55)
 	# The GPU grass field carries the prairie; these taller clumps and flowers are accents.
 	_scatter("grass", ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"], 30000, 0.4, 0.72, _grass_ok, 60.0)
 	_scatter("flowers", ["flower_group_1", "flower_single_1", "flower_group_2", "clover_1"], 9000, 0.35, 0.6, _flower_ok, 70.0)
@@ -134,12 +134,14 @@ func _random_point() -> Vector3:
 	return Vector3(x, terrain.height_at(x, z), z)
 
 
-func _scatter(kind: String, variants: Array, attempts: int, smin: float, smax: float, ok: Callable, visibility: float) -> void:
+func _scatter(kind: String, variants: Array, attempts: int, smin: float, smax: float, ok: Callable, visibility: float, sink := 0.05) -> void:
 	for i in attempts:
 		var p := _random_point()
 		if ok.call(p):
 			var n := terrain.normal_at(p.x, p.z)
-			_add(kind, variants[rng.randi() % variants.size()], p - Vector3(0, 0.05, 0), rng.randf_range(smin, smax), n, visibility)
+			var scale := rng.randf_range(smin, smax)
+			# Tilting to the slope lifts a model off its base, so bed it in by its size.
+			_add(kind, variants[rng.randi() % variants.size()], p - Vector3(0, sink * scale, 0), scale, n, visibility)
 
 
 func _dist_to_river(p: Vector3) -> float:

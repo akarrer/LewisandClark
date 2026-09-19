@@ -76,6 +76,7 @@ func _scenery_steps() -> Array:
 	main.director._schedule()
 	main.hud.visible = false
 	main.leader.input_enabled = false
+	main.barks_enabled = false
 	var tr: Terrain = main.terrain
 	# Stand beside the flag, not on it, so the pole doesn't split the frame.
 	var bluff: Vector3 = tr.points["council_bluff"] + Vector3(0, 0, 8)
