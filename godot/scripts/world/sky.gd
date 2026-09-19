@@ -204,6 +204,7 @@ func update(hour: float, delta: float) -> void:
 	var coverage := lerpf(lerpf(0.42, 0.3, night), 1.0, storm)
 	# Wind the plants lean into: a breathing prairie breeze, half a gale in a storm.
 	var gust := 1.0 + 0.35 * sin(Time.get_ticks_msec() / 1000.0 * 0.11) + storm * 2.6
+	RenderingServer.global_shader_parameter_set("night_amount", night)
 	RenderingServer.global_shader_parameter_set("wind_strength", gust)
 	# Ground and plants darken and gleam as the rain soaks in, drying slowly after.
 	_wet = move_toward(_wet, clampf(storm * 1.4, 0.0, 1.0), delta / (4.0 if storm > 0.3 else 90.0))

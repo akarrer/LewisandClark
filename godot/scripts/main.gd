@@ -40,6 +40,10 @@ func _ready() -> void:
 	sky.follow = leader.camera
 	for grass in GrassField.fields(terrain, leader.camera):
 		add_child(grass)
+	var motes := Motes.new()
+	motes.build()
+	motes.follow = leader.camera
+	add_child(motes)
 
 	director = TrailMomentDirector.new(TrailMomentDirector.load_defs("res://data/trail_moments.json"))
 	state.journal_added.connect(hud.toast)

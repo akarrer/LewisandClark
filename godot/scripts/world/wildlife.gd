@@ -11,6 +11,7 @@ const DEER := Color(0.62, 0.44, 0.28)
 var terrain: Terrain
 var watch: Node3D  # the Leader
 var _animals: Array[Dictionary] = []
+var _flocks: Array[Dictionary] = []
 var _rng := RandomNumberGenerator.new()
 
 
@@ -21,6 +22,7 @@ static func populate(t: Terrain, leader: Node3D) -> Wildlife:
 	w.watch = leader
 	w._rng.seed = 1804
 	w._place_herds()
+	w._place_flocks()
 	return w
 
 
@@ -71,6 +73,7 @@ func _add(animal: Node3D, p: Vector3, size: float) -> void:
 
 func _process(delta: float) -> void:
 	var t := Time.get_ticks_msec() / 1000.0
+	_fly(delta, t)
 	var leader := watch.global_position if watch else Vector3.INF
 	for a in _animals:
 		var n: Node3D = a["node"]
@@ -163,3 +166,66 @@ static func _blob(size: Vector3, color: Color, pos: Vector3) -> MeshInstance3D:
 	mi.position = pos
 	mi.material_override = Props.mat(color)
 	return mi
+
+
+# ---------------------------------------------------------------- birds
+
+
+func _place_flocks() -> void:
+	## Birds wheeling over the river and the bluffs: too far off to identify,
+	## which is what you see of them from the ground.
+	for f in 3:
+		var centre := Vector3(_rng.randf_range(200, 800), 0, _rng.randf_range(200, 800))
+		centre.y = terrain.height_at(centre.x, centre.z) + _rng.randf_range(40, 90)
+		var flock := Node3D.new()
+		flock.name = "Flock%d" % f
+		add_child(flock)
+		var birds: Array[Node3D] = []
+		for i in _rng.randi_range(7, 14):
+			var b := _bird(Color(0.12, 0.11, 0.10) if f % 2 == 0 else Color(0.35, 0.33, 0.30))
+			b.position = Vector3(_rng.randf_range(-22, 22), _rng.randf_range(-6, 6), _rng.randf_range(-22, 22))
+			flock.add_child(b)
+			birds.append(b)
+		_flocks.append({
+			"node": flock, "centre": centre, "radius": _rng.randf_range(60, 130),
+			"speed": _rng.randf_range(0.05, 0.11), "phase": _rng.randf() * TAU, "birds": birds,
+		})
+
+
+func _fly(delta: float, t: float) -> void:
+	for f in _flocks:
+		var node: Node3D = f["node"]
+		var a: float = f["phase"] + t * float(f["speed"])
+		var r: float = f["radius"] * (0.8 + 0.2 * sin(t * 0.07 + float(f["phase"])))
+		var centre: Vector3 = f["centre"]
+		node.position = centre + Vector3(cos(a) * r, sin(t * 0.09 + float(f["phase"])) * 8.0, sin(a) * r)
+		node.rotation.y = -a  # lead with the beak, banking into the turn
+		node.rotation.z = sin(t * 0.09 + float(f["phase"])) * 0.25
+		var i := 0
+		for b in f["birds"]:
+			i += 1
+			# Each bird flaps at its own rate, with glides between.
+			var flap := sin(t * (5.5 + float(i % 5) * 0.7) + float(i))
+			var beat := maxf(flap, -0.3) * 0.5
+			b.get_node("L").rotation.z = beat
+			b.get_node("R").rotation.z = -beat
+			b.position.y += sin(t * 0.8 + float(i)) * delta * 0.4
+
+
+static func _bird(colour: Color) -> Node3D:
+	## Two swept wings and a body: a silhouette, seen from below at a distance.
+	var b := Node3D.new()
+	b.add_child(Props.box(Vector3(0.18, 0.14, 0.75), colour, Vector3(0, 0, 0)))
+	for side in [["L", 1.0], ["R", -1.0]]:
+		var pivot := Node3D.new()
+		pivot.name = side[0]
+		b.add_child(pivot)
+		var wing := Props.box(Vector3(1.05, 0.04, 0.34), colour, Vector3(float(side[1]) * 0.55, 0, -0.05))
+		wing.rotation_degrees.y = float(side[1]) * -14.0  # swept back
+		pivot.add_child(wing)
+	for c in b.find_children("*", "GeometryInstance3D", true, false):
+		var g := c as GeometryInstance3D
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		g.visibility_range_end = 500.0
+	return b
+

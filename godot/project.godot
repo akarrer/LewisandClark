@@ -63,3 +63,7 @@ wetness={
 "type": "float",
 "value": 0.0
 }
+night_amount={
+"type": "float",
+"value": 0.0
+}
