@@ -94,6 +94,18 @@ _Avoid_: random encounter
 A small story beat that plays out while the Corps keeps walking — a Companion's remark, a change in the world, something glimpsed — never pausing play or forcing a choice; engaging with it can grow it into an Encounter or Scenario.
 _Avoid_: micro-event, ambient event, bark
 
+**Opening**:
+The short in-engine sequence that follows New Expedition, hooking the player and handing them control at Council Bluff while the narration finishes.
+_Avoid_: intro, cinematic, cold open
+
+**Prologue**:
+The optional painted, narrated history of how the expedition came to be, started from the title menu.
+_Avoid_: backstory, lore
+
+**Cutscene**:
+A data-driven sequence of camera shots, narration, and cards played by the director; the Opening and staged Scenario moments are Cutscenes.
+_Avoid_: cinematic, movie
+
 **Encounter**:
 Something visible in the world the Leader can approach or avoid — wildlife, a trader, a hunting party.
 _Avoid_: mob, spawn
