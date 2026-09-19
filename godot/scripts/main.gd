@@ -35,6 +35,7 @@ func _ready() -> void:
 	add_child(hud)
 
 	_spawn_corps()
+	add_child(Wildlife.populate(terrain, leader))
 	_place_world_features()
 	sky.follow = leader.camera
 	for grass in GrassField.fields(terrain, leader.camera):

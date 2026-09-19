@@ -112,6 +112,28 @@ func _scenery_steps() -> Array:
 			if tr.walkable(quay.x, quay.z):
 				break
 		quay += inland * 3.0 + Vector3(-inland.z, 0, inland.x) * 9.0
+	# 130 m downhill of the first elk herd, looking up at it.
+	var herd := start
+	var herd_eye := start
+	if main.has_node("Wildlife") and main.get_node("Wildlife").get_child_count() > 0:
+		herd = main.get_node("Wildlife").get_child(0).position
+		var space: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
+		var target := herd + Vector3(0, 1.2, 0)
+		for r in range(70, 30, -10):
+			var found := false
+			for k in 24:
+				var ang := k * TAU / 24.0
+				var e := herd + Vector3(cos(ang), 0, sin(ang)) * r
+				if not tr.walkable(e.x, e.z):
+					continue
+				var eye := Vector3(e.x, tr.height_at(e.x, e.z) + 2.5, e.z)
+				if space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, target)).is_empty():
+					herd_eye = e
+					found = true
+					break
+			if found:
+				break
+		_log.append("herd at %s, viewed from %s" % [herd, herd_eye])
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -126,6 +148,7 @@ func _scenery_steps() -> Array:
 		["landing", start.x, start.z, _yaw_to(start, main.get_node("Fleet").get_child(0).global_position if main.has_node("Fleet") else start) , -6.0, 8.5, 0.0],
 		["keelboat", quay.x, quay.z, _yaw_to(quay, keel), -4.0, 9.5, 0.0],
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
+		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 2.0, 17.5, 0.0],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],
