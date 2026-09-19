@@ -52,6 +52,10 @@ func _ready() -> void:
 	shape.shape = capsule
 	shape.position.y = 0.9
 	add_child(shape)
+	# The Corps walk through one another rather than shoving (layer 2, colliding
+	# only with the world on layer 1), so a man standing still never blocks the Leader.
+	collision_layer = 2
+	collision_mask = 1
 	floor_snap_length = 0.6
 	floor_max_angle = deg_to_rad(52.0)
 

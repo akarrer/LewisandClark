@@ -55,8 +55,15 @@ func _march_steps() -> Array:
 	main.director._schedule()
 	main.hud.visible = false
 	var steps: Array = [["wait", 2.0], ["walk_for", "prairie_dog_town", 9.0], ["sidecam"]]
-	for i in 6:
-		steps.append(["walk_for", "prairie_dog_town", 0.7])
+	var frames := 6
+	var every := 0.7
+	if "--stepoff" in OS.get_cmdline_user_args():
+		# From a halt: watch each man step off in his own time.
+		steps = [["walk_for", "prairie_dog_town", 6.0], ["wait", 4.0], ["sidecam", "prairie_dog_town"], ["shot", "halt"]]
+		frames = 8
+		every = 0.35
+	for i in frames:
+		steps.append(["walk_for", "prairie_dog_town", every])
 		steps.append(["shot", "march"])
 	steps.append(["report"])
 	return steps
@@ -266,6 +273,9 @@ func _process(delta: float) -> void:
 			# looking back at the line as it passes.
 			var l: Leader = main.leader
 			var fwd := Vector3(l.velocity.x, 0, l.velocity.z).normalized()
+			if fwd.length() < 0.1 and s.size() > 1:
+				var goal := _point(s[1])
+				fwd = Vector3(goal.x - l.global_position.x, 0, goal.z - l.global_position.z).normalized()
 			if fwd.length() < 0.1:
 				fwd = l.camera_forward()
 			var side := fwd.cross(Vector3.UP)
@@ -386,7 +396,10 @@ func _shot(name: String) -> void:
 	var img := get_viewport().get_texture().get_image()
 	var path := "%s/%02d_%s.png" % [shots_dir, _shot_n, name]
 	img.save_png(path)
-	_log.append("%.0fs shot: %s  cam pitch %.1f yaw %.1f" % [_t, path.get_file(), main.leader._pitch, main.leader._yaw])
+	var speeds := []
+	for f in main.corps.values():
+		speeds.append("%.1f" % f.ground_speed())
+	_log.append("%.1fs shot: %s  cam pitch %.1f yaw %.1f  speeds %s  lead %s" % [_t, path.get_file(), main.leader._pitch, main.leader._yaw, " ".join(speeds), main.leader.global_position.snapped(Vector3.ONE * 0.1)])
 
 
 func _report() -> void:

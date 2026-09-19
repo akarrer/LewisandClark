@@ -17,6 +17,11 @@ var _accel := 4.0
 var _slack := 0.6
 var _seed := 0.0
 var _velocity := Vector3.ZERO
+# Stepping off: after a halt, each man takes a moment of his own to notice the
+# Leader has moved on before he follows (freshly rolled every time).
+var _react := 0.6
+var _leader_moving := false
+var _hold := 0.0
 
 
 func _ready() -> void:
@@ -28,12 +33,19 @@ func _ready() -> void:
 	_accel = gait_rng.randf_range(2.5, 6.0)
 	_slack = gait_rng.randf_range(0.4, 1.1)
 	_seed = gait_rng.randf() * 100.0
+	_react = gait_rng.randf_range(0.25, 0.65)
 
 
 func _physics_process(delta: float) -> void:
 	if leader == null:
 		return
 	var t := Time.get_ticks_msec() / 1000.0
+	var moving := leader.ground_speed() > 0.3
+	if moving and not _leader_moving and _velocity.length() < 0.3:
+		# Those further back react later (they see the man in front move first).
+		_hold = _react * gait_rng.randf_range(0.6, 1.5) + place * 0.07
+	_leader_moving = moving
+	_hold = maxf(_hold - delta, 0.0)
 	# The line stretches and bunches: each keeps a gap of their own that drifts.
 	var gap := place * SPACING + _gap + sin(t * 0.11 + _seed) * _gap_drift + sin(t * 0.37 + _seed * 2.0) * 0.3 * _gap_drift
 	var target := _trail_point(maxf(gap, 1.2))
@@ -54,7 +66,7 @@ func _physics_process(delta: float) -> void:
 	to.y = 0.0
 	var dist := to.length()
 	var desired := Vector3.ZERO
-	if dist > _slack:
+	if dist > _slack and _hold <= 0.0:
 		desired = to.normalized() * clampf(dist * _gain, 0.0, Leader.SPRINT * 1.05)
 	# Ease into and out of pace rather than matching the Leader instantly.
 	_velocity = _velocity.move_toward(desired, _accel * delta)
