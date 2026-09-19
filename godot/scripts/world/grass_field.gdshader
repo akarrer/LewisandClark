@@ -18,6 +18,7 @@ uniform vec2 camp = vec2(-1000.0);  // trampled ground around the camp
 uniform float camp_radius = 9.0;
 uniform vec2 trace_a = vec2(-1000.0);
 uniform vec2 trace_b = vec2(-1000.0);
+uniform vec2 trace_c = vec2(-1000.0);
 uniform float trace_width = 1.5;
 uniform bool fade_out = true;
 
@@ -38,6 +39,16 @@ float vnoise(vec2 p) {
 float grass_patch(vec2 p) {
 	return smoothstep(0.25, 0.75, vnoise(p / 9.0) * 0.65 + vnoise(p / 2.3) * 0.35);
 }
+
+// Distance from p to the path a -> b -> c (the trodden way between places).
+float trace_dist(vec2 p, vec2 a, vec2 b, vec2 c) {
+	vec2 ab = b - a;
+	vec2 bc = c - b;
+	float t1 = clamp(dot(p - a, ab) / max(dot(ab, ab), 0.0001), 0.0, 1.0);
+	float t2 = clamp(dot(p - b, bc) / max(dot(bc, bc), 0.0001), 0.0, 1.0);
+	return min(distance(p, a + ab * t1), distance(p, b + bc * t2));
+}
+
 
 void start() {
 	ACTIVE = true;
@@ -66,7 +77,7 @@ void process() {
 			* (fade_out ? 1.0 - smoothstep(max_dist * 0.7, max_dist, d) : step(d, max_dist))
 			* step(min_dist, d)
 			* smoothstep(camp_radius * 0.55, camp_radius, distance(p, camp))
-			* smoothstep(trace_width * 0.5, trace_width, distance(p, trace_a + (trace_b - trace_a) * clamp(dot(p - trace_a, trace_b - trace_a) / max(dot(trace_b - trace_a, trace_b - trace_a), 0.0001), 0.0, 1.0)))
+			* smoothstep(trace_width * 0.5, trace_width, trace_dist(p, trace_a, trace_b, trace_c))
 			* step(0.08, patch * 0.5 + hash(c + 3.3) * 0.5);
 	// Thin patches are short, sparse grass rather than bare ground.
 	float s = keep * mix(0.6, 1.2, hash(c + 5.1)) * mix(0.8, 1.2, patch) * clump_scale;

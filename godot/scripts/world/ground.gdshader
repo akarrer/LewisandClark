@@ -15,6 +15,7 @@ uniform vec2 camp = vec2(-1000.0);   // ground worn bare around the fire
 uniform float camp_radius = 9.0;
 uniform vec2 trace_a = vec2(-1000.0);  // a path worn between two places
 uniform vec2 trace_b = vec2(-1000.0);
+uniform vec2 trace_c = vec2(-1000.0);
 uniform float trace_width = 1.5;
 global uniform float wetness;
 
@@ -40,6 +41,16 @@ float vnoise(vec2 p) {
 float grass_patch(vec2 p) {
 	return smoothstep(0.25, 0.75, vnoise(p / 9.0) * 0.65 + vnoise(p / 2.3) * 0.35);
 }
+
+// Distance from p to the path a -> b -> c (the trodden way between places).
+float trace_dist(vec2 p, vec2 a, vec2 b, vec2 c) {
+	vec2 ab = b - a;
+	vec2 bc = c - b;
+	float t1 = clamp(dot(p - a, ab) / max(dot(ab, ab), 0.0001), 0.0, 1.0);
+	float t2 = clamp(dot(p - b, bc) / max(dot(bc, bc), 0.0001), 0.0, 1.0);
+	return min(distance(p, a + ab * t1), distance(p, b + bc * t2));
+}
+
 
 void vertex() {
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -105,9 +116,7 @@ void fragment() {
 
 	// Trampled ground: the grass is worn off around a camp and along the path
 	// between the camp and the boats, the earth beaten bare.
-	vec2 ab = trace_b - trace_a;
-	float along_t = clamp(dot(p - trace_a, ab) / max(dot(ab, ab), 0.0001), 0.0, 1.0);
-	float to_path = distance(p, trace_a + ab * along_t) + (vnoise(p * 0.8) - 0.5) * 1.2;
+	float to_path = trace_dist(p, trace_a, trace_b, trace_c) + (vnoise(p * 0.8) - 0.5) * 1.2;
 	float worn = 1.0 - smoothstep(camp_radius * 0.5, camp_radius, distance(p, camp) + (vnoise(p * 0.6) - 0.5) * 2.0);
 	worn = max(worn, 1.0 - smoothstep(trace_width * 0.5, trace_width, to_path));
 	c = mix(c, pow(vec3(0.38, 0.31, 0.23), vec3(2.2)) * (0.85 + vnoise(p * 3.0) * 0.3), worn * prairie * 0.9);

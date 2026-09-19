@@ -59,6 +59,8 @@ func build(terrain: Terrain, min_dist := 0.0, shadows := false, blades := 8, wid
 	var edge: Vector3 = terrain.points.get("landing_edge", camp)
 	pm.set_shader_parameter("trace_a", Vector2(camp.x, camp.z))
 	pm.set_shader_parameter("trace_b", Vector2(edge.x, edge.z))
+	var bluff: Vector3 = terrain.points.get("council_bluff", edge)
+	pm.set_shader_parameter("trace_c", Vector2(bluff.x, bluff.z))
 	pm.set_shader_parameter("fade_out", r_is_last(min_dist))  # inner rings hand off with a hard edge
 	process_material = pm
 

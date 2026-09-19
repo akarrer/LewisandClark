@@ -46,6 +46,8 @@ func build() -> void:
 	var edge: Vector3 = points.get("landing_edge", camp)
 	mat.set_shader_parameter("trace_a", Vector2(camp.x, camp.z))
 	mat.set_shader_parameter("trace_b", Vector2(edge.x, edge.z))
+	var bluff: Vector3 = points.get("council_bluff", edge)
+	mat.set_shader_parameter("trace_c", Vector2(bluff.x, bluff.z))
 	mi.material_override = mat
 	add_child(mi)
 	add_child(_build_distant_hills(mat))
@@ -342,9 +344,11 @@ func _build_distant_hills(mat: Material) -> MeshInstance3D:
 
 func _build_water() -> MeshInstance3D:
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(SIZE * 5.0, SIZE * 5.0)
-	plane.subdivide_width = 8
-	plane.subdivide_depth = 8
+	# Big enough to run past the map edge, fine enough for the swells to show:
+	# ~3 m between vertices against a 11 m wave (see water.gdshader).
+	plane.size = Vector2(SIZE * 1.6, SIZE * 1.6)
+	plane.subdivide_width = 520
+	plane.subdivide_depth = 520
 	var mi := MeshInstance3D.new()
 	mi.name = "Missouri"
 	mi.mesh = plane
