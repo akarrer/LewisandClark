@@ -70,13 +70,17 @@ func _scenery_steps() -> Array:
 			if tr.walkable(gx, gz) and d < best:
 				best = d
 				grove = Vector3(gx, 0, gz)
-	for f in main.corps.values():
-		if f != main.leader:
-			f.visible = false
-			f.process_mode = Node.PROCESS_MODE_DISABLED
+	var args := OS.get_cmdline_user_args()
+	if not "--corps" in args:
+		for f in main.corps.values():
+			if f != main.leader:
+				f.visible = false
+				f.process_mode = Node.PROCESS_MODE_DISABLED
 	# name, x, z, yaw (0 = north, 90 = west, -90 = east), pitch, hour, storm
 	var views := [
 		["river_morning", start.x, start.z, 5.0, -6.0, 7.5, 0.0],
+		# Facing the Leader (who faces north at the start); with --corps, the Corps behind.
+		["portrait", start.x, start.z, 180.0, -4.0, 9.0, 0.0],
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],
@@ -86,7 +90,6 @@ func _scenery_steps() -> Array:
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
 	]
-	var args := OS.get_cmdline_user_args()
 	for a in args:
 		if a.begins_with("--only="):
 			views = views.filter(func(v): return v[0] == a.substr(7))

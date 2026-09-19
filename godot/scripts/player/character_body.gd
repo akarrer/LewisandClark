@@ -16,6 +16,16 @@ var anim: AnimationPlayer
 var _current_anim := ""
 var _face_dir := Vector3.FORWARD
 
+## Period dress per person for outfit.gdshader (placeholder until commissioned models).
+## Unlisted keys get the enlisted man's kit in their own coat colour.
+const OUTFITS := {
+	"lewis": {"hair": Color(0.36, 0.25, 0.15), "coat": Color(0.13, 0.17, 0.30), "facing": Color(0.55, 0.13, 0.11), "breeches": Color(0.72, 0.64, 0.46), "legs": Color(0.10, 0.08, 0.07)},
+	"clark": {"hair": Color(0.55, 0.26, 0.12), "facing": Color(0.30, 0.22, 0.14), "waistcoat": Color(0.70, 0.62, 0.48), "legs": Color(0.36, 0.27, 0.18), "skin": Color(0.84, 0.64, 0.52)},
+	"york": {"hair": Color(0.08, 0.06, 0.05), "facing": Color(0.22, 0.17, 0.13), "breeches": Color(0.34, 0.30, 0.24), "legs": Color(0.24, 0.18, 0.13), "skin": Color(0.30, 0.20, 0.15)},
+	"drouillard": {"hair": Color(0.07, 0.06, 0.05), "facing": Color(0.52, 0.40, 0.27), "waistcoat": null, "breeches": Color(0.50, 0.40, 0.27), "legs": Color(0.46, 0.36, 0.24), "skin": Color(0.62, 0.45, 0.33)},
+	"messenger": {"hair": Color(0.05, 0.05, 0.05), "facing": Color(0.62, 0.18, 0.14), "waistcoat": null, "stock": null, "breeches": Color(0.48, 0.38, 0.26), "legs": Color(0.44, 0.34, 0.23), "skin": Color(0.58, 0.40, 0.29)},
+}
+
 
 func setup(p_key: String, p_name: String, p_coat: Color, p_hat := true) -> void:
 	key = p_key
@@ -40,18 +50,33 @@ func _ready() -> void:
 	model.rotation.y = PI  # the mannequin faces +Z; start facing north (-Z)
 	anim = model.find_children("*", "AnimationPlayer", true, false)[0]
 	var mesh: MeshInstance3D = model.find_children("*", "MeshInstance3D", true, false)[0]
-	var body_mat := StandardMaterial3D.new()
-	body_mat.albedo_color = coat
-	body_mat.roughness = 0.9
-	var joint_mat := StandardMaterial3D.new()
-	joint_mat.albedo_color = coat.darkened(0.45)
-	joint_mat.roughness = 0.9
-	mesh.set_surface_override_material(0, body_mat)
-	if mesh.mesh.get_surface_count() > 1:
-		mesh.set_surface_override_material(1, joint_mat)
+	var outfit := _outfit_material()
+	for s in mesh.mesh.get_surface_count():
+		mesh.set_surface_override_material(s, outfit)
 	if hat:
 		_add_hat(model.find_children("*", "Skeleton3D", true, false)[0])
 	play("Idle")
+
+
+func _outfit_material() -> ShaderMaterial:
+	var o: Dictionary = OUTFITS.get(key, OUTFITS["messenger"] if key.begins_with("messenger") else {})
+	var skin: Color = o.get("skin", Color(0.82, 0.63, 0.51))
+	var m := ShaderMaterial.new()
+	m.shader = preload("res://scripts/player/outfit.gdshader")
+	m.set_shader_parameter("coat", o.get("coat", coat))
+	m.set_shader_parameter("facing", o.get("facing", coat.darkened(0.35)))
+	m.set_shader_parameter("breeches", o.get("breeches", Color(0.52, 0.43, 0.30)))
+	m.set_shader_parameter("legs", o.get("legs", Color(0.32, 0.25, 0.17)))
+	m.set_shader_parameter("skin", skin)
+	m.set_shader_parameter("hair", o.get("hair", Color(0.28, 0.19, 0.12)))
+	# null means "none": no waistcoat under a hunting shirt, bare throat instead of a stock.
+	var vest = o.get("waistcoat", Color(0.80, 0.76, 0.66))
+	m.set_shader_parameter("has_waistcoat", 0.0 if vest == null else 1.0)
+	if vest != null:
+		m.set_shader_parameter("waistcoat", vest)
+	var stock = o.get("stock", Color(0.88, 0.86, 0.80))
+	m.set_shader_parameter("stock", skin if stock == null else stock)
+	return m
 
 
 func _add_hat(skeleton: Skeleton3D) -> void:
