@@ -57,12 +57,13 @@ void fragment() {
 
 	// Rougher with distance: grazing glints far off otherwise alias into sparkles that glow blows up.
 	float dist = length(VERTEX);
-	ROUGHNESS = mix(0.3, 0.85, smoothstep(30.0, 250.0, dist)) + streak * 0.1 + lap * 0.4;
-	// Silt-laden water is mostly diffuse; the sky's sheen comes from the emission below.
-	SPECULAR = mix(0.22, 0.06, smoothstep(30.0, 250.0, dist));
+	// Smooth enough for SSR to mirror the banks, broken up by the current streaks.
+	ROUGHNESS = mix(0.12, 0.45, smoothstep(60.0, 400.0, dist)) + streak * 0.08 + lap * 0.5;
+	// Silt-laden water: the mirror only shows at grazing angles (Fresnel does the rest).
+	SPECULAR = mix(0.16, 0.1, smoothstep(60.0, 400.0, dist));
 	// Near grazing almost everything is Fresnel; keep the sheen to the far reach so
 	// the silt stays readable at the player's usual angle.
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
 	EMISSION = sky_horizon.rgb * fres * mix(0.0, 0.32, smoothstep(5.0, 90.0, dist)) * (1.0 + 1.4 * smoothstep(80.0, 450.0, dist)) * (1.0 - lap);
-	NORMAL_MAP = normalize(vec3((fine - 0.5) * 0.8 + (streak - 0.5) * 0.4, boil - 0.5, 4.0)) * 0.5 + 0.5;
+	NORMAL_MAP = normalize(vec3((fine - 0.5) * 0.35 + (streak - 0.5) * 0.2, (boil - 0.5) * 0.4, 4.0)) * 0.5 + 0.5;
 }

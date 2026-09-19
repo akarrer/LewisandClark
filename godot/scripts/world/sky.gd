@@ -67,6 +67,12 @@ func build() -> void:
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 1.6
 	env.ssao_power = 1.4
+	# Screen-space reflections: the banks, trees and boats mirrored in the river.
+	env.ssr_enabled = true
+	env.ssr_max_steps = 96
+	env.ssr_fade_in = 0.1
+	env.ssr_fade_out = 1.5
+	env.ssr_depth_tolerance = 0.4
 	# Bounce light: sunlit grass warming the undersides of canopies and bodies.
 	env.ssil_enabled = true
 	env.ssil_radius = 6.0
