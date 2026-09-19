@@ -141,7 +141,8 @@ func _scenery_steps() -> Array:
 	if "--no-glow" in args:
 		main.sky.env.glow_enabled = false
 	if "--no-grass" in args:
-		main.get_node("GrassField").visible = false
+		for n in ["GrassNear", "GrassField", "GrassFar"]:
+			main.get_node(n).visible = false
 	if "--no-foliage" in args:
 		main.foliage.visible = false
 	if "--plain-ground" in args:
@@ -157,9 +158,18 @@ func _scenery_steps() -> Array:
 		main.leader.visible = false
 	if "--no-ssao" in args:
 		main.sky.env.ssao_enabled = false
+	if "--no-ssil" in args:
+		main.sky.env.ssil_enabled = false
+	if "--no-vfog" in args:
+		main.sky.env.volumetric_fog_enabled = false
+	if "--no-grass-shadow" in args:
+		main.get_node("GrassNear").cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if "--no-far-grass" in args:
+		main.get_node("GrassField").visible = false
+		main.get_node("GrassFar").visible = false
 	for v in views:
 		steps.append(["view"] + v)
-		steps.append(["wait", 2.5])
+		steps.append(["wait", 8.0 if "--hold" in args else 2.5])
 		steps.append(["shot", v[0]])
 	steps.append(["report"])
 	return steps

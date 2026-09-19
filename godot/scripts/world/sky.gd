@@ -32,8 +32,16 @@ const KEYS := [
 func build() -> void:
 	sun.name = "Sun"
 	sun.shadow_enabled = true
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-	sun.directional_shadow_max_distance = 140.0
+	# Four cascades out to the far treeline, blended, with a soft penumbra that
+	# widens with distance from the caster (the sun's real ~0.5 degree disc).
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_max_distance = 420.0
+	sun.directional_shadow_split_1 = 0.04
+	sun.directional_shadow_split_2 = 0.12
+	sun.directional_shadow_split_3 = 0.35
+	sun.directional_shadow_blend_splits = true
+	sun.light_angular_distance = 0.5
+	sun.shadow_blur = 1.2
 	add_child(sun)
 
 	sky_mat.shader = load("res://scripts/world/sky.gdshader")
@@ -59,6 +67,20 @@ func build() -> void:
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 1.6
 	env.ssao_power = 1.4
+	# Bounce light: sunlit grass warming the undersides of canopies and bodies.
+	env.ssil_enabled = true
+	env.ssil_radius = 6.0
+	env.ssil_intensity = 1.0
+	# Volumetric fog for light shafts through the cottonwoods and morning mist
+	# pooling in the bottomland (density driven by the hour in update()).
+	env.volumetric_fog_enabled = true
+	env.volumetric_fog_density = 0.004
+	env.volumetric_fog_albedo = Color(0.92, 0.9, 0.86)
+	env.volumetric_fog_anisotropy = 0.65
+	env.volumetric_fog_length = 180.0
+	env.volumetric_fog_detail_spread = 2.0
+	env.volumetric_fog_ambient_inject = 0.35
+	env.volumetric_fog_sky_affect = 0.0
 	env.adjustment_enabled = true
 	env.adjustment_saturation = 1.08
 	env.adjustment_contrast = 1.04
@@ -179,3 +201,6 @@ func update(hour: float, delta: float) -> void:
 	var haze := clampf(1.0 - absf(hour - 6.8) / 2.2, 0.0, 1.0)
 	env.fog_height = 3.0
 	env.fog_height_density = 0.04 * haze
+	# Air thick enough to show shafts at the low sun, clearing through the day.
+	var low_sun := 1.0 - smoothstep(0.1, 0.45, elevation) if is_day else 0.3
+	env.volumetric_fog_density = 0.0012 + 0.004 * low_sun + 0.006 * haze + storm * 0.012

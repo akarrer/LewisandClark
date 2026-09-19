@@ -37,10 +37,8 @@ func _ready() -> void:
 	_spawn_corps()
 	_place_world_features()
 	sky.follow = leader.camera
-	var grass := GrassField.new()
-	grass.build(terrain)
-	grass.follow = leader.camera
-	add_child(grass)
+	for grass in GrassField.fields(terrain, leader.camera):
+		add_child(grass)
 
 	director = TrailMomentDirector.new(TrailMomentDirector.load_defs("res://data/trail_moments.json"))
 	state.journal_added.connect(hud.toast)

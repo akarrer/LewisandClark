@@ -9,9 +9,12 @@ uniform sampler2D river_tex : filter_linear, repeat_disable;
 uniform float map_size = 1024.0;
 uniform float cell = 4.0;
 uniform float spacing = 0.5;
+uniform float clump_scale = 1.0;
 uniform int rows = 200;
 uniform float river_clear = 48.0;
 uniform float max_dist = 46.0;
+uniform float min_dist = 0.0;   // the far field leaves the middle to the near field
+uniform bool fade_out = true;
 
 float hash(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -55,10 +58,11 @@ void process() {
 	float patch = grass_patch(p);
 	float keep = inside * smoothstep(river_clear - 2.0, river_clear + 6.0, river)
 			* (1.0 - smoothstep(1.0, 1.35, slope))  // loess bluffs stay grassed to ~50 degrees
-			* (1.0 - smoothstep(max_dist * 0.7, max_dist, d))
+			* (fade_out ? 1.0 - smoothstep(max_dist * 0.7, max_dist, d) : step(d, max_dist))
+			* step(min_dist, d)
 			* step(0.08, patch * 0.5 + hash(c + 3.3) * 0.5);
 	// Thin patches are short, sparse grass rather than bare ground.
-	float s = keep * mix(0.6, 1.2, hash(c + 5.1)) * mix(0.8, 1.2, patch);
+	float s = keep * mix(0.6, 1.2, hash(c + 5.1)) * mix(0.8, 1.2, patch) * clump_scale;
 	float ang = hash(c + 9.7) * 6.2831;
 	float ca = cos(ang);
 	float sa = sin(ang);
