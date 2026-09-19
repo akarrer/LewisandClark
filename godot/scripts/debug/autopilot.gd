@@ -152,6 +152,12 @@ func _scenery_steps() -> Array:
 	if willows:
 		thicket = willows.multimesh.get_instance_transform(0).origin
 	var thicket_eye := thicket + (tr.toward_river(thicket.x, thicket.z) * 9.0).rotated(Vector3.UP, 1.1)
+	# The camp, seen from the riverward side.
+	var camp := start
+	var camp_eye := start
+	if main.has_node("Camp"):
+		camp = main.get_node("Camp").global_position
+		camp_eye = camp + tr.toward_river(camp.x, camp.z) * 11.0 + Vector3(2, 0, 2)
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -165,6 +171,8 @@ func _scenery_steps() -> Array:
 		["portrait", start.x, start.z, 180.0, -4.0, 9.0, 0.0],
 		["landing", start.x, start.z, _yaw_to(start, main.get_node("Fleet").get_child(0).global_position if main.has_node("Fleet") else start) , -6.0, 8.5, 0.0],
 		["keelboat", quay.x, quay.z, _yaw_to(quay, keel), -4.0, 9.5, 0.0],
+		["camp", camp_eye.x, camp_eye.z, _yaw_to(camp_eye, camp), -6.0, 9.0, 0.0],
+		["camp_night", camp_eye.x, camp_eye.z, _yaw_to(camp_eye, camp), -4.0, 22.0, 0.0],
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
 		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 2.0, 17.5, 0.0],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],

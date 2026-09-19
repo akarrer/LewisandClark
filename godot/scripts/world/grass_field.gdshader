@@ -14,6 +14,8 @@ uniform int rows = 200;
 uniform float river_clear = 48.0;
 uniform float max_dist = 46.0;
 uniform float min_dist = 0.0;   // the far field leaves the middle to the near field
+uniform vec2 camp = vec2(-1000.0);  // trampled ground around the camp
+uniform float camp_radius = 9.0;
 uniform bool fade_out = true;
 
 float hash(vec2 p) {
@@ -60,6 +62,7 @@ void process() {
 			* (1.0 - smoothstep(1.0, 1.35, slope))  // loess bluffs stay grassed to ~50 degrees
 			* (fade_out ? 1.0 - smoothstep(max_dist * 0.7, max_dist, d) : step(d, max_dist))
 			* step(min_dist, d)
+			* smoothstep(camp_radius * 0.55, camp_radius, distance(p, camp))
 			* step(0.08, patch * 0.5 + hash(c + 3.3) * 0.5);
 	// Thin patches are short, sparse grass rather than bare ground.
 	float s = keep * mix(0.6, 1.2, hash(c + 5.1)) * mix(0.8, 1.2, patch) * clump_scale;

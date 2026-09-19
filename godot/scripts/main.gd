@@ -98,6 +98,7 @@ func _place_world_features() -> void:
 	add_child(bluff)
 
 	add_child(Boats.fleet(terrain))
+	add_child(Camp.pitch(terrain))
 
 	prairie_dogs = Interactable.prairie_dog_town(terrain.points["prairie_dog_town"], terrain)
 	add_child(prairie_dogs)
