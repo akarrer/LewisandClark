@@ -33,10 +33,8 @@ void vertex() {
 	vec3 disp = vec3(1.0, 0.0, 0.55) * bend * sway * h * h;
 	float leaf = sin(TIME * 6.5 + world.x * 1.7 + world.y * 2.3 + world.z * 1.3);
 	disp += vec3(leaf, leaf * 0.5, -leaf) * 0.035 * flutter * h * (0.5 + gust);
-	// World-space push back into local space (instances are rotated and uniformly scaled).
-	mat3 m = mat3(MODEL_MATRIX);
-	float s2 = dot(m[0], m[0]);
-	VERTEX += transpose(m) * disp / max(s2, 0.0001);
+	// World-space push back into local space (instances are rotated, stretched and leaning).
+	VERTEX += inverse(mat3(MODEL_MATRIX)) * disp;
 
 	float r = hash(origin.xz);
 	float g = hash(origin.zx + 7.7);

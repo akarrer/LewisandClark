@@ -70,6 +70,19 @@ func _scenery_steps() -> Array:
 			if tr.walkable(gx, gz) and d < best:
 				best = d
 				grove = Vector3(gx, 0, gz)
+	# On the sandbar, a few metres from the water's edge.
+	var bank := start
+	best = INF
+	for dx in range(-160, 161, 4):
+		for dz in range(-200, 41, 4):
+			var bx := start.x + dx
+			var bz := start.z + dz
+			var d := absf(tr.river_distance(bx, bz) - tr.river_half_width() - 4.0)
+			if tr.walkable(bx, bz) and d < best:
+				best = d
+				bank = Vector3(bx, 0, bz)
+	var to_water: Vector3 = tr.toward_river(bank.x, bank.z)
+	var bank_yaw := rad_to_deg(atan2(-to_water.x, -to_water.z)) + 50.0  # upriver, across the water
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -82,6 +95,7 @@ func _scenery_steps() -> Array:
 		# Facing the Leader (who faces north at the start); with --corps, the Corps behind.
 		["portrait", start.x, start.z, 180.0, -4.0, 9.0, 0.0],
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
+		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],
 		["bluff_sunset_east", bluff.x, bluff.z, -90.0, -10.0, 19.2, 0.0],

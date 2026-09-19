@@ -222,7 +222,7 @@ func _color_at(x: float, z: float, h: float, n: Vector3) -> Color:
 	# Alpha marks prairie, which the ground shader dresses as grass.
 	var c := grass
 	if d < 0.0:
-		c = Color(0.30, 0.26, 0.20, 0.0)  # riverbed
+		c = Color(0.50, 0.43, 0.32, 0.0)  # riverbed: wet sand and silt, seen through the shallows
 	elif d < 10.0:
 		c = Color(0.76, 0.68, 0.50, 0.0)  # sandbar
 	elif d < 22.0:
@@ -323,6 +323,8 @@ func _build_water() -> MeshInstance3D:
 	mi.position = Vector3(SIZE / 2.0, WATER_Y - 0.35, SIZE / 2.0)
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://scripts/world/water.gdshader")
+	mat.set_shader_parameter("river_tex", GrassField._texture(_river))  # the current follows the channel
+	mat.set_shader_parameter("map_size", SIZE)
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi
