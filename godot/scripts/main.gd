@@ -44,7 +44,7 @@ func _ready() -> void:
 	hoppers.build(terrain, leader)
 	add_child(hoppers)
 	var motes := Motes.new()
-	motes.build()
+	motes.build(terrain)
 	motes.follow = leader.camera
 	add_child(motes)
 

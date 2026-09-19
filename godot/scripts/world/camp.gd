@@ -128,7 +128,7 @@ func _build_fire() -> void:
 	smoke.amount = 26
 	smoke.lifetime = 5.0
 	smoke.preprocess = 5.0
-	smoke.position = Vector3(0, 0.6, 0)
+	smoke.position = Vector3(0, 1.1, 0)
 	smoke.visibility_aabb = AABB(Vector3(-3, 0, -3), Vector3(6, 10, 6))
 	var sp := ParticleProcessMaterial.new()
 	sp.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
@@ -138,11 +138,11 @@ func _build_fire() -> void:
 	sp.initial_velocity_min = 0.7
 	sp.initial_velocity_max = 1.2
 	sp.gravity = Vector3(0.4, 0.25, 0.1)
-	sp.scale_min = 0.6
-	sp.scale_max = 1.8
+	sp.scale_min = 0.5
+	sp.scale_max = 1.3
 	var sramp := Gradient.new()
 	sramp.offsets = PackedFloat32Array([0.0, 0.25, 1.0])
-	sramp.colors = PackedColorArray([Color(0.45, 0.42, 0.40, 0.0), Color(0.5, 0.48, 0.46, 0.22), Color(0.6, 0.6, 0.6, 0.0)])
+	sramp.colors = PackedColorArray([Color(0.45, 0.42, 0.40, 0.0), Color(0.5, 0.48, 0.46, 0.16), Color(0.6, 0.6, 0.6, 0.0)])
 	var stex := GradientTexture1D.new()
 	stex.gradient = sramp
 	sp.color_ramp = stex

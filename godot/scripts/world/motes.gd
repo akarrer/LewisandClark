@@ -10,7 +10,7 @@ const SPAN := 34.0  # cube of air around the camera, in metres
 var follow: Node3D
 
 
-func build() -> void:
+func build(terrain: Terrain) -> void:
 	name = "Motes"
 	amount = 700
 	lifetime = 1000.0
@@ -24,6 +24,11 @@ func build() -> void:
 	pm.shader = load("res://scripts/world/motes_place.gdshader")
 	pm.set_shader_parameter("span", SPAN)
 	pm.set_shader_parameter("count", amount)
+	# Fireflies keep to the grass, so they never read as stars against the sky.
+	pm.set_shader_parameter("height_tex", GrassField._texture(terrain._heights))
+	pm.set_shader_parameter("river_tex", GrassField._texture(terrain._river))
+	pm.set_shader_parameter("map_size", Terrain.SIZE)
+	pm.set_shader_parameter("river_clear", terrain.river_half_width() + 16.0)
 	process_material = pm
 
 	var quad := QuadMesh.new()

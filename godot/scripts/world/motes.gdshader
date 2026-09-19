@@ -16,10 +16,10 @@ void vertex() {
 	float blink = 0.5 + 0.5 * sin(TIME * (1.4 + r * 2.2) + INSTANCE_CUSTOM.y * 40.0);
 	blink = smoothstep(0.55, 1.0, blink);
 	// Bright enough at night to bloom a little; by day just a catch of light.
-	float lit = mix(0.5 + 0.5 * r, blink * 4.5, night_amount);
+	float lit = mix(0.5 + 0.5 * r, blink * 2.6, night_amount);
 	v_glow = lit;
 	v_colour = mix(day_colour, firefly, night_amount);
-	float size = mix(1.0, 2.6, night_amount) * (0.6 + r);
+	float size = mix(1.0, 2.0, night_amount) * (0.6 + r);
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
 	VERTEX.xy *= size;
 }

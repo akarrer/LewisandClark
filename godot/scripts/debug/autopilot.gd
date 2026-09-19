@@ -127,7 +127,8 @@ func _scenery_steps() -> Array:
 		herd = main.get_node("Wildlife").get_child(0).position
 		var space: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
 		var target := herd + Vector3(0, 1.2, 0)
-		for r in range(70, 30, -10):
+		# Outside the ~45 m at which they flush, or the herd is gone before the shot.
+		for r in range(95, 55, -10):
 			var found := false
 			for k in 24:
 				var ang := k * TAU / 24.0
