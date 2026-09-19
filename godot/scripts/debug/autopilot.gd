@@ -83,6 +83,18 @@ func _scenery_steps() -> Array:
 				bank = Vector3(bx, 0, bz)
 	var to_water: Vector3 = tr.toward_river(bank.x, bank.z)
 	var bank_yaw := rad_to_deg(atan2(-to_water.x, -to_water.z)) + 50.0  # upriver, across the water
+	# On the bank beside the keelboat.
+	var keel := start
+	var quay := start
+	if main.has_node("Fleet"):
+		keel = main.get_node("Fleet").get_child(0).global_position
+		var inland := -tr.toward_river(keel.x, keel.z)
+		quay = keel
+		for i in 120:
+			quay += inland
+			if tr.walkable(quay.x, quay.z):
+				break
+		quay += inland * 3.0 + Vector3(-inland.z, 0, inland.x) * 9.0
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -94,6 +106,8 @@ func _scenery_steps() -> Array:
 		["river_morning", start.x, start.z, 5.0, -6.0, 7.5, 0.0],
 		# Facing the Leader (who faces north at the start); with --corps, the Corps behind.
 		["portrait", start.x, start.z, 180.0, -4.0, 9.0, 0.0],
+		["landing", start.x, start.z, _yaw_to(start, main.get_node("Fleet").get_child(0).global_position if main.has_node("Fleet") else start) , -6.0, 8.5, 0.0],
+		["keelboat", quay.x, quay.z, _yaw_to(quay, keel), -4.0, 9.5, 0.0],
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
@@ -220,6 +234,11 @@ func _watch_moments() -> void:
 		_steps.insert(saved + 4, ["clear_detour"])
 		_wait = 0.0
 		m["answered"] = true
+
+
+static func _yaw_to(from: Vector3, to: Vector3) -> float:
+	## Camera yaw (0 = north, 90 = west) that looks from ``from`` toward ``to``.
+	return rad_to_deg(atan2(-(to.x - from.x), -(to.z - from.z)))
 
 
 func _point(name: String) -> Vector3:
