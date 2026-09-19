@@ -121,6 +121,21 @@ void fragment() {
 		c = vec3(0.25, 0.3, 0.15);
 	}
 	// Rain-soaked earth goes dark and glossy.
+	// Relief up close: the ground is a 4 m grid, so the bumps live in the shading.
+	// One height field for all of it — ripples on sand, tussocks on prairie — and
+	// its gradient bends the normal, fading out by 25 m where it would only alias.
+	float relief = 1.0 - smoothstep(6.0, 25.0, dist);
+	if (relief > 0.01) {
+		float e = 0.06;
+		vec2 dx = vec2(e, 0.0);
+		vec2 dz = vec2(0.0, e);
+		float scale = mix(0.5, 0.16, sand);  // dunes are softer than tussocks
+		float h0 = vnoise(p * 3.0) * 0.6 + vnoise(p * 11.0) * 0.4 + ripple * sand * 0.8;
+		float hx = vnoise((p + dx) * 3.0) * 0.6 + vnoise((p + dx) * 11.0) * 0.4;
+		float hz = vnoise((p + dz) * 3.0) * 0.6 + vnoise((p + dz) * 11.0) * 0.4;
+		vec3 bumped = normalize(v_normal + vec3(-(hx - h0), 0.0, -(hz - h0)) / e * scale * relief);
+		NORMAL = normalize((VIEW_MATRIX * vec4(bumped, 0.0)).xyz);
+	}
 	ALBEDO = c * cloud_light(v_world) * mix(1.0, 0.62, wetness);
 	ROUGHNESS = mix(0.95, 0.42, wetness);
 	SPECULAR = mix(0.2, 0.5, wetness);
