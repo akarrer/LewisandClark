@@ -43,6 +43,9 @@ func build() -> void:
 	mat.shader = load("res://scripts/world/ground.gdshader")
 	var camp: Vector3 = points.get("camp", Vector3(-1000, 0, -1000))
 	mat.set_shader_parameter("camp", Vector2(camp.x, camp.z))
+	var edge: Vector3 = points.get("landing_edge", camp)
+	mat.set_shader_parameter("trace_a", Vector2(camp.x, camp.z))
+	mat.set_shader_parameter("trace_b", Vector2(edge.x, edge.z))
 	mi.material_override = mat
 	add_child(mi)
 	add_child(_build_distant_hills(mat))
@@ -165,6 +168,9 @@ func define_points() -> void:
 	var along := Vector3(-to_water.z, 0.0, to_water.x)
 	var camp := landing - to_water * 6.0 + along * 10.0
 	points["camp"] = Vector3(camp.x, height_at(camp.x, camp.z), camp.z)
+	# Where the men walk between the camp and the boats, the grass is worn away.
+	var landing_edge := landing + to_water * 5.0
+	points["landing_edge"] = Vector3(landing_edge.x, height_at(landing_edge.x, landing_edge.z), landing_edge.z)
 
 	points["prairie_dog_town"] = _search(Rect2(300, 600, 150, 170), func(x, z):
 		var h := height_at(x, z)

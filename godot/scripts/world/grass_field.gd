@@ -56,6 +56,9 @@ func build(terrain: Terrain, min_dist := 0.0, shadows := false, blades := 8, wid
 	pm.set_shader_parameter("min_dist", min_dist)
 	var camp: Vector3 = terrain.points.get("camp", Vector3(-1000, 0, -1000))
 	pm.set_shader_parameter("camp", Vector2(camp.x, camp.z))
+	var edge: Vector3 = terrain.points.get("landing_edge", camp)
+	pm.set_shader_parameter("trace_a", Vector2(camp.x, camp.z))
+	pm.set_shader_parameter("trace_b", Vector2(edge.x, edge.z))
 	pm.set_shader_parameter("fade_out", r_is_last(min_dist))  # inner rings hand off with a hard edge
 	process_material = pm
 
