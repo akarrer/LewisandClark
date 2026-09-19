@@ -12,6 +12,7 @@ uniform float wind = 0.22;
 
 varying float v_t;
 varying vec3 v_col;
+#include "res://scripts/world/prairie.gdshaderinc"
 #include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 void vertex() {
@@ -31,6 +32,8 @@ void vertex() {
 	float bottom = 1.0 - smoothstep(floodplain_y + 1.0, floodplain_y + 3.5, INSTANCE_CUSTOM.y);
 	vec3 base = mix(gold, green, clamp(patch * 0.8 + (r - 0.5) * 0.6, 0.0, 1.0));
 	base = mix(base, bottom_green, bottom * 0.6);
+	// Species patchwork, sampled at the clump's root so a clump is one kind of grass.
+	base = prairie_species(origin.xz, base, 1.0 - bottom);
 	v_col = base;
 	v_t = t;
 }

@@ -14,6 +14,7 @@ uniform float grass_radius = 46.0;
 
 varying vec3 v_world;
 varying vec3 v_normal;
+#include "res://scripts/world/prairie.gdshaderinc"
 #include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 float hash(vec2 p) {
@@ -48,6 +49,8 @@ void fragment() {
 	// Prairie: blend the baked tint toward the grass the blades would show here.
 	float patch = grass_patch(p);
 	vec3 blades = mix(gold, green, patch * 0.8);
+	// The floodplain sits low (~y 1-3); above it the prairie proper.
+	blades = prairie_species(p, blades, smoothstep(2.0, 5.0, v_world.y));
 	vec3 tips = mix(c, blades * 1.08, 0.55);
 	float dist = length(v_world - CAMERA_POSITION_WORLD);
 	float under = 1.0 - smoothstep(grass_radius * 0.55, grass_radius * 1.05, dist);

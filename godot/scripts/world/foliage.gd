@@ -35,7 +35,8 @@ func build(t: Terrain) -> void:
 	_scatter_groves()
 	_scatter_driftwood()
 	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0)
-	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 500, 0.5, 1.3, _rock_ok, 320.0)
+	# Loess country has few stones: an occasional weathered boulder, mostly in the draws.
+	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0)
 	# The GPU grass field carries the prairie; these taller clumps and flowers are accents.
 	_scatter("grass", ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"], 30000, 0.5, 0.95, _grass_ok, 60.0)
 	_scatter("flowers", ["flower_group_1", "flower_single_1", "flower_group_2", "clover_1"], 9000, 0.35, 0.6, _flower_ok, 70.0)
