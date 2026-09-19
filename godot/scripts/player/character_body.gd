@@ -53,8 +53,10 @@ func _ready() -> void:
 	var outfit := _outfit_material()
 	for s in mesh.mesh.get_surface_count():
 		mesh.set_surface_override_material(s, outfit)
+	var skeleton: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
 	if hat:
-		_add_hat(model.find_children("*", "Skeleton3D", true, false)[0])
+		_add_hat(skeleton)
+	_add_rifle(skeleton)
 	play("Idle")
 
 
@@ -77,6 +79,33 @@ func _outfit_material() -> ShaderMaterial:
 	var stock = o.get("stock", Color(0.88, 0.86, 0.80))
 	m.set_shader_parameter("stock", skin if stock == null else stock)
 	return m
+
+
+func _add_rifle(skeleton: Skeleton3D) -> void:
+	## A long rifle slung muzzle-up across the back, riding with the upper spine.
+	var attach := BoneAttachment3D.new()
+	attach.bone_name = "DEF-spine.003"
+	skeleton.add_child(attach)
+	var rifle := Node3D.new()
+	rifle.name = "Rifle"
+	attach.add_child(rifle)
+	var wood := Color(0.36, 0.22, 0.12)
+	var iron := Color(0.16, 0.15, 0.14)
+	# Built along +Y, butt at the origin.
+	rifle.add_child(Props.box(Vector3(0.045, 0.34, 0.09), wood, Vector3(0, 0.17, 0)))  # butt stock
+	rifle.add_child(Props.box(Vector3(0.035, 0.62, 0.045), wood, Vector3(0, 0.62, 0.01)))  # fore stock
+	rifle.add_child(Props.cylinder(0.011, 1.05, iron, Vector3(0, 0.82, 0.03)))  # barrel
+	rifle.add_child(Props.box(Vector3(0.05, 0.08, 0.03), iron, Vector3(0, 0.38, 0.03)))  # lock
+	var sling := Props.box(Vector3(0.012, 0.9, 0.02), Color(0.42, 0.33, 0.22), Vector3(0, 0.62, -0.035))
+	rifle.add_child(sling)
+	rifle.position = RIFLE_POS
+	rifle.rotation_degrees = RIFLE_ROT
+	for c in rifle.get_children():
+		(c as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+
+const RIFLE_POS := Vector3(0.18, -0.35, -0.14)
+const RIFLE_ROT := Vector3(0, 0, 28)
 
 
 func _add_hat(skeleton: Skeleton3D) -> void:

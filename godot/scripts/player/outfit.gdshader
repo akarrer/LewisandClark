@@ -13,6 +13,7 @@ uniform vec3 legs : source_color = vec3(0.14, 0.11, 0.09);
 uniform vec3 skin : source_color = vec3(0.80, 0.62, 0.50);
 uniform vec3 stock : source_color = vec3(0.88, 0.86, 0.80);
 uniform vec3 hair : source_color = vec3(0.30, 0.20, 0.12);
+uniform vec3 strap : source_color = vec3(0.30, 0.21, 0.13);
 uniform float has_waistcoat = 1.0;
 
 varying vec4 v_region;  // coat, breeches, legs, skin
@@ -21,6 +22,8 @@ varying float v_forearm;
 varying float v_neck;
 varying float v_front;
 varying float v_hair;
+varying float v_torso;
+varying vec3 v_pos;
 
 void vertex() {
 	vec4 r = vec4(0.0);
@@ -29,12 +32,14 @@ void vertex() {
 	float neck = 0.0;
 	float spine = 0.0;
 	float head = 0.0;
+	float torso = 0.0;
 	for (int i = 0; i < 4; i++) {
 		int b = int(BONE_INDICES[i]);
 		float w = BONE_WEIGHTS[i];
 		if (b == 5) {
 			neck += w;  // spreads over the upper chest and shoulders: coat, stock only at the throat
 			r.x += w;
+			torso += w;
 		} else if (b == 6 || (b >= 10 && b <= 25) || (b >= 29 && b <= 44)) {
 			r.w += w;
 			if (b != 6) hand += w;
@@ -45,6 +50,7 @@ void vertex() {
 			r.z += w;
 		} else {
 			r.x += w;  // hips, spine, shoulders, arms
+			if (b <= 4) torso += w;
 			if (b == 9 || b == 28) forearm += w;
 			if (b >= 2 && b <= 4) spine += w;
 		}
@@ -55,6 +61,8 @@ void vertex() {
 	v_neck = neck;
 	// Hair over the back and sides of the head, the face left bare.
 	v_hair = head * smoothstep(0.1, -0.35, NORMAL.z + max(NORMAL.y, 0.0) * -0.6);
+	v_torso = torso;
+	v_pos = VERTEX;
 	// Waistcoat: the front-centre of the chest (the mannequin faces +Z).
 	v_front = spine * smoothstep(0.2, 0.6, NORMAL.z) * (1.0 - smoothstep(0.035, 0.06, abs(VERTEX.x)));
 }
@@ -72,6 +80,10 @@ void fragment() {
 	// Cuffs where the sleeve meets the wrist; a stock wrapped at the throat.
 	float cuff = smoothstep(0.02, 0.1, v_hand) * (1.0 - smoothstep(0.45, 0.6, v_hand)) * step(0.05, v_forearm + v_hand * 0.5);
 	c = mix(c, facing, cuff);
+	// Shot-pouch belt, shoulder to opposite hip, front and back (per pixel: the
+	// mannequin's torso triangles are too big to carry a thin band per vertex).
+	float belt = 1.0 - smoothstep(0.022, 0.03, abs(v_pos.x - (v_pos.y - 1.12) * 0.9));
+	c = mix(c, strap, belt * smoothstep(0.4, 0.7, v_torso));
 	c = mix(c, stock, smoothstep(0.6, 0.85, v_neck) * 0.9);
 	c = mix(c, hair, smoothstep(0.3, 0.6, v_hair));
 	// Woven grain on cloth only.
