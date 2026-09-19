@@ -38,7 +38,8 @@ float cloud_light(vec3 world) {
 		uv = rot * uv * 2.03 + vec2(1.7, 9.2);
 		a *= 0.5;
 	}
-	float cover = mix(0.72, 0.22, cloud_cover);
-	float density = smoothstep(cover - 0.02, cover + 0.1, v * 0.85 + 0.2);  // +0.2 stands in for the sky's wisp layer
+	// Matches the cumulus deck in sky.gdshader (its billow layer averages ~+0.16).
+	float cover = mix(0.74, 0.26, cloud_cover);
+	float density = smoothstep(cover - 0.02, cover + 0.12, v * 0.78 + 0.16);
 	return 1.0 - density * cloud_shadow_strength;
 }

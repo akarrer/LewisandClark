@@ -40,7 +40,7 @@ func build(t: Terrain) -> void:
 	# Loess country has few stones: an occasional weathered boulder, mostly in the draws.
 	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0)
 	# The GPU grass field carries the prairie; these taller clumps and flowers are accents.
-	_scatter("grass", ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"], 30000, 0.5, 0.95, _grass_ok, 60.0)
+	_scatter("grass", ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"], 30000, 0.4, 0.72, _grass_ok, 60.0)
 	_scatter("flowers", ["flower_group_1", "flower_single_1", "flower_group_2", "clover_1"], 9000, 0.35, 0.6, _flower_ok, 70.0)
 	_flush()
 
@@ -258,7 +258,7 @@ func _scatter_sandbar() -> void:
 	# Bars are a small part of the map, so most random points miss them.
 	for i in 9000:
 		var p := _random_point()
-		if not _on_bar(p, 0.45) or _near_point(p, 10.0) or _groves.get_noise_2d(p.x * 1.7, p.z * 1.7) < -0.2:
+		if not _on_bar(p, 0.45) or _near_point(p, 26.0) or _groves.get_noise_2d(p.x * 1.7, p.z * 1.7) < -0.2:
 			continue
 		# A thicket: a handful of tall, narrow willow clumps close together.
 		for k in rng.randi_range(3, 7):
@@ -266,8 +266,10 @@ func _scatter_sandbar() -> void:
 			q.y = terrain.height_at(q.x, q.z)
 			if not _on_bar(q, 0.3):
 				continue
-			var narrow := rng.randf_range(0.45, 0.65)
-			_add("willow", "bush_1", q - Vector3(0, 0.1, 0), rng.randf_range(0.7, 1.2), Vector3.UP, 260.0, Vector3(narrow, rng.randf_range(1.5, 2.2), narrow))
+			# Sizes from knee-high suckers to two-metre stems, each leaning its own way.
+			var narrow := rng.randf_range(0.4, 0.8)
+			var lean := Vector3(rng.randf_range(-0.14, 0.14), 1.0, rng.randf_range(-0.14, 0.14))
+			_add("willow", "bush_1", q - Vector3(0, 0.1, 0), rng.randf_range(0.4, 1.35), lean, 260.0, Vector3(narrow, rng.randf_range(1.2, 2.4), narrow * rng.randf_range(0.85, 1.2)))
 		if rng.randf() < 0.45:
 			var q2 := p + Vector3(rng.randf_range(-5, 5), 0, rng.randf_range(-5, 5))
 			q2.y = terrain.height_at(q2.x, q2.z)
