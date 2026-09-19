@@ -16,7 +16,7 @@ uniform float camp_radius = 9.0;
 uniform vec2 trace_a = vec2(-1000.0);  // a path worn between two places
 uniform vec2 trace_b = vec2(-1000.0);
 uniform vec2 trace_c = vec2(-1000.0);
-uniform float trace_width = 1.5;
+uniform float trace_width = 1.05;
 global uniform float wetness;
 
 varying vec3 v_world;
@@ -42,14 +42,7 @@ float grass_patch(vec2 p) {
 	return smoothstep(0.25, 0.75, vnoise(p / 9.0) * 0.65 + vnoise(p / 2.3) * 0.35);
 }
 
-// Distance from p to the path a -> b -> c (the trodden way between places).
-float trace_dist(vec2 p, vec2 a, vec2 b, vec2 c) {
-	vec2 ab = b - a;
-	vec2 bc = c - b;
-	float t1 = clamp(dot(p - a, ab) / max(dot(ab, ab), 0.0001), 0.0, 1.0);
-	float t2 = clamp(dot(p - b, bc) / max(dot(bc, bc), 0.0001), 0.0, 1.0);
-	return min(distance(p, a + ab * t1), distance(p, b + bc * t2));
-}
+#include "res://scripts/world/trace.gdshaderinc"
 
 
 void vertex() {
@@ -114,12 +107,22 @@ void fragment() {
 	sandy *= 1.0 + (grain - 0.5) * 0.16 * (1.0 - smoothstep(4.0, 20.0, length(v_world - CAMERA_POSITION_WORLD)));
 	c = mix(c, sandy, sand);
 
-	// Trampled ground: the grass is worn off around a camp and along the path
-	// between the camp and the boats, the earth beaten bare.
-	float to_path = trace_dist(p, trace_a, trace_b, trace_c) + (vnoise(p * 0.8) - 0.5) * 1.2;
+	// Trampled ground: bare earth around the camp and along the ways between it,
+	// the boats and the bluff, with a scuffed fringe either side of the path.
+	float half_w;
+	float to_path = trace_field(p, trace_a, trace_b, trace_c, trace_width, half_w) + (vnoise(p * 1.2) - 0.5) * 0.7;
+	float on_path = 1.0 - smoothstep(half_w * 0.5, half_w, to_path);
+	float fringe = 1.0 - smoothstep(half_w, half_w * 2.3, to_path);
 	float worn = 1.0 - smoothstep(camp_radius * 0.5, camp_radius, distance(p, camp) + (vnoise(p * 0.6) - 0.5) * 2.0);
-	worn = max(worn, 1.0 - smoothstep(trace_width * 0.5, trace_width, to_path));
-	c = mix(c, pow(vec3(0.38, 0.31, 0.23), vec3(2.2)) * (0.85 + vnoise(p * 3.0) * 0.3), worn * prairie * 0.9);
+	worn = max(worn, on_path);
+	vec3 earth = pow(vec3(0.40, 0.32, 0.24), vec3(2.2)) * (0.82 + vnoise(p * 3.0) * 0.36);
+	// Two ruts where the feet fall, and dust and small stones between them.
+	float rut = 1.0 - smoothstep(0.0, half_w * 0.35, abs(to_path - half_w * 0.5));
+	earth *= 1.0 - rut * 0.16;
+	earth += vec3(0.05, 0.045, 0.035) * smoothstep(0.86, 0.99, vnoise(p * 14.0)) * on_path;
+	// The fringe: grass bruised and bent, paler and drier, before the bare ground.
+	c = mix(c, mix(c, earth, 0.35) * 1.04, fringe * prairie * 0.75);
+	c = mix(c, earth, worn * prairie * 0.95);
 
 	c *= 1.0 + (n - 0.5) * mottle * 2.0;
 	// Slight warm/cool drift over large areas.
