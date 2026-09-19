@@ -1,9 +1,9 @@
 class_name Motes
 extends GPUParticles3D
-## The air close by: seeds, chaff and insects drifting in the light by day,
-## fireflies blinking over the bottomland after dark. Anchored to the camera on
-## a world grid so they don't swim as you walk, and lit entirely in the shader
-## (they are too small to shade).
+## Fireflies blinking over the grass after dark. Anchored to the camera on a
+## world grid so they don't swim as you walk, and lit entirely in the shader
+## (they are too small to shade). Nothing is drawn in daylight: specks this size
+## only flicker in the sun.
 
 const SPAN := 34.0  # cube of air around the camera, in metres
 

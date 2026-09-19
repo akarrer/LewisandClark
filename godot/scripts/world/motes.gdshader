@@ -1,7 +1,7 @@
 shader_type spatial;
 render_mode unshaded, blend_add, cull_disabled, depth_draw_never;
-// Chaff and insects by day, fireflies after dark. Each mote is a camera-facing
-// speck; night_amount (from sky.gd) crossfades between the two.
+// Fireflies after dark: each is a camera-facing speck with its own flash rhythm.
+// Nothing is drawn by day (see motes_place.gdshader).
 
 global uniform float night_amount;
 uniform vec3 day_colour : source_color = vec3(0.95, 0.90, 0.72);
@@ -32,7 +32,8 @@ void vertex() {
 	float lit = mix(0.5 + 0.5 * r, blink * 3.2, night_amount);
 	v_glow = lit;
 	v_colour = mix(day_colour, firefly, night_amount);
-	float size = mix(1.0, 2.0, night_amount) * (0.6 + r);
+	// INSTANCE_CUSTOM.z carries the placement scale (0 = not drawn at all).
+	float size = mix(1.0, 2.0, night_amount) * (0.6 + r) * INSTANCE_CUSTOM.z;
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
 	VERTEX.xy *= size;
 }

@@ -39,13 +39,18 @@ void process() {
 	// horizon from standing height, and never out over the water.
 	float ground = texture(height_tex, p.xz / map_size).r;
 	float river = texture(river_tex, p.xz / map_size).r;
-	float low = ground + mix(0.15, 1.5, hash(vec2(i, 23.7))) + sin(TIME * 0.6 + i) * 0.25;
+	// Most keep to the grass, a few drift up toward head height and above.
+	float lift = pow(hash(vec2(i, 23.7)), 1.8);
+	float low = ground + mix(0.15, 3.6, lift) + sin(TIME * 0.6 + i) * 0.35;
 	p.y = mix(p.y, low, night_amount);
 	float on_grass = step(river_clear, river);
-	// Far fewer of them than there is chaff in daylight: about one in five.
+	// Fireflies only: in daylight these read as flickering specks, so there are none.
 	float is_firefly = step(0.8, hash(vec2(i, 31.3)));
-	float s = mix(0.6, 1.6, hash(vec2(i, 11.7))) * mix(1.0, on_grass * is_firefly, night_amount);
+	float after_dark = smoothstep(0.35, 0.7, night_amount);
+	float s = mix(0.6, 1.6, hash(vec2(i, 11.7))) * on_grass * is_firefly * after_dark;
 	TRANSFORM = mat4(vec4(s, 0.0, 0.0, 0.0), vec4(0.0, s, 0.0, 0.0), vec4(0.0, 0.0, s, 0.0), vec4(p, 1.0));
-	CUSTOM = vec4(hash(vec2(i, 13.1)), hash(vec2(i, 17.9)), 0.0, 0.0);
+	// The draw shader billboards by replacing the basis, which drops this scale,
+	// so carry it through CUSTOM.z as well: 0 means "not drawn".
+	CUSTOM = vec4(hash(vec2(i, 13.1)), hash(vec2(i, 17.9)), s, 0.0);
 	VELOCITY = vec3(0.0);
 }
