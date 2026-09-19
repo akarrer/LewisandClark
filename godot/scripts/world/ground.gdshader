@@ -76,6 +76,17 @@ void fragment() {
 	loess = mix(loess, mix(thatch, blades, 0.6), clinging * 0.7);
 	c = mix(c, loess, bare);
 
+	// Sandbars: wind and current ripples, darkening to wet sand at the waterline
+	// (the river surface sits at y = -0.35).
+	float sand = (1.0 - prairie) * (1.0 - smoothstep(0.08, 0.2, slope));
+	float warp = vnoise(p * 0.15) * 6.0;
+	float ripple = sin(p.x * 2.6 + p.y * 1.1 + warp) * 0.5 + 0.5;
+	ripple = mix(ripple, vnoise(p * 3.0), 0.35);
+	vec3 sandy = c * (0.9 + ripple * 0.2);
+	float wet = 1.0 - smoothstep(-0.2, 0.9, v_world.y + (vnoise(p * 0.5) - 0.5) * 0.4);
+	sandy = mix(sandy, sandy * vec3(0.62, 0.60, 0.58), wet * 0.85);
+	c = mix(c, sandy, sand);
+
 	c *= 1.0 + (n - 0.5) * mottle * 2.0;
 	// Slight warm/cool drift over large areas.
 	float drift = vnoise(p * 0.012);

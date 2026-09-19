@@ -21,6 +21,7 @@ const PROFILES := {
 	"bush": {"sway": 0.08, "flutter": 0.6, "translucency": 0.35, "tint": Color(0.92, 1.0, 0.82), "variation": 0.16},
 	"grass": {"sway": 0.14, "flutter": 0.3, "translucency": 0.4, "tint": Color(1.0, 0.98, 0.9), "variation": 0.18},
 	"flowers": {"sway": 0.10, "flutter": 0.3, "translucency": 0.3, "tint": Color(1, 1, 1), "variation": 0.1},
+	"driftwood": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1, 1, 1), "variation": 0.08, "bark_tint": Color(2.1, 2.0, 1.85)},
 	"rock": {},
 }
 
@@ -32,6 +33,7 @@ func build(t: Terrain) -> void:
 	_groves.frequency = 1.0 / 90.0
 	_scatter_cottonwoods()
 	_scatter_groves()
+	_scatter_driftwood()
 	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0)
 	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 500, 0.5, 1.3, _rock_ok, 320.0)
 	# The GPU grass field carries the prairie; these taller clumps and flowers are accents.
@@ -65,7 +67,7 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 		var sm := ShaderMaterial.new()
 		sm.shader = preload("res://scripts/world/foliage.gdshader")
 		sm.set_shader_parameter("albedo_tex", m.albedo_texture)
-		sm.set_shader_parameter("tint", Color(1.25, 1.18, 1.1) if bark else (m.albedo_color * profile["tint"]))
+		sm.set_shader_parameter("tint", profile.get("bark_tint", Color(1.25, 1.18, 1.1)) if bark else (m.albedo_color * profile["tint"]))
 		sm.set_shader_parameter("sway", profile["sway"])
 		sm.set_shader_parameter("plant_height", height)
 		sm.set_shader_parameter("flutter", 0.0 if bark else profile["flutter"])
@@ -218,3 +220,24 @@ func _scatter_groves() -> void:
 			var v: String = ["dead_tree_1", "dead_tree_3"][rng.randi() % 2] if rng.randf() < 0.08 else variants[rng.randi() % variants.size()]
 			var stretch := Vector3(rng.randf_range(0.85, 1.2), rng.randf_range(0.85, 1.3), rng.randf_range(0.85, 1.2))
 			_add("grove", v, p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0, stretch)
+
+
+func _scatter_driftwood() -> void:
+	## Bleached driftwood stranded on the sandbars, and snags - whole trees jammed
+	## in the riverbed, angled downstream - that made the Missouri so dangerous.
+	var variants := ["dead_tree_2", "dead_tree_4", "dead_tree_5"]
+	for i in 3000:
+		var p := _random_point()
+		var d := _dist_to_river(p)
+		if d > -2.0 and d < 12.0:
+			# Lying on the bar: tipped onto its side, trunk along a random heading.
+			var ang := rng.randf() * TAU
+			var side := Vector3(cos(ang), rng.randf_range(0.05, 0.2), sin(ang))
+			_add("driftwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), rng.randf_range(0.35, 0.8), side, 900.0)
+		elif d > -24.0 and d < -6.0 and rng.randf() < 0.08:
+			# A snag: rooted underwater, leaning 30-60 degrees out of the current.
+			var ang := rng.randf() * TAU
+			var lean := Vector3(cos(ang), rng.randf_range(0.6, 1.6), sin(ang))
+			var bed := Vector3(p.x, Terrain.WATER_Y - 1.2, p.z)
+			_add("driftwood", variants[rng.randi() % variants.size()], bed, rng.randf_range(0.4, 0.7), lean, 900.0)
+
