@@ -21,9 +21,8 @@ from lewis_clark.textures import generate_all as generate_textures
 
 
 def main() -> None:
-    os.environ.setdefault(
-        "SDL_VIDEODRIVER", "windib" if sys.platform == "win32" else "x11"
-    )
+    if sys.platform != "win32":
+        os.environ.setdefault("SDL_VIDEODRIVER", "x11")
 
     pygame.init()
     pygame.font.init()

@@ -75,12 +75,18 @@ def _hydrate_cine_scenes(raw: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return raw
 
 
+def _index_regions(raw: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Regions keyed by id, in route order (dicts keep insertion order)."""
+    return {r["id"]: r for r in raw["regions"]}
+
+
 def load_game_config() -> GameConfig:
     """Load all JSON game data into a :class:`GameConfig` instance."""
     d = _load("display")
     pal = _load("palette")
     palette = {name: tuple(triple) for name, triple in pal.items()}
     wp_hex = _parse_wp_hex(_load("WP_HEX"))
+    regions = _load("REGIONS")
     return GameConfig(
         SW=d["SW"],
         SH=d["SH"],
@@ -109,6 +115,9 @@ def load_game_config() -> GameConfig:
         SPECIAL_CHARACTERS=_load("SPECIAL_CHARACTERS"),
         EVENTS=_load("EVENTS"),
         CINE_SCENES=_hydrate_cine_scenes(_load("CINE_SCENES")),
+        REGIONS=_index_regions(regions),
+        START_REGION=regions["start"],
+        CONDITIONS=_load("CONDITIONS"),
         HEX_CONTENTS={},
     )
 

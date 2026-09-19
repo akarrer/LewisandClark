@@ -13,6 +13,7 @@ from lewis_clark.drawing import (
     draw_text,
     lighten,
 )
+from lewis_clark.input import Action
 from lewis_clark.ui.button import Button
 
 
@@ -51,8 +52,22 @@ def _wrap_lines_pixel(font, text: str, max_w: int) -> list[str]:
     return lines
 
 
+# Ken Burns pan params per scene: (ox_start_frac, oy_start_frac, ox_end_frac, oy_end_frac)
+# fractions of excess canvas (KB_SCALE - 1.0) * screen size
+_KB_PARAMS = {
+    "secret_message":  (0.0, 0.0, 0.6, 0.3),   # drift right toward desk
+    "napoleon":        (0.8, 0.3, 0.0, 0.0),   # pull back left (maps expanding)
+    "lewis_prepares":  (0.2, 0.0, 0.7, 0.4),   # drift in on figure
+    "clark_recruited": (0.0, 0.2, 0.5, 0.0),   # pan right, rise
+    "corps_assembled": (0.5, 0.0, 0.0, 0.2),   # pan left across camp
+    "the_river":       (0.0, 0.0, 1.0, 0.0),   # pan right with current
+    "depart":          (0.0, 0.3, 0.6, 0.0),   # drift in on boats
+}
+_KB_SCALE = 1.13
+
+
 class CinematicScreen:
-    ART_W = int(assets.SW * 0.60)
+    ART_W = int(assets.SW * 0.60)  # legacy; full-screen layout uses assets.SW
 
     def __init__(self, on_done):
         self.on_done = on_done
@@ -62,7 +77,7 @@ class CinematicScreen:
         self.pause = 0
         self.frame = 0
         self.next_btn = Button(
-            (assets.SW * 3 // 5 + 120, assets.SH - 58, 180, 38),
+            (120, assets.SH - 54, 180, 38),
             "NEXT  ▶",
             fill=assets.UI_CARD2,
             fill_h=assets.GOLD,
@@ -70,20 +85,20 @@ class CinematicScreen:
             text_h=assets.INK,
         )
         self.back_btn = Button(
-            (assets.SW * 3 // 5 + 10, assets.SH - 58, 100, 38),
+            (10, assets.SH - 54, 100, 38),
             "◀ BACK",
             fill=assets.UI_PANEL,
             text_col=assets.DIM2,
         )
         self.skip_btn = Button(
-            (assets.SW - 90, assets.SH - 28, 78, 20),
+            (assets.SW - 90, assets.SH - 22, 78, 20),
             "Skip All",
             fill=assets.UI_BG,
             text_col=assets.DIM,
             font=assets.F["small"],
         )
         self.begin_btn = Button(
-            (assets.SW * 3 // 5 + 50, assets.SH - 62, 280, 46),
+            (50, assets.SH - 58, 300, 46),
             "⚑  BEGIN THE EXPEDITION  ⚑",
             fill=assets.GOLD,
             fill_h=assets.GOLD2,
@@ -94,23 +109,19 @@ class CinematicScreen:
         self.on_resize()
 
     def on_resize(self):
-        type(self).ART_W = int(assets.SW * 0.60)
+        type(self).ART_W = assets.SW
         sw, sh = assets.SW, assets.SH
         us = getattr(assets, "UI_SCALE", 1.0)
 
         def sz(n: float) -> int:
             return max(1, int(round(n * us)))
 
-        self.next_btn.rect = pygame.Rect(
-            sw * 3 // 5 + sz(120), sh - sz(58), sz(180), sz(38)
-        )
-        self.back_btn.rect = pygame.Rect(
-            sw * 3 // 5 + sz(10), sh - sz(58), sz(100), sz(38)
-        )
-        self.skip_btn.rect = pygame.Rect(sw - sz(90), sh - sz(28), sz(78), sz(20))
-        self.begin_btn.rect = pygame.Rect(
-            sw * 3 // 5 + sz(50), sh - sz(62), sz(280), sz(46)
-        )
+        lb_bot = sz(88)
+        btn_cy = sh - lb_bot // 2
+        self.next_btn.rect = pygame.Rect(sz(120), btn_cy - sz(19), sz(180), sz(38))
+        self.back_btn.rect = pygame.Rect(sz(10), btn_cy - sz(19), sz(100), sz(38))
+        self.skip_btn.rect = pygame.Rect(sw - sz(90), sh - sz(22), sz(78), sz(20))
+        self.begin_btn.rect = pygame.Rect(sz(50), btn_cy - sz(23), sz(300), sz(46))
 
     @property
     def scene(self):
@@ -134,141 +145,85 @@ class CinematicScreen:
         sd = self.scene
         t = self.frame * 0.022
         self.frame += 1
-
-        # ── Left: art panel ───────────────────────────────────────────────────
-        art_surf = pygame.Surface((self.ART_W, assets.SH))
-        self._draw_scene(art_surf, sd["id"], t)
-        self._blit_scene_figure(art_surf, sd)
-        surf.blit(art_surf, (0, 0))
-
-        # Fade illustration into text column — avoids a harsh vertical band at ART_W (~60% screen).
-        blend_w = min(36, max(10, self.ART_W // 5))
-        grad = pygame.Surface((blend_w, assets.SH), pygame.SRCALPHA)
-        bg = assets.UI_BG
-        for bx in range(blend_w):
-            t = (bx + 1) / blend_w
-            a = int(85 * t)
-            pygame.draw.line(grad, (*bg[:3], a), (bx, 0), (bx, assets.SH), 1)
-        surf.blit(grad, (self.ART_W - blend_w, 0))
-
-        # Accent border between art and text
-        acc = sd["accent"]
-        pygame.draw.rect(surf, acc, (self.ART_W, 0, 3, assets.SH))
-        pygame.draw.rect(surf, darken(acc, 0.6), (self.ART_W + 3, 0, 1, assets.SH))
-
-        # ── Right: text panel ─────────────────────────────────────────────────
-        rx = self.ART_W + 20
-        rw = assets.SW - rx - 12
-
-        surf.fill(
-            assets.UI_BG, (self.ART_W + 4, 0, assets.SW - self.ART_W - 4, assets.SH)
-        )
-
+        sw, sh = assets.SW, assets.SH
         us = getattr(assets, "UI_SCALE", 1.0)
+        acc = tuple(int(v) for v in sd["accent"])
 
         def sz(n: float) -> int:
             return max(1, int(round(n * us)))
 
-        # Bottom layout: nav row, gap, dedicated "Did you know" band
-        nav_row_top = assets.SH - sz(58)
-        fact_h = sz(100)
-        fact_gap = sz(12)
-        fact_top = nav_row_top - fact_gap - fact_h
-        narr_bottom = fact_top - sz(8)
+        # ── Ken Burns: render to oversized canvas, then crop ─────────────────
+        aw, ah = int(sw * _KB_SCALE), int(sh * _KB_SCALE)
+        art = pygame.Surface((aw, ah))
+        self._draw_scene(art, sd["id"], t)
+        self._blit_scene_figure(art, sd)
 
-        # Year/location badge (large)
-        badge_h = sz(40)
-        badge_pad = sz(12)
-        pygame.draw.rect(surf, acc, (rx, 16, rw - 8, badge_h), border_radius=3)
+        elapsed = min(1.0, self.frame / 480.0)
+        kp = _KB_PARAMS.get(sd["id"], (0.0, 0.0, 0.5, 0.0))
+        ox = int(kp[0] * (aw - sw) * (1 - elapsed) + kp[2] * (aw - sw) * elapsed)
+        oy = int(kp[1] * (ah - sh) * (1 - elapsed) + kp[3] * (ah - sh) * elapsed)
+        surf.blit(art, (0, 0), (ox, oy, sw, sh))
+
+        # ── Letterbox bars ───────────────────────────────────────────────────
+        lb_top = sz(68)
+        lb_bot = sz(88)
+        pygame.draw.rect(surf, (0, 0, 0), (0, 0, sw, lb_top))
+        pygame.draw.rect(surf, (0, 0, 0), (0, sh - lb_bot, sw, lb_bot))
+        # Accent trim lines on inner letterbox edges
+        pygame.draw.line(surf, acc, (0, lb_top), (sw, lb_top), 2)
+        pygame.draw.line(surf, darken(acc, 0.45), (0, lb_top + 2), (sw, lb_top + 2), 1)
+        pygame.draw.line(surf, acc, (0, sh - lb_bot), (sw, sh - lb_bot), 2)
+        pygame.draw.line(surf, darken(acc, 0.45), (0, sh - lb_bot - 1), (sw, sh - lb_bot - 1), 1)
+
+        # Title (left) and date/location (right) in top letterbox
+        draw_text(surf, sd["title"].upper(), assets.F["cine"], acc,
+                  (sz(24), lb_top // 2), anchor="midleft")
         badge_txt = f"{sd['year']}   ·   {sd['location']}"
-        draw_text(
-            surf,
-            badge_txt,
-            assets.F["subhead"],
-            darken(acc, 0.2),
-            (rx + badge_pad, 16 + badge_h // 2),
-            anchor="midleft",
-            max_w=rw - badge_pad * 2 - 8,
-        )
+        draw_text(surf, badge_txt, assets.F["subhead"], darken(acc, 0.45),
+                  (sw - sz(24), lb_top // 2), anchor="midright", max_w=sw // 2)
 
-        # Title
-        ty = 16 + badge_h + sz(10)
-        draw_text(
-            surf,
-            sd["title"],
-            assets.F["cine"],
-            assets.PARCH,
-            (rx + 1, ty + 1),
-            max_w=rw - 8,
-        )
-        draw_text(
-            surf, sd["title"], assets.F["cine"], assets.PARCH, (rx, ty), max_w=rw - 8
-        )
-        title_line_y = ty + sz(46)
-        pygame.draw.line(surf, acc, (rx, title_line_y), (rx + rw - 8, title_line_y), 2)
+        # ── Gradient text overlay on lower portion of visible area ────────────
+        visible_h = sh - lb_top - lb_bot
+        text_h = int(visible_h * 0.46)
+        text_top = sh - lb_bot - text_h
+        ovl = pygame.Surface((sw, text_h), pygame.SRCALPHA)
+        for yi in range(text_h):
+            frac = yi / max(1, text_h - 1)
+            a = int(230 * (frac ** 0.5))
+            pygame.draw.line(ovl, (5, 3, 1, a), (0, yi), (sw, yi))
+        surf.blit(ovl, (0, text_top))
 
-        # Narration: pixel-based wrap (character-count textwrap left ~1/4 pane unused with serif fonts)
+        # ── Narration — left ~60% of overlay ─────────────────────────────────
         narr_font = assets.F["narr"]
-        narr_max_w = rw - 8
-
         narr = sd["narration"]
-        ny = title_line_y + sz(12)
+        tx = sz(32)
+        tw = int(sw * 0.58) - tx
+        ny = text_top + sz(16)
         line_h = narr_font.get_height() + sz(4)
+        narr_clip = pygame.Rect(tx, ny, tw, sh - lb_bot - ny - sz(8))
         prev_clip = surf.get_clip()
-        narr_clip = pygame.Rect(rx, ny, rw - 8, max(0, narr_bottom - ny))
         if narr_clip.h > 0 and narr_clip.w > 0:
             surf.set_clip(narr_clip.clip(prev_clip))
-
         try:
             for li, line in enumerate(narr):
                 if li < self.cine_line:
-                    for wl in _wrap_lines_pixel(narr_font, line, narr_max_w):
-                        draw_text(surf, wl, narr_font, assets.PARCH_DARK, (rx, ny))
+                    for wl in _wrap_lines_pixel(narr_font, line, tw):
+                        draw_text(surf, wl, narr_font, assets.PARCH_DARK, (tx, ny))
                         ny += line_h
                     ny += sz(6)
                 elif li == self.cine_line:
                     partial = line[: self.cine_char]
                     if partial:
-                        for wl in _wrap_lines_pixel(narr_font, partial, narr_max_w):
-                            draw_text(surf, wl, narr_font, assets.PARCH, (rx, ny))
+                        for wl in _wrap_lines_pixel(narr_font, partial, tw):
+                            draw_text(surf, wl, narr_font, assets.PARCH, (tx, ny))
                             ny += line_h
                     if self.cine_char % 20 < 11:
-                        draw_text(surf, "▌", narr_font, acc, (rx + 2, ny))
+                        draw_text(surf, "▌", narr_font, acc, (tx + 2, ny))
                     break
         finally:
             surf.set_clip(prev_clip)
 
-        # Dedicated "Did you know" band
-        fact = sd.get("fact", "")
-        if fact:
-            fx = rx - 2
-            fy2 = fact_top
-            fw = rw - 6
-            header_h = sz(22)
-            fact_r = pygame.Rect(fx, fy2, fw, fact_h)
-            pygame.draw.rect(surf, assets.UI_CARD, fact_r, border_radius=4)
-            pygame.draw.rect(surf, acc, fact_r, 1, border_radius=4)
-            badge2 = pygame.Rect(fx, fy2, fw, header_h)
-            pygame.draw.rect(surf, acc, badge2, border_radius=4)
-            draw_text(
-                surf,
-                "DID YOU KNOW",
-                assets.F["subhead"],
-                darken(acc, 0.2),
-                (fx + sz(10), fy2 + header_h // 2),
-                anchor="midleft",
-            )
-            body_top = fy2 + header_h + sz(6)
-            draw_text(
-                surf,
-                fact,
-                assets.F["body"],
-                assets.GOLD,
-                (fx + sz(8), body_top),
-                max_w=fw - sz(16),
-            )
-
-        # Advance typewriter state
+        # ── Typewriter advance ────────────────────────────────────────────────
         if self.pause > 0:
             self.pause -= 1
         elif self.cine_line < len(narr):
@@ -279,54 +234,64 @@ class CinematicScreen:
                 self.pause = 20
 
         narr_done = self.cine_line >= len(narr)
-        pulse_t = abs(math.sin(self.frame * 0.07))
 
-        # Nav buttons — pulse primary when narration finished (replaces separate flashing text)
-        if self.idx < len(assets.CINE_SCENES) - 1:
+        # ── "Did you know" — right column of overlay ─────────────────────────
+        fact = sd.get("fact", "")
+        if fact:
+            fx = int(sw * 0.61) + sz(8)
+            fw = sw - fx - sz(20)
+            fy = text_top + sz(10)
+            fh = sh - lb_bot - fy - sz(10)
+            if fw > 60 and fh > 40:
+                fact_r = pygame.Rect(fx, fy, fw, fh)
+                pygame.draw.rect(surf, darken(acc, 0.75), fact_r, border_radius=6)
+                pygame.draw.rect(surf, acc, fact_r, 1, border_radius=6)
+                header_h = sz(22)
+                hdr_r = pygame.Rect(fx, fy, fw, header_h)
+                pygame.draw.rect(surf, acc, hdr_r, border_radius=6)
+                draw_text(surf, "DID YOU KNOW", assets.F["subhead"], darken(acc, 0.15),
+                          (fx + sz(10), fy + header_h // 2), anchor="midleft")
+                draw_text(surf, fact, assets.F["body"], assets.GOLD,
+                          (fx + sz(8), fy + header_h + sz(8)),
+                          max_w=fw - sz(16))
+
+        # ── Nav buttons and progress dots (bottom letterbox) ─────────────────
+        pulse_t = abs(math.sin(self.frame * 0.07))
+        n_scenes = len(assets.CINE_SCENES)
+
+        if self.idx < n_scenes - 1:
             saved_fill = self.next_btn.fill
             if narr_done:
-                self.next_btn.fill = blend(
-                    assets.UI_CARD2, assets.GOLD, 0.3 + pulse_t * 0.55
-                )
+                self.next_btn.fill = blend(assets.UI_CARD2, assets.GOLD, 0.3 + pulse_t * 0.55)
             self.next_btn.draw(surf)
             self.next_btn.fill = saved_fill
             primary_btn = self.next_btn
         else:
             saved_fill = self.begin_btn.fill
             if narr_done:
-                self.begin_btn.fill = blend(
-                    assets.GOLD, assets.GOLD2, 0.15 + pulse_t * 0.75
-                )
+                self.begin_btn.fill = blend(assets.GOLD, assets.GOLD2, 0.15 + pulse_t * 0.75)
             self.begin_btn.draw(surf)
             self.begin_btn.fill = saved_fill
             primary_btn = self.begin_btn
 
-        # Progress indicators — to the right of NEXT / BEGIN
-        n_scenes = len(assets.CINE_SCENES)
-        dot_s = sz(14)
-        dot_gap = sz(6)
+        dot_s = sz(12)
+        dot_gap = sz(5)
         total_dots_w = n_scenes * dot_s + max(0, n_scenes - 1) * dot_gap
-        margin_right = sz(12)
-        dot_x_end = assets.SW - margin_right
-        dot_x_start = max(primary_btn.rect.right + sz(14), dot_x_end - total_dots_w)
+        dot_x_end = sw - sz(16)
+        dot_x_start = max(primary_btn.rect.right + sz(16), dot_x_end - total_dots_w)
         dot_y = primary_btn.rect.centery - dot_s // 2
         for di in range(n_scenes):
-            dcol = (
-                acc
-                if di == self.idx
-                else assets.PARCH_EDGE
-                if di < self.idx
-                else assets.UI_BORDER
-            )
-            dot_x2 = dot_x_start + di * (dot_s + dot_gap)
-            pygame.draw.rect(surf, dcol, (dot_x2, dot_y, dot_s, dot_s), border_radius=3)
+            dcol = acc if di == self.idx else assets.PARCH_EDGE if di < self.idx else assets.UI_BORDER
+            pygame.draw.rect(surf, dcol,
+                             (dot_x_start + di * (dot_s + dot_gap), dot_y, dot_s, dot_s),
+                             border_radius=3)
 
         if self.idx > 0:
             self.back_btn.draw(surf)
         self.skip_btn.draw(surf)
 
     def _blit_scene_figure(self, art_surf, sd):
-        """Corner portrait for the scene speaker / focus (roster or cinematic-only figure)."""
+        """Corner portrait — scaled up for full-screen canvas."""
         fk = sd.get("figure")
         if not fk:
             return
@@ -335,11 +300,15 @@ class CinematicScreen:
         im = ports.get(fk) or figs.get(fk)
         if im is None:
             return
-        acc = sd["accent"]
-        w, h = 64, 80
-        sc = pygame.transform.scale(im, (w, h))
-        art_surf.blit(sc, (12, 12))
-        pygame.draw.rect(art_surf, darken(acc, 0.35), (12, 12, w, h), 2)
+        acc = tuple(int(v) for v in sd["accent"])
+        us = getattr(assets, "UI_SCALE", 1.0)
+        w = max(72, int(100 * us))
+        h = max(90, int(124 * us))
+        sc = pygame.transform.smoothscale(im, (w, h))
+        art_surf.blit(sc, (14, 14))
+        pygame.draw.rect(art_surf, darken(acc, 0.35), (14, 14, w, h), 2)
+        # Subtle vignette frame around portrait
+        pygame.draw.rect(art_surf, (*darken(acc, 0.5), 180), (14, 14, w, h), 1)
 
     def _draw_scene(self, surf, scene_id, t):
         """Draw the art scene (static 8-bit panel if present, else procedural fallback)."""
@@ -2273,23 +2242,23 @@ class CinematicScreen:
         )
         surf.blit(ds_dp, ds_dp.get_rect(centerx=W // 2, bottom=H - 14))
 
-    def handle(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_RIGHT):
-                if self.cine_line >= len(self.scene["narration"]):
-                    if self.idx < len(assets.CINE_SCENES) - 1:
-                        self.advance()
-                    else:
-                        self.on_done()
+    def handle_action(self, action):
+        if action in (Action.CONFIRM, Action.NEXT):
+            if self.cine_line >= len(self.scene["narration"]):
+                if self.idx < len(assets.CINE_SCENES) - 1:
+                    self.advance()
                 else:
-                    # Skip typewriter — show all text immediately
-                    self.cine_line = len(self.scene["narration"])
-                    self.cine_char = 0
-            elif event.key == pygame.K_LEFT:
-                self.retreat()
-            elif event.key == pygame.K_ESCAPE:
-                self.on_done()
+                    self.on_done()
+            else:
+                # Skip typewriter — show all text immediately
+                self.cine_line = len(self.scene["narration"])
+                self.cine_char = 0
+        elif action in (Action.PREV, Action.BACK):
+            self.retreat()
+        elif action == Action.MENU:
+            self.on_done()
 
+    def handle(self, event):
         if self.skip_btn.handle(event):
             self.on_done()
         if self.back_btn.handle(event) and self.idx > 0:

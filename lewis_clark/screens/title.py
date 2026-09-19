@@ -10,6 +10,7 @@ from lewis_clark import assets
 from lewis_clark.drawing import (
     draw_text,
 )
+from lewis_clark.input import Action
 from lewis_clark.ui.button import Button
 
 
@@ -455,6 +456,12 @@ class TitleScreen:
             on_start()
         if self.load_btn.handle(event):
             on_load()
+
+    def handle_action(self, action, on_start, on_quit):
+        if action == Action.CONFIRM:
+            on_start()
+        elif action == Action.MENU:
+            on_quit()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

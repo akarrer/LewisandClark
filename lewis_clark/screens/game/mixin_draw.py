@@ -10,10 +10,10 @@ from lewis_clark.drawing import (
     draw_corner_brackets,
     draw_panel,
     draw_separator,
+    draw_stat_row,
     draw_text,
     draw_wax_seal,
     lighten,
-    stat_bar,
 )
 from lewis_clark.hex_grid import next_waypoint_goal_caption
 from lewis_clark.screens.game import layout as game_layout
@@ -67,6 +67,7 @@ def _narrative_choice_row_height(
 class DrawMixin:
     def draw(self, surf):
         self._sync_layout()
+        self._ability_hitboxes = []  # rebuilt each frame in _draw_party_strip
         s = self.state
         season = s.season
         sbg = assets.SEASON_BG.get(season, assets.UI_BG)
@@ -191,29 +192,20 @@ class DrawMixin:
             accent=sc,
             corners=True,
         )
-        # Flush columns — gaps between bars exposed UI_CARD and looked like pale vertical seams.
-        bw0 = PW // 3
-        rem = PW % 3
-        w0 = bw0 + (1 if rem > 0 else 0)
-        w1 = bw0 + (1 if rem > 1 else 0)
-        w2 = PW - w0 - w1
-        # Below draw_panel title strip (20px): label row, gap, then bar — not HEADER_H+22*us
-        # (that put the bar under the title band and let the bar paint over tall subhead digits).
-        stats_body_top = self.HEADER_H + 4 + 20
-        label_h = max(
-            assets.F["small"].get_height(),
-            assets.F["header"].get_height(),
-        )
-        pad_top = max(2, int(3 * us))
-        gap_lbl_bar = max(2, int(3 * us))
-        bar_h = max(10, int(14 * us))
-        sy = stats_body_top + pad_top + label_h + gap_lbl_bar
-        x0 = PX
-        x1 = PX + w0
-        x2 = PX + w0 + w1
-        stat_bar(surf, x0, sy, w0, bar_h, s.food, assets.GOLD, "FOOD", "⬡ ")
-        stat_bar(surf, x1, sy, w1, bar_h, s.health, assets.GREEN2, "HEALTH", "✦ ")
-        stat_bar(surf, x2, sy, w2, bar_h, s.morale, assets.BLUE2, "MORALE", "◈ ")
+        # Three compact single-line rows (icon+label · bar · value); the card sizes
+        # to fit via layout.expedition_stats_card_h.
+        stats_body_top = self.HEADER_H + 4 + 20  # below draw_panel title strip
+        pad_top = max(4, int(6 * us))
+        row_gap = max(4, int(6 * us))
+        row_h = max(22, int(26 * us))
+        ry = stats_body_top + pad_top
+        for val, col, label, icon in (
+            (s.food, assets.GOLD, "FOOD", "⬡"),
+            (s.health, assets.GREEN2, "HEALTH", "✦"),
+            (s.morale, assets.BLUE2, "MORALE", "◈"),
+        ):
+            draw_stat_row(surf, PX, ry, PW, row_h, val, col, label, icon)
+            ry += row_h + row_gap
 
         self._draw_objectives(surf, us)
 
@@ -288,17 +280,18 @@ class DrawMixin:
             accent=sc,
             corners=True,
         )
-        pad = 8
+        pad = 10
         tx = PX + pad
-        ty = footer_r.y + 22
+        ty = footer_r.y + 24
+        # Date line — brighter (was season colour, which read as dim/low-contrast).
         draw_text(
             surf,
             f"{s.season}  ·  {s.date_str}",
             assets.F["body_i"],
-            sc,
+            assets.CREAM,
             (tx, ty),
         )
-        ty += assets.F["body_i"].get_linesize() + 4
+        ty += assets.F["body_i"].get_linesize() + 3
         nwp = len(assets.WAYPOINTS)
         wp_i = min(max(0, s.current_wp), nwp - 1)
         wp_name = assets.WAYPOINTS[wp_i]["name"] if nwp else "—"
@@ -306,10 +299,22 @@ class DrawMixin:
             surf,
             f"Waypoint {s.current_wp + 1} of {nwp} — {wp_name}",
             assets.F["small"],
-            assets.GOLD,
+            assets.GOLD2,
             (tx, ty),
             max_w=PW - 2 * pad,
         )
+        ty += assets.F["small"].get_linesize() + 4
+        # Journey progress bar (fraction of waypoints reached).
+        pbar_w = PW - 2 * pad
+        pbar_h = max(6, int(8 * us))
+        frac = max(0.0, min(1.0, s.current_wp / max(1, nwp - 1)))
+        by = ty
+        pygame.draw.rect(surf, darken(assets.GOLD, 0.3), (tx - 1, by - 1, pbar_w + 2, pbar_h + 2), border_radius=3)
+        pygame.draw.rect(surf, assets.UI_GROOVE, (tx, by, pbar_w, pbar_h), border_radius=3)
+        fw = max(3, int(pbar_w * frac))
+        pygame.draw.rect(surf, assets.GOLD, (tx, by, fw, pbar_h), border_radius=3)
+        pygame.draw.rect(surf, lighten(assets.GOLD, 1.5), (tx, by, fw, 2), border_radius=2)
+        pygame.draw.rect(surf, darken(assets.GOLD, 0.55), (tx, by, pbar_w, pbar_h), 1, border_radius=3)
 
     def _draw_bottom_strip(self, surf, us: float):
         """Map-column bottom: party (left third) + journal (right two-thirds)."""
@@ -476,33 +481,82 @@ class DrawMixin:
 
             tx = cx2 + port_w + 10
             nc2 = assets.CREAM
-            text_block_h = (
-                name_font.get_height()
-                + detail_font.get_height()
-                + abil_font.get_height()
-                + 4
+            ab = base.get("active_ability", {})
+            cooldown_left = s.char_cooldowns.get(key, 0)
+            ab_ready = bool(ab) and cooldown_left <= 0 and self.mode == "travel"
+
+            # Adaptive content by row height: the ability button is the priority
+            # (it drives the P1 system); title / passive line drop out when short.
+            name_h = name_font.get_height()
+            title_h = detail_font.get_height()
+            passive_h = abil_font.get_height()
+            btn_h = max(16, min(22, int(20 * us))) if ab else 0
+            show_title = row_h >= 54
+            show_passive = row_h >= 74
+            block_h = (
+                name_h
+                + (2 + title_h if show_title else 0)
+                + (2 + passive_h if show_passive else 0)
+                + (4 + btn_h if ab else 0)
             )
-            ty = cy + max(2, (row_h - text_block_h) // 2)
+            ty = cy + max(2, (row_h - block_h) // 2)
             draw_text(surf, base["name"], name_font, nc2, (tx, ty), max_w=text_w)
-            ty += name_font.get_height() + 2
-            draw_text(
-                surf,
-                base["title"][:22],
-                detail_font,
-                assets.DIM2,
-                (tx, ty),
-                max_w=text_w,
-            )
-            ty += detail_font.get_height() + 2
-            abl = list(base["abilities"].items())[0]
-            draw_text(
-                surf,
-                f"▸ {abl[1][:28]}",
-                abil_font,
-                lighten(acc2, 0.85),
-                (tx, ty),
-                max_w=text_w,
-            )
+            ty += name_h + 2
+            if show_title:
+                draw_text(
+                    surf, base["title"][:22], detail_font, assets.DIM2, (tx, ty), max_w=text_w
+                )
+                ty += title_h + 2
+            if show_passive:
+                abl = list(base["abilities"].items())[0]
+                draw_text(
+                    surf, f"▸ {abl[1][:28]}", abil_font, lighten(acc2, 0.85), (tx, ty), max_w=text_w
+                )
+                ty += passive_h + 2
+
+            if ab:
+                ty += 2
+                use_r = pygame.Rect(tx, ty, text_w, btn_h)
+                if ab_ready:
+                    # Filled accent pill — reads as clearly actionable.
+                    pygame.draw.rect(surf, darken(acc2, 0.85), use_r, border_radius=4)
+                    pygame.draw.rect(surf, lighten(acc2, 1.1), use_r, 1, border_radius=4)
+                    pygame.draw.line(
+                        surf, lighten(acc2, 1.35),
+                        (use_r.x + 3, use_r.y + 1), (use_r.right - 3, use_r.y + 1),
+                    )
+                    lbl_txt = f"▶  {ab['name']}"
+                    tc_use = assets.CREAM
+                else:
+                    pygame.draw.rect(surf, darken(assets.UI_CARD, 0.5), use_r, border_radius=4)
+                    pygame.draw.rect(surf, assets.UI_GROOVE, use_r, 1, border_radius=4)
+                    lbl_txt = ab["name"]
+                    tc_use = darken(acc2, 0.95) if cooldown_left > 0 else assets.DIM2
+                # Cooldown badge (right) — glyph-safe numbered pip; reserve its width.
+                text_max = use_r.w - 10
+                if not ab_ready and cooldown_left > 0:
+                    br = use_r.h - 6
+                    bcx = use_r.right - br // 2 - 5
+                    bcy = use_r.centery
+                    pygame.draw.circle(surf, darken(acc2, 0.55), (bcx, bcy), br // 2)
+                    pygame.draw.circle(surf, lighten(acc2, 1.1), (bcx, bcy), br // 2, 1)
+                    ns = assets.F["tiny_b"].render(str(cooldown_left), True, assets.CREAM)
+                    surf.blit(ns, ns.get_rect(center=(bcx, bcy)))
+                    text_max = (bcx - br // 2 - 4) - (use_r.x + 6)
+                lbl_surf = assets.F["tiny_b"].render(
+                    _truncate_to_width(assets.F["tiny_b"], lbl_txt, max(10, text_max)),
+                    True, tc_use,
+                )
+                surf.blit(lbl_surf, lbl_surf.get_rect(midleft=(use_r.x + 6, use_r.centery)))
+                if not hasattr(self, "_ability_hitboxes"):
+                    self._ability_hitboxes = []
+                self._ability_hitboxes.append(
+                    {"rect": use_r, "char_key": key, "ready": ab_ready}
+                )
+                # register as a clickable hitbox so input mixin can fire _use_ability
+                if not hasattr(self, "_ability_hitboxes"):
+                    self._ability_hitboxes = []
+                self._ability_hitboxes.append({"rect": use_r, "char_key": key, "ready": ab_ready})
 
     def _draw_narrative_overlay_choice_row(
         self,
@@ -793,8 +847,8 @@ class DrawMixin:
         rows.extend(objs)
 
         ox = PX + 8
-        row_gap = max(24, int(30 * us))
-        oy = obj_r.y + int(24 * us)
+        row_gap = max(24, int(28 * us))
+        oy = obj_r.y + 20 + int(8 * us)
         text_x = ox + 18
         for i, (txt, idx, col_o) in enumerate(rows):
             cy3 = oy + i * row_gap

@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+import random
 import sys
 from enum import Enum, auto
 
 import pygame
 
-from lewis_clark import assets
+from lewis_clark import assets, corps, legs
 from lewis_clark.fonts import load_fonts
+from lewis_clark.input import InputState
+from lewis_clark.region import build_world
 from lewis_clark.save_load import load_expedition_json, save_expedition_json
 from lewis_clark.screens.cinematic import CinematicScreen
-from lewis_clark.screens.game import GameScreen
+from lewis_clark.screens.ending import EndingScreen
+from lewis_clark.screens.expedition import DEPART, VIEW, ExpeditionMapScreen
+from lewis_clark.screens.explore import ExploreScreen
 from lewis_clark.screens.title import TitleScreen
 from lewis_clark.state import GameState
 from lewis_clark.textures import generate_all as generate_textures
@@ -29,7 +34,9 @@ _WINDOW_PRESETS = (
 class AppScene(Enum):
     TITLE = auto()
     CINEMATIC = auto()
-    GAME = auto()
+    EXPLORE = auto()  # walking the current Region
+    EXPEDITION = auto()  # Expedition Map: route overview and Legs
+    ENDING = auto()  # how the expedition concluded
 
 
 class Transition:
@@ -87,8 +94,14 @@ class App:
         self.scene = AppScene.TITLE
         self.title = TitleScreen(self._start_cinematic, self._load_game)
         self.cinematic = None
-        self.game_screen = None
+        self.state = None
+        self.explore = None
+        self.expedition = None
+        self.ending = None
         self._transition = Transition()
+        self.input = InputState()
+        self.input.init_controllers()
+        self._running = True
 
     def _maybe_resize_with_keyboard(self, event: pygame.event.Event) -> None:
         """Keyboard window sizing for hosts where mouse resize does not reach SDL (WSLg, RDP, etc.)."""
@@ -125,8 +138,10 @@ class App:
             self.title.on_resize()
         elif self.scene == AppScene.CINEMATIC and self.cinematic:
             self.cinematic.on_resize()
-        elif self.scene == AppScene.GAME and self.game_screen:
-            self.game_screen.on_resize()
+        if self.explore:
+            self.explore.on_resize()
+        if self.expedition:
+            self.expedition.on_resize()
 
     def _start_cinematic(self):
         def switch():
@@ -145,22 +160,113 @@ class App:
                 st.add_journal(
                     "York and Drouillard march with us. Sacagawea will join at Fort Mandan."
                 )
-            self.game_screen = GameScreen(st, self._new_game)
-            self.scene = AppScene.GAME
+            self.state = st
+            self._enter_region()
 
         self._transition.start(switch)
 
+    def _enter_region(self, news_from=None):
+        """Build the current Region's world and put the Corps on the ground in it."""
+        world = build_world(self.state.current_region)
+        self.explore = ExploreScreen(
+            self.state, world, self._open_map, self._new_game, self._field_interact, self.input, news_from
+        )
+        self.expedition = None
+        self.scene = AppScene.EXPLORE
+
+    def _open_map(self, mode=VIEW):
+        if not self.state:
+            return
+        self.expedition = ExpeditionMapScreen(
+            self.state, mode, self._open_field, self._take_leg, self._save_game, self.input
+        )
+        self.scene = AppScene.EXPEDITION
+
+    def _quit(self):
+        self._running = False
+
+    def _open_field(self):
+        if self.explore:
+            self.scene = AppScene.EXPLORE
+
+    def _take_leg(self, option):
+        mark = len(self.state.journal)
+        legs.take_leg(self.state, option, random.Random())
+        if not self.state.ending:
+            self._transition.start(lambda: self._enter_region(news_from=mark))
+
+    def _maybe_end(self):
+        """Once the expedition has an Ending, show it."""
+        if not self.state or not self.state.ending or self._transition.active:
+            return
+        if self.scene in (AppScene.ENDING, AppScene.TITLE):
+            return
+
+        def switch():
+            self.ending = EndingScreen(self.state, self._new_game)
+            self.scene = AppScene.ENDING
+
+        self._transition.start(switch)
+
+    def _field_interact(self, kind: str, data: dict) -> None:
+        """Resolve an on-the-ground interaction against the shared GameState."""
+        s = self.state
+        if not s:
+            return
+        if kind == "landmark":
+            if data["id"] not in s.landmarks_visited:
+                s.landmarks_visited.append(data["id"])
+                if "waypoint" in data:
+                    s.current_wp = max(s.current_wp, int(data["waypoint"]))
+                s.add_journal(f"{data['name']} — {data.get('desc', '')}".rstrip(" —"))
+                corps.update_roster(s)
+                corps.check_ending(s)
+        elif kind == "hunt":
+            s.food = min(100, s.food + 12)
+            s.morale = min(100, s.morale + 2)
+            s.add_journal("The hunting party brings back fresh game. (+12 food)")
+            s.clamp()
+        elif kind == "depart":
+            self._open_map(DEPART)
+
+    def _dispatch(self, event, actions):
+        """Send one event (and its actions) to the scene active when it arrived.
+
+        The scene is captured up front so an action that switches scenes (M on
+        the map opening the field) is never re-delivered to the new scene.
+        """
+        scene = self.scene
+        if scene == AppScene.TITLE:
+            self.title.handle(event, self._start_cinematic, self._load_game)
+            for a in actions:
+                self.title.handle_action(a, self._start_cinematic, self._quit)
+        elif scene == AppScene.CINEMATIC and self.cinematic:
+            self.cinematic.handle(event)
+            for a in actions:
+                self.cinematic.handle_action(a)
+        elif scene == AppScene.ENDING and self.ending:
+            for a in actions:
+                self.ending.handle_action(a)
+        elif scene == AppScene.EXPEDITION and self.expedition:
+            self.expedition.handle(event)
+            for a in actions:
+                self.expedition.handle_action(a)
+        elif scene == AppScene.EXPLORE and self.explore:
+            for a in actions:
+                self.explore.handle_action(a)
+
     def _new_game(self):
         def switch():
+            self.state = None
             self.scene = AppScene.TITLE
             self.title = TitleScreen(self._start_cinematic, self._load_game)
 
         self._transition.start(switch)
 
     def _save_game(self):
-        if not self.game_screen:
+        if not self.state:
             return
-        save_expedition_json(self.game_screen.state.to_dict())
+        save_expedition_json(self.state.to_dict())
 
     def _load_game(self):
         data = load_expedition_json()
@@ -168,8 +274,7 @@ class App:
             self._start_game(state=GameState.from_dict(data))
 
     def run(self):
-        running = True
-        while running:
+        while self._running:
             assets.clock.tick(assets.FPS)
             # Some platforms (incl. some Windows/SDL builds) omit VIDEORESIZE; sync from surface.
             surf = pygame.display.get_surface()
@@ -178,39 +283,40 @@ class App:
                 if (cw, ch) != (assets.SW, assets.SH):
                     self._apply_window_resize(cw, ch)
 
-            events = pygame.event.get()
-            for event in events:
+            for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    self._running = False
                 if event.type == pygame.VIDEORESIZE:
                     w = getattr(event, "w", None) or event.size[0]
                     h = getattr(event, "h", None) or event.size[1]
                     self._apply_window_resize(w, h)
                 if event.type == pygame.KEYDOWN:
                     self._maybe_resize_with_keyboard(event)
-                    if event.key == pygame.K_ESCAPE:
-                        if self.scene == AppScene.GAME:
-                            self._new_game()
-                        else:
-                            running = False
 
+                # Held state must track every event, even mid-transition.
+                actions = self.input.handle_event(event)
                 if not self._transition.active:
-                    if self.scene == AppScene.TITLE:
-                        self.title.handle(event, self._start_cinematic, self._load_game)
-                    elif self.scene == AppScene.CINEMATIC and self.cinematic:
-                        self.cinematic.handle(event)
-                    elif self.scene == AppScene.GAME and self.game_screen:
-                        self.game_screen.handle(
-                            event, self._new_game, self._save_game, self._load_game
-                        )
+                    self._dispatch(event, actions)
+
+            if (
+                self.scene == AppScene.EXPLORE
+                and self.explore
+                and not self._transition.active
+            ):
+                self.explore.update()
+            self._maybe_end()
 
             assets.screen.fill(assets.UI_BG)
             if self.scene == AppScene.TITLE:
                 self.title.draw(assets.screen)
             elif self.scene == AppScene.CINEMATIC and self.cinematic:
                 self.cinematic.draw(assets.screen)
-            elif self.scene == AppScene.GAME and self.game_screen:
-                self.game_screen.draw(assets.screen)
+            elif self.scene == AppScene.EXPEDITION and self.expedition:
+                self.expedition.draw(assets.screen)
+            elif self.scene == AppScene.ENDING and self.ending:
+                self.ending.draw(assets.screen)
+            elif self.scene == AppScene.EXPLORE and self.explore:
+                self.explore.draw(assets.screen)
 
             vignette = getattr(assets, "TEX_VIGNETTE", None)
             if vignette:

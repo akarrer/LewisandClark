@@ -1,0 +1,104 @@
+shader_type sky;
+// Big prairie sky: graded blue, sun disk and glow, painterly drifting clouds lit
+// by the sun, warm sunsets, and stars with a moon at night. Colours and cloud
+// cover are driven from sky.gd by the Day Clock and weather.
+
+uniform vec3 zenith_color : source_color = vec3(0.24, 0.45, 0.78);
+uniform vec3 horizon_color : source_color = vec3(0.72, 0.80, 0.88);
+uniform vec3 ground_color : source_color = vec3(0.30, 0.28, 0.22);
+uniform vec3 sun_color : source_color = vec3(1.0, 0.95, 0.85);
+uniform vec3 glow_color : source_color = vec3(1.0, 0.75, 0.45);
+uniform float glow_amount = 0.35;
+uniform float sun_size = 0.9994;
+uniform float cloud_coverage = 0.45;   // 0 clear .. 1 overcast
+uniform float cloud_darkness = 0.0;    // storm
+uniform vec3 cloud_light : source_color = vec3(1.0, 0.98, 0.95);
+uniform vec3 cloud_shadow : source_color = vec3(0.55, 0.60, 0.70);
+uniform float star_amount = 0.0;
+uniform vec3 moon_dir = vec3(0.3, 0.6, -0.7);
+uniform float moon_amount = 0.0;
+uniform float wind_speed = 0.006;
+
+float hash12(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x),
+			mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+float fbm(vec2 p, int octaves) {
+	float v = 0.0;
+	float a = 0.5;
+	mat2 rot = mat2(vec2(0.8, -0.6), vec2(0.6, 0.8));
+	for (int i = 0; i < octaves; i++) {
+		v += a * vnoise(p);
+		p = rot * p * 2.03 + vec2(1.7, 9.2);
+		a *= 0.5;
+	}
+	return v;
+}
+
+void sky() {
+	vec3 dir = normalize(EYEDIR);
+	vec3 sun = normalize(LIGHT0_DIRECTION);
+	float up = dir.y;
+
+	// Base gradient, with a brighter band at the horizon.
+	float t = pow(clamp(up, 0.0, 1.0), 0.55);
+	vec3 col = mix(horizon_color, zenith_color, t);
+	float mu = dot(dir, sun);
+	float sun_up = clamp(sun.y * 4.0 + 0.4, 0.0, 1.0);
+	// Warm scattering around the sun, strongest when it is low.
+	float halo = pow(max(mu, 0.0), 6.0) * glow_amount * (1.0 - clamp(up, 0.0, 1.0));
+	col += glow_color * halo * sun_up;
+	col = mix(col, ground_color, smoothstep(0.0, -0.08, up));
+
+	if (!AT_CUBEMAP_PASS) {
+		// Clouds on a plane above the prairie.
+		if (up > 0.0) {
+			// Storms gather into bigger, softer masses; fair weather keeps crisp wisps.
+			vec2 uv = dir.xz / (up + 0.12) * mix(1.6, 0.9, cloud_darkness);
+			vec2 drift = vec2(TIME * wind_speed, TIME * wind_speed * 0.4) * (1.0 + cloud_darkness * 2.0);
+			float n = fbm(uv + drift, 6);
+			float wisps = fbm(uv * 3.0 - drift * 2.0, 4);
+			float cover = mix(0.72, 0.22, cloud_coverage);
+			float edge = mix(0.22, 0.45, cloud_darkness);
+			float density = smoothstep(cover, cover + edge, n * 0.85 + wisps * mix(0.25, 0.08, cloud_darkness));
+			// Light the tops toward the sun: sample the noise a step sunward.
+			float toward = fbm(uv + drift + normalize(sun.xz + 0.0001) * 0.08, 4);
+			float lit = clamp(0.6 + (n - toward) * 4.0, 0.0, 1.0);
+			vec3 cloud = mix(cloud_shadow, cloud_light, lit);
+			cloud = mix(cloud, glow_color * 1.1, halo * 1.4);
+			cloud *= 1.0 - cloud_darkness * 0.65;
+			float fade = smoothstep(0.0, 0.12, up);
+			col = mix(col, cloud, density * fade * 0.95);
+		}
+
+		// Sun disk (hidden by thick cloud).
+		float disk = smoothstep(sun_size, sun_size + 0.0003, mu);
+		col += sun_color * disk * 6.0 * (1.0 - cloud_darkness) * sun_up;
+
+		// Night: stars and a moon.
+		if (star_amount > 0.001 && up > 0.0) {
+			vec2 suv = vec2(atan(dir.x, dir.z) * 160.0, asin(up) * 160.0);
+			vec2 sc = floor(suv);
+			float h = hash12(sc);
+			vec2 offs = vec2(hash12(sc + 3.1), hash12(sc + 7.9)) * 0.6 + 0.2;
+			float dot_ = smoothstep(0.12, 0.0, length(fract(suv) - offs));
+			float star = step(0.985, h) * dot_ * (0.65 + 0.35 * sin(TIME * 2.0 + h * 90.0)) * mix(0.5, 1.6, hash12(sc + 1.3));
+			col += vec3(0.9, 0.93, 1.0) * star * star_amount * smoothstep(0.0, 0.25, up) * (1.0 - cloud_coverage);
+		}
+		float moon = smoothstep(0.99935, 0.9995, dot(dir, normalize(moon_dir)));
+		col += vec3(0.85, 0.88, 0.95) * moon * moon_amount * 1.5;
+		col += vec3(0.25, 0.3, 0.45) * pow(max(dot(dir, normalize(moon_dir)), 0.0), 40.0) * moon_amount * 0.3;
+	}
+
+	COLOR = col;
+}

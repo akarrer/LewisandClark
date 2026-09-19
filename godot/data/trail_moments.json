@@ -1,0 +1,80 @@
+{
+  "moments": [
+    {
+      "id": "clark_river",
+      "kind": "remark",
+      "speaker": "clark",
+      "trigger": {"type": "random"},
+      "escalates": false,
+      "lines": [
+        {"speaker": "Clark", "text": "River's dropped near two feet since the council fire. Sandbars everywhere — the boats will earn their keep."},
+        {"speaker": "Lewis", "text": "Put it in the log, Captain. Every sounding is a line on the map someone will follow."}
+      ]
+    },
+    {
+      "id": "prairie_dogs",
+      "kind": "discovery",
+      "speaker": "lewis",
+      "trigger": {"type": "near", "point": "prairie_dog_town", "radius": 45},
+      "escalates": false,
+      "lines": [
+        {"speaker": "Lewis", "text": "A whole village of barking squirrels! Stand still — the President must have one of these alive."}
+      ],
+      "discovery": {"id": "prairie_dog", "stay_radius": 16, "stay_seconds": 6,
+        "prompt": "Wait quietly by the burrows",
+        "text": "Discovery: the prairie dog. A burrowing squirrel that whistles an alarm from its mound. Lewis resolves to send one east."}
+    },
+    {
+      "id": "elk_tracks",
+      "kind": "encounter",
+      "speaker": "drouillard",
+      "trigger": {"type": "random"},
+      "escalates": true,
+      "requires": ["drouillard"],
+      "lines": [
+        {"speaker": "Drouillard", "text": "Fresh elk sign, Captain. Big herd, not an hour ahead — they're making for the draw."}
+      ],
+      "encounter": {"kind": "elk_herd", "distance": 110, "food": 12,
+        "text": "Drouillard brings down an elk. Fresh meat tonight. (+12 food)"}
+    },
+    {
+      "id": "thunderstorm",
+      "kind": "weather",
+      "speaker": "york",
+      "trigger": {"type": "random"},
+      "escalates": false,
+      "hours": [9, 19],
+      "lines": [
+        {"speaker": "York", "text": "Sky's gone the color of a bruise. That one's coming straight for us."},
+        {"speaker": "York", "text": "Well — river wanted a drink anyhow.", "delay": 16}
+      ],
+      "weather": {"storm_seconds": 70}
+    },
+    {
+      "id": "smoke_ridge",
+      "kind": "scenario_hook",
+      "speaker": "clark",
+      "trigger": {"type": "random"},
+      "escalates": true,
+      "lines": [
+        {"speaker": "Clark", "text": "Smoke on that ridge to the west. Someone's letting us know they see us."}
+      ],
+      "scenario_hook": {"point": "smoke_ridge", "radius": 18,
+        "prompt": "Meet the messengers",
+        "placeholder": true,
+        "text": "Otoe and Missouria messengers point the way to the bluff where the council will meet. (Placeholder — Scenario and cultural review pending.)"}
+    },
+    {
+      "id": "floyd_pain",
+      "kind": "foreshadow",
+      "speaker": "floyd",
+      "trigger": {"type": "random"},
+      "escalates": false,
+      "requires": ["floyd"],
+      "lines": [
+        {"speaker": "Sgt. Floyd", "text": "Begging your pardon, Captain — it's only a pain in my side. It'll pass by morning."},
+        {"speaker": "Clark", "text": "Keep him close to the fire tonight, York.", "delay": 6}
+      ]
+    }
+  ]
+}

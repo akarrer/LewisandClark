@@ -178,9 +178,12 @@ class EventsMixin:
         if rb:
             tk_key = assets.TRIBE_AT_WAYPOINT.get(s.current_wp)
             if tk_key:
-                s.tribe_relations[tk_key] = min(
-                    100, s.tribe_relations.get(tk_key, 50) + rb
-                )
+                old_rel = s.tribe_relations.get(tk_key, 50)
+                s.tribe_relations[tk_key] = min(100, old_rel + rb)
+                # P4 — propagate relation change to same-region tribes
+                self._propagate_tribal_reputation(tk_key, rb)
+        # P2 — plant follow-up event trigger chains
+        self._plant_triggers(ev, choice_idx)
         if choice.get("discovery") or ev.get("type") == "discovery":
             s.discoveries += 1
             if chars.get("lewis"):
