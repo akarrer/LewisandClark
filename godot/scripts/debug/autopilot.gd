@@ -178,6 +178,7 @@ func _scenery_steps() -> Array:
 		["landing", start.x, start.z, _yaw_to(start, main.get_node("Fleet").get_child(0).global_position if main.has_node("Fleet") else start) , -6.0, 8.5, 0.0],
 		["keelboat", quay.x, quay.z, _yaw_to(quay, keel), -4.0, 9.5, 0.0],
 		["camp", camp_eye.x, camp_eye.z, _yaw_to(camp_eye, camp), -6.0, 9.0, 0.0],
+		["camp_close", camp.x + 5.0, camp.z + 7.0, _yaw_to(camp + Vector3(5, 0, 7), camp), -8.0, 9.5, 0.0],
 		["camp_night", camp_eye.x, camp_eye.z, _yaw_to(camp_eye, camp), -4.0, 22.0, 0.0],
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
 		["sunrise_grove", grove.x, grove.z, -90.0, 4.0, 6.4, 0.0],
