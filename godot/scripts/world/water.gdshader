@@ -51,6 +51,9 @@ void fragment() {
 
 	// Current: long silt streaks drifting downriver, over slower boils.
 	float streak = noise(vec2(t * 0.45, (s - TIME * flow_speed) * 0.045));
+	// A second, much wider set of bands. The fine streaks are sub-pixel by a couple
+	// of hundred metres and the far reach goes flat without these.
+	float band = noise(vec2(t * 0.075, (s - TIME * flow_speed * 0.6) * 0.016));
 	float boil = noise(w * 0.06 - along * TIME * flow_speed * 0.05);
 	float fine = noise(vec2(t * 2.2, (s - TIME * flow_speed * 1.2) * 0.35));
 
@@ -61,7 +64,7 @@ void fragment() {
 	float shallow = 1.0 - smoothstep(0.0, 1.6, depth);
 
 	vec3 c = mix(deep_color, shallow_color, clamp(shallow * 0.8 + (boil - 0.5) * 0.35, 0.0, 1.0));
-	c *= 1.0 + (streak - 0.5) * 0.22 + (fine - 0.5) * 0.08;
+	c *= 1.0 + (streak - 0.5) * 0.22 + (fine - 0.5) * 0.08 + (band - 0.5) * 0.26;
 	// Cat's paws: patches where a gust ruffles the surface, darker and duller,
 	// drifting downwind. They are what makes a wide river read as water.
 	float gust = clamp(wind_strength, 0.0, 4.0);
@@ -84,7 +87,10 @@ void fragment() {
 	// Near grazing almost everything is Fresnel; keep the sheen to the far reach so
 	// the silt stays readable at the player's usual angle.
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
-	EMISSION = sky_horizon.rgb * fres * mix(0.0, 0.32, smoothstep(5.0, 90.0, dist)) * (1.0 + 1.4 * smoothstep(80.0, 450.0, dist)) * (1.0 - lap);
+	// The silt does not stop at the far bank: let the reflection carry the river's
+	// own colour into it, or the far reach turns into a sheet of white sky.
+	vec3 sheen = mix(sky_horizon.rgb, sky_horizon.rgb * deep_color * 2.4, 0.45);
+	EMISSION = sheen * fres * mix(0.0, 0.26, smoothstep(5.0, 90.0, dist)) * (1.0 + 0.7 * smoothstep(80.0, 450.0, dist)) * (1.0 - lap);
 	float ruffle = 1.0 + paw * 2.5;
 	NORMAL_MAP = normalize(vec3(((fine - 0.5) * 0.35 + (streak - 0.5) * 0.2) * ruffle, (boil - 0.5) * 0.4 * ruffle, 4.0)) * 0.5 + 0.5;
 }
