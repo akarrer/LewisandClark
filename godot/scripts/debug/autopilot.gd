@@ -262,6 +262,7 @@ func _scenery_steps() -> Array:
 		["landmark", bluff.x, bluff.z, 0.0, -10.0, 17.0, 0.0],
 		["skyward", bluff.x, bluff.z, -60.0, 22.0, 11.0, 0.0],
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
+		["lightning", dogs.x, dogs.z, 20.0, 12.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
 		["night_sky", bluff.x, bluff.z, 20.0, 30.0, 1.5, 0.0],
 		["moon", bluff.x, bluff.z, moon_yaw, moon_pitch, 1.5, 0.0],
@@ -301,6 +302,8 @@ func _scenery_steps() -> Array:
 	for v in views:
 		steps.append(["view"] + v)
 		steps.append(["wait", 8.0 if "--hold" in args else 2.5])
+		if v[0] == "lightning":
+			steps.append(["await_bolt", 25.0])  # shoot the instant one falls
 		steps.append(["shot", v[0]])
 	steps.append(["report"])
 	return steps
@@ -405,6 +408,11 @@ func _process(delta: float) -> void:
 			main.council_screen.council.offer(str(s[1]), int(s[2]))
 			main.council_screen._refresh()
 			_next()
+		"await_bolt":
+			_wait += delta
+			if main.sky._bolt_left > 0.01 or _wait > float(s[1]):
+				_wait = 0.0
+				_next()
 		"clear_detour":
 			_detour = ""
 			_next()

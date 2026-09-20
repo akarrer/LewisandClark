@@ -23,6 +23,9 @@ var storm_today := false
 var storm_hour := 99.0
 var storm_seconds := 40.0
 var _storm_done := false
+var _bolt: MeshInstance3D
+var _bolt_left := 0.0
+var _eye := Vector3.ZERO
 var moon_phase := 0.6
 var meteor_rate := 0.02
 var follow: Node3D  # rain follows this (the camera)
@@ -108,6 +111,60 @@ func build() -> void:
 	we.environment = env
 	add_child(we)
 	_build_rain()
+
+
+func _strike() -> void:
+	## A bolt out of the cloud, away over the country: a jagged fall with a branch
+	## or two, bright for a moment. Rebuilt each time, so no two are the same.
+	if _bolt == null:
+		_bolt = MeshInstance3D.new()
+		_bolt.name = "Lightning"
+		_bolt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.albedo_color = Color(3.4, 3.2, 3.6)
+		m.disable_receive_shadows = true
+		_bolt.material_override = m
+		add_child(_bolt)
+	# Thrown out ahead of whoever is watching: a bolt behind your back is no bolt.
+	var bearing := _rng.randf() * TAU
+	if follow:
+		var forward := -follow.global_transform.basis.z
+		bearing = atan2(forward.x, forward.z) + _rng.randf_range(-0.7, 0.7)
+	var far := _rng.randf_range(300.0, 700.0)
+	var foot := Vector3(sin(bearing) * far, 0.0, cos(bearing) * far)
+	var head := foot + Vector3(_rng.randf_range(-60, 60), _rng.randf_range(260, 420), _rng.randf_range(-60, 60))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_eye = follow.global_position if follow else Vector3.ZERO
+	_fork(st, head, foot, _rng.randf_range(6.0, 11.0), 7, true)
+	_bolt.mesh = st.commit()
+	_bolt.position = Vector3(follow.global_position.x, 0.0, follow.global_position.z) if follow else Vector3.ZERO
+	_bolt.visible = true
+	_bolt_left = _rng.randf_range(0.08, 0.18)
+
+
+func _fork(st: SurfaceTool, from: Vector3, to: Vector3, width: float, steps: int, main_bolt: bool) -> void:
+	## Walk down in jagged steps, laying a ribbon as we go, and throw off a branch.
+	var previous := from
+	for i in range(1, steps + 1):
+		var t := float(i) / steps
+		var along := from.lerp(to, t)
+		var wander := 1.0 - t
+		var next := along + Vector3(_rng.randf_range(-40, 40), 0, _rng.randf_range(-40, 40)) * wander * 0.6
+		if i == steps:
+			next = to
+		# Lay the ribbon across the line of sight, so it reads as a bolt from here.
+		var to_eye := (_eye - previous).normalized()
+		var side := (next - previous).normalized().cross(to_eye).normalized() * width * (1.0 - t * 0.6)
+		for v in [previous - side, previous + side, next + side, previous - side, next + side, next - side]:
+			st.add_vertex(v)
+		if main_bolt and i == int(steps * 0.45):
+			var branch := next + Vector3(_rng.randf_range(-120, 120), -_rng.randf_range(60, 160), _rng.randf_range(-120, 120))
+			_fork(st, next, branch, width * 0.5, 3, false)
+		previous = next
 
 
 func set_day(pattern: Dictionary) -> void:
@@ -209,6 +266,10 @@ func update(hour: float, delta: float) -> void:
 	_flash = max(0.0, _flash - delta * 3.0)
 	if storm > 0.7 and _rng.randf() < delta * 0.18:
 		_flash = 1.0
+		_strike()
+	_bolt_left = maxf(_bolt_left - delta, 0.0)
+	if _bolt:
+		_bolt.visible = _bolt_left > 0.0
 
 	# Sun path: rises ~5:45, sets ~19:30 in August. At night the light becomes the moon, high in the south-east.
 	var day_t := clampf((hour - 5.75) / (19.5 - 5.75), -0.15, 1.15)
