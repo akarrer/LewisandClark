@@ -11,6 +11,8 @@ var _step := 0
 var _wait := 0.0
 var _t := 0.0
 var _frames: Array[float] = []
+var _frame_at: Array[float] = []   # when each of those frames ended, for locating hitches
+var _skip_frame := false           # the frame a screenshot was saved on is ours, not the game's
 var _log: Array[String] = []
 var _target := Vector3.ZERO
 var _shot_n := 0
@@ -327,8 +329,10 @@ func _scenery_steps() -> Array:
 
 func _process(delta: float) -> void:
 	_t += delta
-	if _t > 2.0:
+	if _t > 2.0 and not _skip_frame:
 		_frames.append(delta)
+		_frame_at.append(_t)
+	_skip_frame = false
 	_watch_moments()
 	if _step >= _steps.size():
 		return
@@ -548,6 +552,9 @@ func _next() -> void:
 
 
 func _shot(name: String) -> void:
+	# Reading the viewport back and writing a PNG costs over a tenth of a second;
+	# that is the harness, not the game, so it must not land in the frame stats.
+	_skip_frame = true
 	_shot_n += 1
 	var img := get_viewport().get_texture().get_image()
 	var path := "%s/%02d_%s.png" % [shots_dir, _shot_n, name]
@@ -574,6 +581,14 @@ func _report() -> void:
 	print("AUTOPILOT REPORT")
 	print("resolution %dx%d  avg %.0f fps  1%% low frame %.1f ms (%.0f fps)  over %.0fs" % [vp.x, vp.y, avg_fps, worst_ms, 1000.0 / maxf(worst_ms, 0.001), _t])
 	print("draw calls %d  primitives %d" % [RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME), RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)])
+	# Where the stutters were, so a hitch can be traced to what was spawning or
+	# coming into view at that second rather than guessed at.
+	var hitches: Array[String] = []
+	for i in _frames.size():
+		if _frames[i] > 0.025:
+			hitches.append("%.1fs:%.0fms" % [_frame_at[i], _frames[i] * 1000.0])
+	if not hitches.is_empty():
+		print("hitches (>25ms): %d  %s" % [hitches.size(), " ".join(hitches.slice(0, 40))])
 	for line in _log:
 		print("  " + line)
 	print("JOURNAL")
