@@ -53,6 +53,30 @@ func begin(p_main) -> void:
 			_steps.append(["shot", "stores_" + hold])
 		_steps.append(["report"])
 		return
+	if "--council" in OS.get_cmdline_user_args():
+		main.hud.visible = false
+		var c := Council.open("council_bluff_1804", main.stores)
+		main.council_screen.begin(c)
+		_steps = [["wait", 1.0], ["shot", "council_open"]]
+		_steps.append(["council_offer", "medals", 5])
+		_steps.append(["council_offer", "flags", 1])
+		_steps.append(["wait", 0.3])
+		_steps.append(["shot", "council_offered"])
+		for taken in ["speech", "medals", "air_gun"]:
+			_steps.append(["council_take", taken])
+			_steps.append(["wait", 0.3])
+		_steps.append(["shot", "council_part_way"])
+		_steps.append(["council_offer", "powder", 1])
+		_steps.append(["council_offer", "whiskey", 2])
+		_steps.append(["council_take", "the_ask"])
+		_steps.append(["council_offer", "medals", 1])
+		_steps.append(["council_offer", "flags", 1])
+		_steps.append(["council_offer", "tobacco", 6])
+		_steps.append(["council_take", "send_after"])
+		_steps.append(["wait", 0.4])
+		_steps.append(["shot", "council_verdict"])
+		_steps.append(["report"])
+		return
 	if "--march" in OS.get_cmdline_user_args():
 		_steps = _march_steps()
 		return
@@ -344,6 +368,13 @@ func _process(delta: float) -> void:
 			inv._hold = str(s[1])
 			inv._build_holds()
 			inv._fill()
+			_next()
+		"council_take":
+			main.council_screen._take(str(s[1]))
+			_next()
+		"council_offer":
+			main.council_screen.council.offer(str(s[1]), int(s[2]))
+			main.council_screen._refresh()
 			_next()
 		"clear_detour":
 			_detour = ""

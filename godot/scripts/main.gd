@@ -16,6 +16,7 @@ var director: TrailMomentDirector
 var prairie_dogs: Node3D
 var stores: Stores
 var inventory: InventoryScreen
+var council_screen: CouncilScreen
 var _emptied: Array[String] = []
 var smoke: GPUParticles3D
 
@@ -111,6 +112,29 @@ func _place_world_features() -> void:
 	inventory = InventoryScreen.new()
 	inventory.build(stores)
 	add_child(inventory)
+	council_screen = CouncilScreen.new()
+	council_screen.build()
+	council_screen.closed.connect(_council_closed)
+	add_child(council_screen)
+
+	# The council ground, a little below the flag on the bluff.
+	var ground: Vector3 = terrain.points["council_bluff"] + Vector3(6, 0, 10)
+	ground.y = terrain.height_at(ground.x, ground.z)
+	var council_place := Interactable.new()
+	council_place.name = "CouncilGround"
+	council_place.position = ground
+	council_place.label = "Hold the council with the Otoe and Missouria"
+	council_place.radius = 7.0
+	council_place.on_interact = func():
+		if council_screen.open:
+			return
+		var c := Council.open("council_bluff_1804", stores)
+		c.interpreter_present = corps.has("drouillard")
+		council_screen.begin(c)
+		leader.input_enabled = false
+		leader.look_enabled = false
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	add_child(council_place)
 
 	prairie_dogs = Interactable.prairie_dog_town(terrain.points["prairie_dog_town"], terrain)
 	add_child(prairie_dogs)
@@ -315,6 +339,16 @@ func _spawn_elk(enc: Dictionary) -> void:
 		if not _moment.is_empty():
 			_moment["done_action"] = true
 	add_child(herd)
+
+
+func _council_closed(standing: int, verdict: String, lines: Array) -> void:
+	leader.input_enabled = true
+	leader.look_enabled = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	for line in lines:
+		state.add_journal(str(line))
+	state.add_journal("Council with the Otoe and Missouria: %s" % verdict)
+	state.morale = clampi(state.morale + int(standing / 4.0), 0, 100)
 
 
 func _feed_the_corps(_day: int) -> void:
