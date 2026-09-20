@@ -31,6 +31,9 @@ func build(p_terrain: Terrain, p_watch: Node3D) -> void:
 		node.name = "Drift%d" % i
 		var timber := MeshInstance3D.new()
 		timber.mesh = _log_mesh(_rng)
+		# The trunk is built along X; the node's +Z is downstream, and so is the
+		# wake quad, so turn the timber to match.
+		timber.rotation.y = -PI / 2.0
 		timber.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		node.add_child(timber)
 		var wake := MeshInstance3D.new()
@@ -41,7 +44,8 @@ func build(p_terrain: Terrain, p_watch: Node3D) -> void:
 		add_child(node)
 		var d := {"node": node, "phase": _rng.randf() * TAU, "roll": _rng.randf_range(-0.12, 0.12),
 				"speed": SPEED * _rng.randf_range(0.8, 1.25), "sink": _rng.randf_range(0.14, 0.28),
-				"placed": false}
+				# Most lie along the current; some come down broadside, as they do.
+				"yaw": _rng.randf_range(-0.9, 0.9), "placed": false}
 		# Launched here rather than on the first frame, so that anything asking
 		# where the drift is at start-up -- the autopilot, for one -- finds it.
 		# From the landing, not from the Leader: he may not have been put down
@@ -71,7 +75,7 @@ func _process(delta: float) -> void:
 			continue
 		var ph: float = d["phase"]
 		node.position.y = Terrain.WATER_Y - 0.35 - float(d["sink"]) + sin(t * 0.6 + ph) * 0.05
-		node.rotation.y = atan2(down.x, down.z) + sin(t * 0.09 + ph) * 0.22
+		node.rotation.y = atan2(down.x, down.z) + float(d["yaw"]) + sin(t * 0.09 + ph) * 0.22
 		node.rotation.z = sin(t * 0.31 + ph) * 0.09 + float(d["roll"])
 		node.rotation.x = sin(t * 0.22 + ph * 1.7) * 0.05
 

@@ -303,14 +303,20 @@ func _scatter_driftwood() -> void:
 			_add("driftwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), rng.randf_range(0.35, 0.8),
 					side, 900.0, Vector3.ONE, COARSE_CHUNK)
 		elif d > -30.0 and d < -4.0 and p.y < Terrain.WATER_Y - 0.9 				and not _near_point(p, 34.0) and rng.randf() < 0.42:
-			# A snag: rooted underwater, leaning 30-60 degrees out of the current.
-			# Rooted underwater means under water: the channel is wide enough that
-			# a planform distance from its centre will put you on a dry bar.
-			var ang := rng.randf() * TAU
-			var lean := Vector3(cos(ang), rng.randf_range(0.6, 1.6), sin(ang))
-			var bed := Vector3(p.x, Terrain.WATER_Y - 1.2, p.z)
-			_add("driftwood", variants[rng.randi() % variants.size()], bed, rng.randf_range(0.4, 0.7), lean, 900.0,
-					Vector3.ONE, COARSE_CHUNK)
+			# A snag: a whole tree driven into the bed and pushed over by the
+			# water. It leans DOWNSTREAM, hard -- that is what the current does
+			# to it, and it is why the Corps could read one coming.
+			#
+			# What shows is a few feet of trunk and a limb or two, not a mast.
+			# The kit's dead trees are eleven to sixteen metres tall, so they are
+			# scaled well down and rooted deep, and the tallest of them stands
+			# about three metres out of the river.
+			var down := terrain.downriver(p.x, p.z)
+			var over := rng.randf_range(1.0, 2.7)   # tan of the lean off vertical
+			var lean := Vector3(down.x * over, 1.0, down.z * over)
+			var bed := Vector3(p.x, Terrain.WATER_Y - 1.6, p.z)
+			_add("driftwood", variants[rng.randi() % variants.size()], bed, rng.randf_range(0.2, 0.38), lean,
+					900.0, Vector3.ONE, COARSE_CHUNK)
 			snags.append(p)
 
 
