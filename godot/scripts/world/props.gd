@@ -135,8 +135,8 @@ static func village_smoke() -> GPUParticles3D:
 	var ramp := Gradient.new()
 	# Densest well up the column: the foot of it is behind the ridge anyway.
 	ramp.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
-	ramp.colors = PackedColorArray([Color(0.50, 0.48, 0.46, 0.16), Color(0.63, 0.62, 0.60, 0.58),
-			Color(0.78, 0.78, 0.77, 0.0)])
+	ramp.colors = PackedColorArray([Color(0.60, 0.59, 0.57, 0.14), Color(0.72, 0.71, 0.69, 0.48),
+			Color(0.84, 0.84, 0.83, 0.0)])
 	var tex := GradientTexture1D.new()
 	tex.gradient = ramp
 	sp.color_ramp = tex
