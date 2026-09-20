@@ -27,6 +27,7 @@ static func populate(t: Terrain, leader: Node3D) -> Wildlife:
 	w._place_herds()
 	w._place_flocks()
 	w._place_waders()
+	w._place_swallows()
 	return w
 
 
@@ -197,6 +198,30 @@ func _place_flocks() -> void:
 		})
 
 
+func _place_swallows() -> void:
+	## Cliff swallows hawking low over the water under the bluff. They nest in
+	## the loess itself; the Corps found their nests all along these banks.
+	var under_bluff: Vector3 = terrain.points.get("council_bluff", Vector3(512, 0, 512))
+	# Close under the rim, where the nests are, rather than away over the water.
+	var centre := under_bluff + terrain.toward_river(under_bluff.x, under_bluff.z) * 20.0
+	centre.y = maxf(under_bluff.y - 3.0, Terrain.WATER_Y + 4.0)
+	var flock := Node3D.new()
+	flock.name = "Swallows"
+	add_child(flock)
+	var birds: Array[Node3D] = []
+	for i in 16:
+		var b := _bird(Color(0.16, 0.15, 0.20))
+		b.scale = Vector3.ONE * 0.45          # a swallow is a handful of nothing
+		b.position = Vector3(_rng.randf_range(-18, 18), _rng.randf_range(-3, 3), _rng.randf_range(-18, 18))
+		b.set_meta("jink", _rng.randf() * 100.0)
+		flock.add_child(b)
+		birds.append(b)
+	_flocks.append({
+		"node": flock, "centre": centre, "radius": 26.0, "speed": 0.5,
+		"phase": _rng.randf() * TAU, "birds": birds, "swallows": true,
+	})
+
+
 func _fly(delta: float, t: float) -> void:
 	for f in _flocks:
 		var node: Node3D = f["node"]
@@ -209,6 +234,18 @@ func _fly(delta: float, t: float) -> void:
 		var i := 0
 		for b in f["birds"]:
 			i += 1
+			if f.get("swallows", false):
+				# Swallows do not glide in circles: they jink after flies.
+				var j: float = float(b.get_meta("jink"))
+				b.position = Vector3(
+					sin(t * (1.7 + j * 0.02) + j) * 17.0,
+					sin(t * (1.1 + j * 0.01) + j * 2.0) * 3.0,
+					cos(t * (1.3 + j * 0.03) + j * 1.5) * 17.0)
+				b.rotation.y = t * (1.3 + j * 0.03) + j * 1.5
+				b.rotation.z = sin(t * 2.6 + j) * 0.7   # banking hard
+				b.get_node("L").rotation.z = sin(t * 11.0 + j) * 0.7
+				b.get_node("R").rotation.z = -sin(t * 11.0 + j) * 0.7
+				continue
 			# Each bird flaps at its own rate, with glides between.
 			var flap := sin(t * (5.5 + float(i % 5) * 0.7) + float(i))
 			var beat := maxf(flap, -0.3) * 0.5
