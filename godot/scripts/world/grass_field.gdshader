@@ -38,8 +38,19 @@ float vnoise(vec2 p) {
 }
 
 // Same field as grass_patch() in ground.gdshader, so the ground matches the blades.
+const mat2 TURN = mat2(vec2(0.80, 0.60), vec2(-0.60, 0.80));
+
 float grass_patch(vec2 p) {
-	return smoothstep(0.25, 0.75, vnoise(p / 9.0) * 0.65 + vnoise(p / 2.3) * 0.35);
+	// Rotated octaves. Stacking value noise on one axis-aligned lattice, then
+	// hardening it with a smoothstep, prints a basket weave over the whole
+	// prairie that is plain to see on any slope.
+	vec2 q = p / 9.0;
+	float v = vnoise(q) * 0.55;
+	q = TURN * q * 3.9;
+	v += vnoise(q) * 0.30;
+	q = TURN * q * 2.3;
+	v += vnoise(q) * 0.15;
+	return smoothstep(0.25, 0.75, v);
 }
 
 #include "res://scripts/world/trace.gdshaderinc"

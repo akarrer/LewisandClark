@@ -37,9 +37,48 @@ float vnoise(vec2 p) {
 	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 
+// Value noise sits on an axis-aligned lattice, and stacking octaves of it
+// straight on top of one another prints a basket weave over the ground that is
+// plain to see on any slope. Turning each octave a little breaks the lattice up.
+const mat2 TURN = mat2(vec2(0.80, 0.60), vec2(-0.60, 0.80));
+
+float fbm(vec2 p) {
+	float v = 0.0;
+	float a = 0.52;
+	for (int i = 0; i < 4; i++) {
+		v += a * vnoise(p);
+		p = TURN * p * 2.07;
+		a *= 0.5;
+	}
+	return v;
+}
+
+// The height the relief normal is bent by: tussocks on the prairie, wind and
+// current ripples on the sand. One function, so all three samples of it agree --
+// the ripple used to be added to the centre sample only, which cancelled its own
+// gradient and left the bars perfectly smooth.
+float relief_h(vec2 q, float sand) {
+	float h = fbm(q * 2.6);
+	if (sand > 0.01) {
+		float w = vnoise(q * 0.15) * 6.0;
+		float r = sin(q.x * 2.6 + q.y * 1.1 + w) * 0.5 + 0.5;
+		h = mix(h, mix(r, vnoise(q * 3.0), 0.35), sand * 0.85);
+	}
+	return h;
+}
+
 // The grass patch field: 0 = thin tawny grass, 1 = thick green.
 float grass_patch(vec2 p) {
-	return smoothstep(0.25, 0.75, vnoise(p / 9.0) * 0.65 + vnoise(p / 2.3) * 0.35);
+	// Rotated octaves. Stacking value noise on one axis-aligned lattice, then
+	// hardening it with a smoothstep, prints a basket weave over the whole
+	// prairie that is plain to see on any slope.
+	vec2 q = p / 9.0;
+	float v = vnoise(q) * 0.55;
+	q = TURN * q * 3.9;
+	v += vnoise(q) * 0.30;
+	q = TURN * q * 2.3;
+	v += vnoise(q) * 0.15;
+	return smoothstep(0.25, 0.75, v);
 }
 
 #include "res://scripts/world/trace.gdshaderinc"
@@ -52,7 +91,7 @@ void vertex() {
 
 void fragment() {
 	vec2 p = v_world.xz;
-	float n = vnoise(p * 0.06) * 0.5 + vnoise(p * 0.35) * 0.3 + vnoise(p * 2.1) * 0.2;
+	float n = vnoise(p * 0.06) * 0.5 + fbm(p * 0.35) * 0.5;
 	vec3 c = pow(clamp(COLOR.rgb, vec3(0.0), vec3(1.0)), vec3(2.2));  // baked colours are sRGB
 	float prairie = clamp(COLOR.a, 0.0, 1.0);
 
@@ -70,14 +109,14 @@ void fragment() {
 	float slope = 1.0 - v_normal.y;
 	grassy = mix(grassy, grassy * vec3(0.82, 0.95, 0.80), north * smoothstep(0.02, 0.12, slope));
 	// Fine streaks, like grass seen from afar, fading as the real blades take over.
-	float streak = vnoise(vec2(p.x * 1.3 + p.y * 0.4, p.y * 4.0));
+	float streak = vnoise(TURN * vec2(p.x * 1.3 + p.y * 0.4, p.y * 4.0));
 	grassy *= 1.0 + (streak - 0.5) * 0.18 * (1.0 - under);
 	// Gusts: the same bands that bend the blades brighten the prairie as they pass.
 	float band = sin(dot(p, vec2(0.08, 0.05)) - TIME * 1.6) * 0.5 + 0.5;
 	grassy *= 1.0 + band * band * 0.10 * (1.0 - under * 0.6);
 	// Litter underfoot: dead stems and seed heads, only worth drawing up close.
 	float near = 1.0 - smoothstep(6.0, 22.0, dist);
-	float litter = vnoise(vec2(p.x * 9.0 + p.y * 3.0, p.y * 2.5 - p.x * 1.5)) * 0.6 + vnoise(p * 23.0) * 0.4;
+	float litter = fbm(p * 6.5);
 	grassy *= 1.0 + (litter - 0.5) * 0.45 * near;
 	c = mix(c, grassy, prairie);
 
@@ -86,7 +125,7 @@ void fragment() {
 	float bare = (1.0 - prairie) * smoothstep(0.08, 0.25, slope);
 	float strata = sin(v_world.y * 2.2 + vnoise(p * 0.08) * 5.0) * 0.5 + 0.5;
 	vec3 loess = c * (0.9 + strata * 0.14);
-	float clinging = smoothstep(0.55, 0.75, vnoise(p * 0.9) * 0.7 + vnoise(p * 5.0) * 0.3);
+	float clinging = smoothstep(0.5, 0.72, fbm(p * 0.9));
 	loess = mix(loess, mix(thatch, blades, 0.6), clinging * 0.7);
 	c = mix(c, loess, bare);
 
@@ -103,7 +142,7 @@ void fragment() {
 	float drift_line = smoothstep(0.06, 0.0, abs(fract(v_world.y * 1.3 + vnoise(p * 0.2) * 0.6) - 0.5) - 0.44);
 	sandy *= 1.0 - drift_line * 0.25 * smoothstep(0.2, 0.8, vnoise(p * 1.1));
 	// Fine grain up close: coarser sand and silt in soft flecks.
-	float grain = vnoise(p * 7.0) * 0.6 + vnoise(p * 19.0) * 0.4;
+	float grain = fbm(p * 5.5);
 	sandy *= 1.0 + (grain - 0.5) * 0.16 * (1.0 - smoothstep(4.0, 20.0, length(v_world - CAMERA_POSITION_WORLD)));
 	c = mix(c, sandy, sand);
 
@@ -142,9 +181,14 @@ void fragment() {
 		vec2 dx = vec2(e, 0.0);
 		vec2 dz = vec2(0.0, e);
 		float scale = mix(0.5, 0.16, sand);  // dunes are softer than tussocks
-		float h0 = vnoise(p * 3.0) * 0.6 + vnoise(p * 11.0) * 0.4 + ripple * sand * 0.8;
-		float hx = vnoise((p + dx) * 3.0) * 0.6 + vnoise((p + dx) * 11.0) * 0.4;
-		float hz = vnoise((p + dz) * 3.0) * 0.6 + vnoise((p + dz) * 11.0) * 0.4;
+		// fbm, not two octaves of plain value noise. The gradient of value noise
+		// peaks inside every lattice cell, so bending the normal by it laid a
+		// cobbled grid over every slope in the game -- the single most visible
+		// artifact on the ground, and invisible in the colour, since it was in
+		// the shading.
+		float h0 = relief_h(p, sand);
+		float hx = relief_h(p + dx, sand);
+		float hz = relief_h(p + dz, sand);
 		vec3 bumped = normalize(v_normal + vec3(-(hx - h0), 0.0, -(hz - h0)) / e * scale * relief);
 		NORMAL = normalize((VIEW_MATRIX * vec4(bumped, 0.0)).xyz);
 	}
