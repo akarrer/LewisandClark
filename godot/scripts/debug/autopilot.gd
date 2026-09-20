@@ -273,6 +273,8 @@ func _scenery_steps() -> Array:
 		["bluff_sunset_east", bluff.x, bluff.z, -90.0, -10.0, 19.2, 0.0],
 		["bluff_sunset_west", bluff.x, bluff.z, 100.0, 4.0, 19.2, 0.0],
 		["landmark", bluff.x, bluff.z, 0.0, -10.0, 17.0, 0.0],
+		# Inland from the bluff: the Oto village fires standing over the far prairie.
+		["village_smoke", bluff.x, bluff.z, 105.0, 1.0, 10.0, 0.0],
 		["swallows", bluff.x, bluff.z, _yaw_to(bluff, bluff + tr.toward_river(bluff.x, bluff.z) * 20.0), -18.0, 18.5, 0.0, 3.0],
 		["skyward", bluff.x, bluff.z, -60.0, 22.0, 11.0, 0.0],
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],

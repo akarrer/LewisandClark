@@ -148,6 +148,22 @@ func _place_world_features() -> void:
 	prairie_dogs = Interactable.prairie_dog_town(terrain.points["prairie_dog_town"], terrain)
 	add_child(prairie_dogs)
 
+	# The Oto and Missouria villages lie off west of the river: their fires stand
+	# in the sky at this distance, which is how the Corps knew where to send runners.
+	# The Oto and Missouria towns lie back off the river to the west, too far to
+	# walk to in the Slice. Their fires stand over the prairie, and the ridge west
+	# of the bluff hides the feet of the columns: this is how Clark had the towns
+	# on his map days before the Corps saw one.
+	var bluff_pt: Vector3 = terrain.points["council_bluff"]
+	for i in 3:
+		var far_smoke := Props.village_smoke()
+		far_smoke.name = "VillageSmoke%d" % i
+		var dist := 430.0 + i * 60.0
+		var vx := bluff_pt.x - 0.97 * dist + (i - 1) * 90.0
+		var vz := bluff_pt.z + 0.26 * dist + (i - 1) * 40.0
+		far_smoke.position = Vector3(vx, terrain.skirt_height(vx, vz) + 2.0, vz)
+		add_child(far_smoke)
+
 	smoke = Props.smoke_column()
 	smoke.name = "RidgeSmoke"
 	smoke.position = terrain.points["smoke_ridge"] + Vector3(0, 0.5, 0)
