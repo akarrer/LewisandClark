@@ -46,7 +46,11 @@ static func prairie_dog_town(pos: Vector3, terrain: Terrain) -> Node3D:
 		var off := Vector3(rng.randf_range(-14, 14), 0, rng.randf_range(-14, 14))
 		var p := pos + off
 		p.y = terrain.height_at(p.x, p.z)
-		town.add_child(Props.sphere(0.9, Color(0.56, 0.44, 0.30), p, Vector3(1.2, 0.35, 1.2)))
+		# A mound of thrown-out earth with the burrow mouth in the middle of it.
+		var size := rng.randf_range(0.75, 1.25)
+		town.add_child(Props.sphere(0.9 * size, Color(0.56, 0.44, 0.30), p, Vector3(1.2, 0.3, 1.2)))
+		var mouth := Props.sphere(0.2 * size, Color(0.13, 0.10, 0.08), p + Vector3(0, 0.24 * size, 0), Vector3(1.0, 0.45, 1.0))
+		town.add_child(mouth)
 		var dog := Node3D.new()
 		dog.name = "Dog%d" % i
 		dog.position = p + Vector3(0.15, 0.1, 0)

@@ -16,6 +16,8 @@ uniform float max_dist = 46.0;
 uniform float min_dist = 0.0;   // the far field leaves the middle to the near field
 uniform vec2 camp = vec2(-1000.0);  // trampled ground around the camp
 uniform float camp_radius = 9.0;
+uniform vec2 town = vec2(-1000.0);   // a dog town, where the grass is kept cropped
+uniform float town_radius = 24.0;
 uniform vec2 trace_a = vec2(-1000.0);
 uniform vec2 trace_b = vec2(-1000.0);
 uniform vec2 trace_c = vec2(-1000.0);
@@ -80,6 +82,8 @@ void process() {
 	s *= smoothstep(half_w * 0.45, half_w * 1.15, to_path);
 	s *= mix(0.45, 1.0, smoothstep(half_w, half_w * 2.4, to_path));
 	s *= mix(0.6, 1.0, smoothstep(camp_radius, camp_radius * 1.9, distance(p, camp)));
+	// A dog town is mown to the ground: they keep it short to see what is coming.
+	s *= mix(0.3, 1.0, smoothstep(town_radius * 0.45, town_radius, distance(p, town)));
 	float ang = hash(c + 9.7) * 6.2831;
 	float ca = cos(ang);
 	float sa = sin(ang);

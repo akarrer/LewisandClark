@@ -44,6 +44,9 @@ func _ready() -> void:
 	sky.follow = leader.camera
 	for grass in GrassField.fields(terrain, leader.camera):
 		add_child(grass)
+	var dust := Dust.new()
+	dust.build(terrain, leader)
+	add_child(dust)
 	var hoppers := Hoppers.new()
 	hoppers.build(terrain, leader)
 	add_child(hoppers)
