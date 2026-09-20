@@ -17,6 +17,12 @@ var cloud_cover := 0.42
 var haze := 0.0
 var night_amount := 0.0
 ## Set from the Day Clock's date (see moon_phase_for / meteors_for).
+## The weather this day was given (rules/weather.gd day_pattern).
+var cover_today := 0.42
+var storm_today := false
+var storm_hour := 99.0
+var storm_seconds := 40.0
+var _storm_done := false
 var moon_phase := 0.6
 var meteor_rate := 0.02
 var follow: Node3D  # rain follows this (the camera)
@@ -104,6 +110,15 @@ func build() -> void:
 	_build_rain()
 
 
+func set_day(pattern: Dictionary) -> void:
+	## Give the sky the weather this day was dealt.
+	cover_today = clampf(float(pattern.get("cover", 0.42)), 0.0, 1.0)
+	storm_today = bool(pattern.get("storm", false))
+	storm_hour = float(pattern.get("storm_hour", 99.0))
+	storm_seconds = float(pattern.get("storm_seconds", 40.0))
+	_storm_done = false
+
+
 func start_storm(seconds: float) -> void:
 	_storm_target = 1.0
 	_storm_hold = seconds
@@ -177,6 +192,10 @@ static func palette(hour: float) -> Array:
 
 
 func update(hour: float, delta: float) -> void:
+	# The afternoon storm, if this day was given one, breaks when its hour comes.
+	if storm_today and not _storm_done and hour >= storm_hour and hour < storm_hour + 3.0:
+		_storm_done = true
+		start_storm(storm_seconds)
 	# Storm envelope.
 	if _storm_hold > 0.0:
 		_storm_hold -= delta
@@ -207,6 +226,9 @@ func update(hour: float, delta: float) -> void:
 	zenith = zenith.lerp(grey * 0.8 * (0.3 + 0.7 * p[5]), storm * 0.85)
 	horizon = horizon.lerp(grey * (0.3 + 0.7 * p[5]), storm * 0.85)
 	var night := 1.0 - smoothstep(0.36, 0.8, p[5])  # full night when ambient is at its floor
+	# The day's own cloud, thinning a little after dark, and full over in a storm.
+	# Worked out once here: the sky, the shadows and the HUD all read this.
+	cloud_cover = lerpf(lerpf(cover_today, cover_today * 0.7, night), 1.0, storm)
 
 	sun.light_color = light_col.lerp(Color(0.6, 0.65, 0.75), storm * 0.6)
 	sun.light_energy = p[4] * (1.0 - storm * 0.7) + _flash * 1.8
@@ -221,7 +243,7 @@ func update(hour: float, delta: float) -> void:
 	sky_mat.set_shader_parameter("cloud_darkness", storm)
 	sky_mat.set_shader_parameter("cloud_light", Color(1.0, 0.98, 0.95).lerp(glow, 0.35).lerp(Color(0.16, 0.18, 0.26), night))
 	sky_mat.set_shader_parameter("cloud_shadow", horizon.lerp(zenith, 0.5).darkened(0.25).lerp(Color(0.04, 0.05, 0.09), night))
-	sky_mat.set_shader_parameter("cloud_coverage", lerpf(lerpf(0.42, 0.3, night), 1.0, storm))
+	sky_mat.set_shader_parameter("cloud_coverage", cloud_cover)
 	sky_mat.set_shader_parameter("star_amount", night * (1.0 - storm))
 	sky_mat.set_shader_parameter("moon_amount", night * (1.0 - storm))
 	sky_mat.set_shader_parameter("moon_dir", sun.global_transform.basis.z)
@@ -234,8 +256,7 @@ func update(hour: float, delta: float) -> void:
 	# Sky colour for materials that fake reflections (the river's sheen); see [shader_globals].
 	# Cloud shadows on the land (cloud_shadow.gdshaderinc): gone at night, and under
 	# a full overcast the whole land is already in shade.
-	var coverage := lerpf(lerpf(0.42, 0.3, night), 1.0, storm)
-	cloud_cover = coverage
+	var coverage := cloud_cover
 	night_amount = night
 	# Wind the plants lean into: a breathing prairie breeze, half a gale in a storm.
 	var gust := 1.0 + 0.35 * sin(Time.get_ticks_msec() / 1000.0 * 0.11) + storm * 2.6

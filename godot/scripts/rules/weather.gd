@@ -14,6 +14,9 @@ const CLIMATE := [
 ]
 const LITTLE_ICE_AGE := -2.0
 
+## How often a thunderstorm breaks over the plains in the afternoon, by month.
+const STORM_CHANCE := [0.02, 0.03, 0.10, 0.18, 0.28, 0.30, 0.28, 0.26, 0.16, 0.10, 0.05, 0.03]
+
 ## Coldest just before dawn, warmest in the middle of the afternoon.
 const COLDEST_HOUR := 5.5
 const WARMEST_HOUR := 15.5
@@ -77,3 +80,23 @@ static func describe_night(cloud: float, storm: float) -> String:
 
 static func _hash01(n: int) -> float:
 	return fposmod(sin(float(n) * 12.9898) * 43758.5453, 1.0)
+
+
+
+static func day_pattern(month: int, day: int) -> Dictionary:
+	## The weather this day was given, the same every time it is asked. Cloud runs
+	## from a clear day to an overcast one; storms break in the afternoon and are
+	## a summer thing on the plains, where the heat builds all day and then goes.
+	var roll := _hash01(month * 131 + day * 17)
+	var roll2 := _hash01(month * 57 + day * 91 + 7)
+	var roll3 := _hash01(month * 23 + day * 13 + 3)
+	# Winter skies are duller, summer skies clearer between the storms.
+	var winter := 1.0 - absf(float(month) - 7.0) / 6.0
+	var cover: float = clampf(0.12 + roll * 0.7 + (1.0 - winter) * 0.18, 0.0, 1.0)
+	var storms: bool = roll2 < STORM_CHANCE[clampi(month - 1, 0, 11)] * (0.5 + cover)
+	return {
+		"cover": cover,
+		"storm": storms,
+		"storm_hour": 13.0 + roll3 * 6.0,
+		"storm_seconds": 25.0 + roll * 45.0,
+	}

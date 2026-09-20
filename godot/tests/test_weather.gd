@@ -30,3 +30,21 @@ func test_the_sky_is_described_in_plain_words() -> void:
 	t.eq(Weather.describe(0.5, 0.9, 13.0, 0.0), "Thunderstorm", "thunderstorm")
 	t.eq(Weather.describe(0.2, 0.0, 7.0, 0.9), "Misty", "river mist at dawn")
 	t.eq(Weather.describe_night(0.05, 0.0), "Clear", "a clear night")
+
+
+func test_each_day_has_a_weather_of_its_own() -> void:
+	var first := Weather.day_pattern(8, 3)
+	t.check(first["cover"] >= 0.0 and first["cover"] <= 1.0, "cloud within bounds")
+	t.check(first["storm_hour"] >= 12.0 and first["storm_hour"] <= 20.0, "storms break in the afternoon")
+	t.eq(Weather.day_pattern(8, 3)["cover"], first["cover"], "the same day is the same weather")
+	t.check(Weather.day_pattern(8, 4)["cover"] != first["cover"], "the next day is not")
+
+
+func test_the_plains_are_stormier_in_summer_than_in_winter() -> void:
+	var summer := 0.0
+	var winter := 0.0
+	for day in range(1, 29):
+		summer += 1.0 if Weather.day_pattern(7, day)["storm"] else 0.0
+		winter += 1.0 if Weather.day_pattern(1, day)["storm"] else 0.0
+	t.check(summer > winter, "July storms more than January: %d vs %d" % [summer, winter])
+	t.check(summer < 28.0, "but not every day")

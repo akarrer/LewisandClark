@@ -115,6 +115,8 @@ func _place_world_features() -> void:
 
 	stores = Stores.load_manifest()
 	state.day_passed.connect(_feed_the_corps)
+	state.day_passed.connect(func(_d): sky.set_day(Weather.day_pattern(state.current_month, state.current_day)))
+	sky.set_day(Weather.day_pattern(state.current_month, state.current_day))
 	inventory = InventoryScreen.new()
 	inventory.build(stores)
 	add_child(inventory)
