@@ -5,9 +5,11 @@ extends Node3D
 
 const NATURE := "res://assets/third_party/nature/"
 const CHUNK := 64.0
-## Wildflower stands are thin, so they batch over a much coarser grid than the
-## grass; past this range a flower is a coloured speck and is better not drawn.
-const FLOWER_CHUNK := 256.0
+## Thin scatters -- flowers, rocks, bushes, driftwood, the ravine understory --
+## batch over a much coarser grid than the grass. At 64 m a scatter of a thousand
+## things over the map lands one or two instances in each of a thousand
+## MultiMeshes, which is a thousand draw calls to draw almost nothing.
+const COARSE_CHUNK := 256.0
 const FLOWER_RANGE := 130.0
 
 var terrain: Terrain
@@ -33,6 +35,10 @@ const PROFILES := {
 	"willow": {"sway": 0.18, "flutter": 1.3, "translucency": 0.45, "tint": Color(0.82, 0.95, 0.78), "variation": 0.12},
 	"driftwood": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1, 1, 1), "variation": 0.08, "bark_tint": Color(2.1, 2.0, 1.85)},
 	"rock": {},
+	# The wooded ravines that cut the loess bluffs: shaded, damper, and green well
+	# into August when the open prairie above them has gone to straw.
+	"understory": {"sway": 0.10, "flutter": 0.5, "translucency": 0.5, "tint": Color(0.80, 0.98, 0.70), "variation": 0.16},
+	"fungus": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1.05, 0.98, 0.9), "variation": 0.12},
 	# Wildflower stands. Every flower in the kit shares one atlas, so the model
 	# chosen decides the colour and these tints only nudge it: the yellow models
 	# toward gold rather than orange, the purple ones a shade cooler.
@@ -74,6 +80,7 @@ func build(t: Terrain) -> void:
 	_scatter_sandbar()
 	_scatter_far_country()
 	_scatter_beaver_sign()
+	_scatter_draw_understory()
 	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0, 0.25)
 	# Loess country has few stones: an occasional weathered boulder, mostly in the draws.
 	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0, 0.55)
@@ -150,8 +157,10 @@ func _add(kind: String, variant: String, pos: Vector3, scale: float, tilt := Vec
 
 
 func _flush() -> void:
+	var tally := {}
 	for key in _buckets:
 		var b: Dictionary = _buckets[key]
+		tally[b["kind"]] = int(tally.get(b["kind"], 0)) + b["xforms"].size()
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		var cures: Array = b["cures"]
@@ -169,9 +178,11 @@ func _flush() -> void:
 			mmi.visibility_range_end = b["visibility"]
 			mmi.visibility_range_end_margin = 12.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		if str(key).begins_with("grass") or str(key).begins_with("flowers") 				or str(key).begins_with("yarrow") or str(key).begins_with("coneflower") 				or str(key).begins_with("sunflower") or str(key).begins_with("goldenrod"):
+		if str(key).begins_with("grass") or str(key).begins_with("flowers") 				or str(key).begins_with("yarrow") or str(key).begins_with("coneflower") 				or str(key).begins_with("sunflower") or str(key).begins_with("goldenrod") 				or str(key).begins_with("fungus"):
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
+	if OS.is_stdout_verbose():
+		print("foliage: %s in %d multimeshes" % [tally, _buckets.size()])
 	_buckets.clear()
 
 
@@ -181,14 +192,15 @@ func _random_point() -> Vector3:
 	return Vector3(x, terrain.height_at(x, z), z)
 
 
-func _scatter(kind: String, variants: Array, attempts: int, smin: float, smax: float, ok: Callable, visibility: float, sink := 0.05) -> void:
+func _scatter(kind: String, variants: Array, attempts: int, smin: float, smax: float, ok: Callable, visibility: float, sink := 0.05, chunk := COARSE_CHUNK) -> void:
 	for i in attempts:
 		var p := _random_point()
 		if ok.call(p):
 			var n := terrain.normal_at(p.x, p.z)
 			var scale := rng.randf_range(smin, smax)
 			# Tilting to the slope lifts a model off its base, so bed it in by its size.
-			_add(kind, variants[rng.randi() % variants.size()], p - Vector3(0, sink * scale, 0), scale, n, visibility)
+			_add(kind, variants[rng.randi() % variants.size()], p - Vector3(0, sink * scale, 0), scale, n, visibility,
+					Vector3.ONE, chunk)
 
 
 func _dist_to_river(p: Vector3) -> float:
@@ -272,7 +284,7 @@ func _scatter_groves() -> void:
 			# The odd lightning-struck snag, not a burned forest.
 			var v: String = ["dead_tree_1", "dead_tree_3"][rng.randi() % 2] if rng.randf() < 0.08 else variants[rng.randi() % variants.size()]
 			var stretch := Vector3(rng.randf_range(0.85, 1.2), rng.randf_range(0.85, 1.3), rng.randf_range(0.85, 1.2))
-			_add("grove", v, p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0, stretch)
+			_add("grove", v, p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0, stretch, COARSE_CHUNK)
 
 
 func _scatter_driftwood() -> void:
@@ -286,13 +298,15 @@ func _scatter_driftwood() -> void:
 			# Lying on the bar: tipped onto its side, trunk along a random heading.
 			var ang := rng.randf() * TAU
 			var side := Vector3(cos(ang), rng.randf_range(0.05, 0.2), sin(ang))
-			_add("driftwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), rng.randf_range(0.35, 0.8), side, 900.0)
+			_add("driftwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), rng.randf_range(0.35, 0.8),
+					side, 900.0, Vector3.ONE, COARSE_CHUNK)
 		elif d > -24.0 and d < -6.0 and rng.randf() < 0.08:
 			# A snag: rooted underwater, leaning 30-60 degrees out of the current.
 			var ang := rng.randf() * TAU
 			var lean := Vector3(cos(ang), rng.randf_range(0.6, 1.6), sin(ang))
 			var bed := Vector3(p.x, Terrain.WATER_Y - 1.2, p.z)
-			_add("driftwood", variants[rng.randi() % variants.size()], bed, rng.randf_range(0.4, 0.7), lean, 900.0)
+			_add("driftwood", variants[rng.randi() % variants.size()], bed, rng.randf_range(0.4, 0.7), lean, 900.0,
+					Vector3.ONE, COARSE_CHUNK)
 
 
 func _on_bar(p: Vector3, min_above: float) -> bool:
@@ -347,6 +361,46 @@ func _scatter_sandbar() -> void:
 			_add("rock", stones[rng.randi() % stones.size()], p - Vector3(0, 0.03, 0), rng.randf_range(0.35, 0.8), Vector3.UP, 55.0)
 
 
+func _scatter_draw_understory() -> void:
+	## What grows in the ravines and nowhere else. The uplands here are open
+	## prairie and the bottoms are cottonwood, but the draws cutting the bluffs
+	## hold shade and damp, and the Corps used them to get up off the river.
+	## Ferns and coarse woodland forbs down in the shade, fungus on the dead wood.
+	var shade := FastNoiseLite.new()
+	shade.seed = 6112
+	shade.frequency = 1.0 / 40.0
+	for i in 44000:
+		var p := _random_point()
+		if not _in_draw(p) or _near_point(p, 8.0):
+			continue
+		var n := terrain.normal_at(p.x, p.z)
+		# A real ravine, not a gentle roll of the prairie, and inside the wooded
+		# band rather than out on the open upland.
+		if n.y > 0.94 or _groves.get_noise_2d(p.x, p.z) < -0.06:
+			continue
+		# The shaded side of it: north- and east-facing, off the crest.
+		var facing := n.z * 0.7 - n.x * 0.5
+		if facing < -0.02:
+			continue
+		var f := shade.get_noise_2d(p.x, p.z)
+		if f < 0.05:
+			continue
+		var scale := rng.randf_range(0.5, 1.0)
+		var roll := rng.randf()
+		if roll < 0.42:
+			# The kit's fern is nine metres across; a wood fern is under a metre.
+			_add("understory", "fern_1", p - Vector3(0, 0.02, 0), scale * 0.11, n, 90.0, Vector3.ONE, COARSE_CHUNK)
+		elif roll < 0.82:
+			# plant_1 and plant_2, not the plant_big pair: those read as agaves,
+			# which is the wrong continent.
+			_add("understory", "plant_1" if rng.randf() < 0.5 else "plant_2",
+					p - Vector3(0, 0.04 * scale, 0), scale * 0.75, n, 90.0, Vector3.ONE, COARSE_CHUNK)
+		elif f > 0.22:
+			# Fungus keeps to the dampest bottom of the draw.
+			_add("fungus", "mushroom_1" if rng.randf() < 0.7 else "mushroom_laetiporus_1",
+					p - Vector3(0, 0.02, 0), rng.randf_range(0.3, 0.55), n, 45.0, Vector3.ONE, COARSE_CHUNK)
+
+
 func _scatter_grass_clumps() -> void:
 	## Taller clumps standing out of the GPU grass field. Cured straw on the open
 	## upland, still green down in the bottom and in the damp draws.
@@ -393,7 +447,7 @@ func _scatter_wildflowers() -> void:
 			# coarse enough that the batching costs a few dozen draw calls, not
 			# hundreds, since these are thin scatters.
 			_add(spec["kind"], variants[rng.randi() % variants.size()], p - Vector3(0, 0.04 * scale, 0),
-					scale, Vector3.UP, FLOWER_RANGE, spec["stretch"], FLOWER_CHUNK)
+					scale, Vector3.UP, FLOWER_RANGE, spec["stretch"], COARSE_CHUNK)
 			placed += 1
 		if OS.is_stdout_verbose():
 			print("foliage: %s x%d" % [spec["kind"], placed])
@@ -507,7 +561,8 @@ func _scatter_beaver_sign() -> void:
 		if rng.randf() < 0.45:
 			var toward := terrain.toward_river(p.x, p.z)
 			_add("driftwood", cut[rng.randi() % cut.size()], p + Vector3(0, 0.2, 0),
-					rng.randf_range(0.3, 0.55), Vector3(toward.x, rng.randf_range(0.05, 0.2), toward.z), 260.0)
+					rng.randf_range(0.3, 0.55), Vector3(toward.x, rng.randf_range(0.05, 0.2), toward.z), 260.0,
+					Vector3.ONE, 128.0)
 	_batch("BeaverStumps", _stump_mesh(), stumps, 220.0)
 	_batch("BeaverChips", _chip_mesh(), chips, 45.0)
 

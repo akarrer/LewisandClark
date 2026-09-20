@@ -236,6 +236,18 @@ func _scenery_steps() -> Array:
 					break
 			if found2:
 				break
+	var approach: Vector3 = tr.points["bluff_approach"]
+	# Stand in the ravine understory itself, looking up the draw.
+	var draw_eye := approach
+	var draw_at := approach
+	for c in main.foliage.get_children():
+		if c is MultiMeshInstance3D and c.get_meta("kind", "") == "understory" and c.multimesh.instance_count > 2:
+			draw_at = c.multimesh.get_instance_transform(0).origin
+			var up_slope: Vector3 = (Vector3(tr.points["council_bluff"]) - draw_at).normalized()
+			draw_eye = draw_at - up_slope * 9.0
+			draw_eye.y = tr.height_at(draw_eye.x, draw_eye.z)
+			break
+
 	# The pelican raft on its bar, from the near bank across the shallows.
 	var pelican := bank
 	var pelican_eye := bank
@@ -298,6 +310,8 @@ func _scenery_steps() -> Array:
 		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],
+		# Up the wooded draw the Corps used to get off the river onto the bluff.
+		["draw", draw_eye.x, draw_eye.z, _yaw_to(draw_eye, draw_at), -4.0, 10.0, 0.0],
 		["bluff_sunset_east", bluff.x, bluff.z, -90.0, -10.0, 19.2, 0.0],
 		["bluff_sunset_west", bluff.x, bluff.z, 100.0, 4.0, 19.2, 0.0],
 		["landmark", bluff.x, bluff.z, 0.0, -10.0, 17.0, 0.0],
