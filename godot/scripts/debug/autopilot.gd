@@ -13,6 +13,8 @@ var _t := 0.0
 var _frames: Array[float] = []
 var _frame_at: Array[float] = []   # when each of those frames ended, for locating hitches
 var _skip_frames := 0              # frames a screenshot cost us: ours, not the game's
+var _fish_show: RiverLife          # --fish: keep something in the air for the camera
+var _fish_t := 0.0
 var _log: Array[String] = []
 var _target := Vector3.ZERO
 var _shot_n := 0
@@ -350,6 +352,11 @@ func _scenery_steps() -> Array:
 		main.sky.env.ssao_enabled = false
 	if "--no-ssil" in args:
 		main.sky.env.ssil_enabled = false
+	if "--fish" in args and main.has_node("RiverLife"):
+		# Every rise is a jump, and they come often enough that a still catches
+		# one in the air rather than waiting on the dice.
+		_fish_show = main.get_node("RiverLife") as RiverLife
+		_fish_show.jump_chance = 1.0
 	if "--no-ssr" in args:
 		main.sky.env.ssr_enabled = false
 	if "--no-vfog" in args:
@@ -375,6 +382,11 @@ func _process(delta: float) -> void:
 		_frames.append(delta)
 		_frame_at.append(_t)
 	_skip_frames -= 1
+	if _fish_show != null:
+		_fish_t -= delta
+		if _fish_t <= 0.0:
+			_fish_t = 0.35
+			_fish_show.rise()
 	_watch_moments()
 	if _step >= _steps.size():
 		return
