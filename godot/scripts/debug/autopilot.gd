@@ -118,6 +118,8 @@ func _scenery_steps() -> Array:
 	main.hud.visible = false
 	main.leader.input_enabled = false
 	main.barks_enabled = false
+	if main.has_node("Wildlife"):
+		(main.get_node("Wildlife") as Wildlife).shy = false
 	var tr: Terrain = main.terrain
 	# Stand beside the flag, not on it, so the pole doesn't split the frame.
 	var bluff: Vector3 = tr.points["council_bluff"] + Vector3(0, 0, 8)
@@ -205,6 +207,32 @@ func _scenery_steps() -> Array:
 	var moon_dir := Basis.from_euler(Vector3(deg_to_rad(-40.0), deg_to_rad(35.0), 0.0)).z
 	var moon_yaw := rad_to_deg(atan2(-moon_dir.x, -moon_dir.z))
 	var moon_pitch := rad_to_deg(asin(clampf(moon_dir.y, -1.0, 1.0)))
+	# A heron in the shallows, seen from 30 m: outside the range at which it flushes.
+	var wader := bank
+	var wader_eye := bank
+	if main.has_node("Wildlife"):
+		for c in main.get_node("Wildlife").get_children():
+			if c.has_node("Neck") and c.has_node("WingL"):
+				wader = c.position
+				break
+		# Somewhere with a clear sight of it, not behind a snag.
+		var space2: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
+		var target2 := Vector3(wader.x, wader.y + 0.9, wader.z)
+		for r in [12.0, 16.0, 20.0]:
+			var radius := float(r)
+			var found2 := false
+			for k in 20:
+				var ang2 := k * TAU / 20.0
+				var e2: Vector3 = wader + Vector3(cos(ang2), 0, sin(ang2)) * radius
+				if not tr.walkable(e2.x, e2.z):
+					continue
+				var eye2 := Vector3(e2.x, tr.height_at(e2.x, e2.z) + 1.7, e2.z)
+				if space2.intersect_ray(PhysicsRayQueryParameters3D.create(eye2, target2)).is_empty():
+					wader_eye = e2
+					found2 = true
+					break
+			if found2:
+				break
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -225,6 +253,7 @@ func _scenery_steps() -> Array:
 		["sunrise_grove", grove.x, grove.z, -90.0, 4.0, 6.4, 0.0],
 		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 2.0, 17.5, 0.0],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
+		["wader", wader_eye.x, wader_eye.z, _yaw_to(wader_eye, wader), -3.0, 10.5, 0.0],
 		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],

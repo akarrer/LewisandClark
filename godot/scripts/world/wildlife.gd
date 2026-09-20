@@ -12,7 +12,10 @@ var terrain: Terrain
 var watch: Node3D  # the Leader
 var _animals: Array[Dictionary] = []
 var _flocks: Array[Dictionary] = []
+var _waders: Array[Dictionary] = []
 var _rng := RandomNumberGenerator.new()
+## Off while the autopilot frames scenery shots, so the animals hold still for it.
+var shy := true
 
 
 static func populate(t: Terrain, leader: Node3D) -> Wildlife:
@@ -23,6 +26,7 @@ static func populate(t: Terrain, leader: Node3D) -> Wildlife:
 	w._rng.seed = 1804
 	w._place_herds()
 	w._place_flocks()
+	w._place_waders()
 	return w
 
 
@@ -74,6 +78,7 @@ func _add(animal: Node3D, p: Vector3, size: float) -> void:
 func _process(delta: float) -> void:
 	var t := Time.get_ticks_msec() / 1000.0
 	_fly(delta, t)
+	_wade(delta, t)
 	var leader := watch.global_position if watch else Vector3.INF
 	for a in _animals:
 		var n: Node3D = a["node"]
@@ -82,7 +87,7 @@ func _process(delta: float) -> void:
 		var ph: float = a["phase"]
 		# Wary: a man on foot inside ~45 m sends them trotting off, away from him.
 		var away := Vector3(pos.x - leader.x, 0, pos.z - leader.z)
-		if away.length() < 45.0:
+		if shy and away.length() < 45.0:
 			a["flee"] = 6.0
 			a["heading"] = lerp_angle(float(a["heading"]), atan2(away.x, away.z), 0.1)
 		a["flee"] = maxf(float(a["flee"]) - delta, 0.0)
@@ -227,5 +232,112 @@ static func _bird(colour: Color) -> Node3D:
 		var g := c as GeometryInstance3D
 		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		g.visibility_range_end = 500.0
+	return b
+
+
+# ---------------------------------------------------------------- waders
+
+
+func _place_waders() -> void:
+	## Herons and egrets standing in the shallows. The Corps shot a great egret at
+	## this very place on 2 August 1804, and found herons in numbers upriver.
+	var placed := 0
+	for attempt in 3000:
+		if placed >= 5:
+			break
+		var p := Vector3(_rng.randf_range(40, 980), 0, _rng.randf_range(40, 980))
+		var edge := terrain.river_distance(p.x, p.z) - terrain.river_half_width()
+		# Standing in the margin: water at their feet, not out in the channel.
+		if edge > 1.0 or edge < -7.0:
+			continue
+		p.y = Terrain.WATER_Y - 0.35
+		var bird := _wader(_rng.randf() < 0.4)
+		bird.position = p
+		bird.rotation.y = _rng.randf() * TAU
+		add_child(bird)
+		_waders.append({"node": bird, "home": p, "phase": _rng.randf() * 100.0, "flight": 0.0})
+		placed += 1
+
+
+func _wade(delta: float, t: float) -> void:
+	var leader := watch.global_position if watch else Vector3.INF
+	for w in _waders:
+		var n: Node3D = w["node"]
+		var ph: float = w["phase"]
+		var flight: float = w["flight"]
+		var home: Vector3 = w["home"]
+		if shy and flight <= 0.0 and Vector2(n.position.x - leader.x, n.position.z - leader.z).length() < 26.0:
+			w["flight"] = 9.0  # up and away, with a slow heavy wingbeat
+			n.rotation.y = atan2(n.position.x - leader.x, n.position.z - leader.z)
+		if flight > 0.0:
+			w["flight"] = flight - delta
+			var gone := 9.0 - flight
+			n.position += -n.global_transform.basis.z * delta * 7.0
+			n.position.y = home.y + minf(gone * 2.2, 14.0) * (1.0 if flight > 1.0 else 0.0)
+			var beat := sin(t * 5.0) * 0.55
+			n.get_node("WingL").rotation.z = beat
+			n.get_node("WingR").rotation.z = -beat
+			n.get_node("Neck").rotation.x = deg_to_rad(-70.0)  # neck folded back in flight
+			if flight - delta <= 0.0:
+				# Come down again somewhere else along the margin.
+				n.position = home
+				n.rotation.y = _rng.randf() * TAU
+				n.get_node("Neck").rotation.x = 0.0
+		else:
+			# Standing: the neck moves, now and then a step, and a stab at the water.
+			var stab: float = maxf(sin(t * 0.23 + ph) - 0.93, 0.0) * 14.0
+			n.get_node("Neck").rotation.x = deg_to_rad(lerpf(-8.0, 62.0, clampf(stab, 0.0, 1.0)))
+			n.position.y = home.y + sin(t * 0.7 + ph) * 0.01
+			n.rotation.y += sin(t * 0.11 + ph * 2.0) * delta * 0.25
+			for wing in ["WingL", "WingR"]:
+				n.get_node(wing).rotation.z = 0.0
+
+
+static func _wader(egret: bool) -> Node3D:
+	## A heron or an egret: long legs, a deep body, wings folded along it, a neck
+	## that folds and straightens, and a dagger of a bill.
+	var plumage := Color(0.90, 0.89, 0.85) if egret else Color(0.52, 0.56, 0.62)
+	var dark := plumage.darkened(0.3)
+	var b := Node3D.new()
+	for side in [-0.07, 0.07]:
+		b.add_child(Props.cylinder(0.016, 0.66, Color(0.30, 0.27, 0.20), Vector3(side, 0.33, 0)))
+		# Backward-bending hock, as a wading bird's leg does.
+		var shin := Props.cylinder(0.014, 0.2, Color(0.30, 0.27, 0.20), Vector3(side, 0.08, 0.06))
+		shin.rotation_degrees.x = 22.0
+		b.add_child(shin)
+	# A deep body, tail sloping down behind.
+	b.add_child(_blob(Vector3(0.26, 0.3, 0.66), plumage, Vector3(0, 0.76, -0.02)))
+	var tail := _blob(Vector3(0.16, 0.12, 0.3), dark, Vector3(0, 0.72, -0.4))
+	tail.rotation_degrees.x = 18.0
+	b.add_child(tail)
+	# Wings folded flat along the body, not held out like arms.
+	for w in [["WingL", 1.0], ["WingR", -1.0]]:
+		var pivot := Node3D.new()
+		pivot.name = w[0]
+		pivot.position = Vector3(float(w[1]) * 0.1, 0.8, -0.02)
+		b.add_child(pivot)
+		var wing := _blob(Vector3(0.07, 0.24, 0.62), dark, Vector3(float(w[1]) * 0.02, -0.02, -0.04))
+		pivot.add_child(wing)
+	var neck := Node3D.new()
+	neck.name = "Neck"
+	neck.position = Vector3(0, 0.88, 0.18)
+	b.add_child(neck)
+	# Long and thin, leaning a little forward over the water.
+	var column := _blob(Vector3(0.085, 0.56, 0.1), plumage, Vector3(0, 0.26, 0.03))
+	column.rotation_degrees.x = 8.0
+	neck.add_child(column)
+	var head := _blob(Vector3(0.1, 0.12, 0.2), plumage, Vector3(0, 0.55, 0.1))
+	neck.add_child(head)
+	if not egret:
+		# The heron's black head plume.
+		var plume := _blob(Vector3(0.04, 0.05, 0.22), Color(0.12, 0.12, 0.14), Vector3(0, 0.58, -0.02))
+		neck.add_child(plume)
+	var bill := Props.cylinder(0.014, 0.26, Color(0.86, 0.76, 0.32), Vector3(0, 0.55, 0.28), 0.002)
+	bill.rotation_degrees.x = 86.0
+	neck.add_child(bill)
+	for c in b.find_children("*", "GeometryInstance3D", true, false):
+		var g := c as GeometryInstance3D
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		g.visibility_range_end = 420.0
 	return b
 
