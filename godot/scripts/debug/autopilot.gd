@@ -234,6 +234,17 @@ func _scenery_steps() -> Array:
 					break
 			if found2:
 				break
+	# A beaver-cut stump on the bank, from a few paces off.
+	var beaver := bank
+	var beaver_eye := bank
+	for c in main.foliage.get_children():
+		if c is MultiMeshInstance3D and c.name == "BeaverStumps" and c.multimesh.instance_count > 0:
+			beaver = c.multimesh.get_instance_transform(0).origin
+			var away := (bank - beaver)
+			away.y = 0.0
+			# The camera sits a spring-arm behind the Leader, so stand well back.
+			beaver_eye = beaver + away.normalized() * 7.0
+			break
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -255,6 +266,7 @@ func _scenery_steps() -> Array:
 		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 0.0, 17.5, 0.0, 6.5],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
 		["wader", wader_eye.x, wader_eye.z, _yaw_to(wader_eye, wader), -3.0, 10.5, 0.0],
+		["beaver", beaver_eye.x, beaver_eye.z, _yaw_to(beaver_eye, beaver), -28.0, 11.0, 0.0, 5.0],
 		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],

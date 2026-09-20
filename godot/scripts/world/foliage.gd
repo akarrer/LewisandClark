@@ -37,6 +37,7 @@ func build(t: Terrain) -> void:
 	_scatter_driftwood()
 	_scatter_sandbar()
 	_scatter_far_country()
+	_scatter_beaver_sign()
 	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0, 0.25)
 	# Loess country has few stones: an occasional weathered boulder, mostly in the draws.
 	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0, 0.55)
@@ -369,3 +370,75 @@ static func _far_tree_mesh() -> ArrayMesh:
 	mesh.surface_set_material(0, m)
 	return mesh
 
+
+func _scatter_beaver_sign() -> void:
+	## Beaver work along the banks: stumps gnawed to a point, chips about the foot
+	## of them, and often the tree itself down and pointing at the water. The whole
+	## reason anyone in St Louis cared which way this river ran. Stumps and chips
+	## go on two MultiMeshes: there are hundreds of them and they are all the same.
+	var cut := ["dead_tree_2", "dead_tree_4", "dead_tree_5"]
+	var stumps: Array[Transform3D] = []
+	var chips: Array[Transform3D] = []
+	for i in 4000:
+		var p := _random_point()
+		var d := _dist_to_river(p)
+		# In the willow and cottonwood fringe, within a beaver's haul of the water.
+		if d < 2.0 or d > 26.0 or rng.randf() < 0.55:
+			continue
+		var h := rng.randf_range(0.45, 0.9)
+		var lean := Basis(Vector3.RIGHT, deg_to_rad(rng.randf_range(-5, 5))) * Basis(Vector3.UP, rng.randf() * TAU)
+		# A cylinder is centred on its origin, so stand it on the ground, not in it.
+		stumps.append(Transform3D(lean.scaled(Vector3(rng.randf_range(0.8, 1.4), h / 0.7, rng.randf_range(0.8, 1.4))),
+				p + Vector3(0, h * 0.5 - 0.04, 0)))
+		for c in rng.randi_range(3, 7):
+			var off := Vector3(rng.randf_range(-0.9, 0.9), 0, rng.randf_range(-0.9, 0.9))
+			chips.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.7, 1.4)),
+					p + off + Vector3(0, 0.02, 0)))
+		if rng.randf() < 0.45:
+			var toward := terrain.toward_river(p.x, p.z)
+			_add("driftwood", cut[rng.randi() % cut.size()], p + Vector3(0, 0.2, 0),
+					rng.randf_range(0.3, 0.55), Vector3(toward.x, rng.randf_range(0.05, 0.2), toward.z), 260.0)
+	_batch("BeaverStumps", _stump_mesh(), stumps, 220.0)
+	_batch("BeaverChips", _chip_mesh(), chips, 45.0)
+
+
+func _batch(batch_name: String, mesh: Mesh, xforms: Array[Transform3D], visibility: float) -> void:
+	if xforms.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = xforms.size()
+	for i in xforms.size():
+		mm.set_instance_transform(i, xforms[i])
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = batch_name
+	mmi.multimesh = mm
+	# No visibility range here: one MultiMesh spans the whole bank, so a range
+	# would measure from the middle of it and cull the lot.
+	add_child(mmi)
+
+
+static func _stump_mesh() -> Mesh:
+	## A stump about 0.7 m high, cut to a blunt point the way a beaver leaves it.
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.05
+	cm.bottom_radius = 0.22
+	cm.height = 0.7
+	cm.radial_segments = 8
+	cm.rings = 1
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.74, 0.66, 0.50)  # pale where the bark is gone
+	m.roughness = 0.95
+	cm.material = m
+	return cm
+
+
+static func _chip_mesh() -> Mesh:
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.1, 0.03, 0.06)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.80, 0.72, 0.56)
+	m.roughness = 0.95
+	bm.material = m
+	return bm
