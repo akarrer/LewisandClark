@@ -306,6 +306,8 @@ func _scenery_steps() -> Array:
 		["sunrise_grove", grove.x, grove.z, -90.0, 4.0, 6.4, 0.0],
 		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 0.0, 17.5, 0.0, 6.5],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
+		# First light on the water, when the river steams.
+		["river_mist", bank.x, bank.z, bank_yaw, -4.0, 6.3, 0.0],
 		["wader", wader_eye.x, wader_eye.z, _yaw_to(wader_eye, wader), -3.0, 10.5, 0.0],
 		["pelicans", pelican_eye.x, pelican_eye.z, _yaw_to(pelican_eye, pelican), -4.0, 9.0, 0.0],
 		["beaver", beaver_eye.x, beaver_eye.z, _yaw_to(beaver_eye, beaver), -28.0, 11.0, 0.0, 5.0],

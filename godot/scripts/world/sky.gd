@@ -15,6 +15,7 @@ var _wet := 0.0
 ## What the sky is doing now, for the HUD and the Journal (see rules/weather.gd).
 var cloud_cover := 0.42
 var haze := 0.0
+var river_mist := 0.0
 var night_amount := 0.0
 ## Set from the Day Clock's date (see moon_phase_for / meteors_for).
 ## The weather this day was given (rules/weather.gd day_pattern).
@@ -393,6 +394,10 @@ func update(hour: float, delta: float) -> void:
 	env.fog_density = 0.0006 + storm * 0.006
 	# Morning haze pooling in the bottomland.
 	haze = clampf(1.0 - absf(hour - 6.8) / 2.2, 0.0, 1.0)
+	# Mist on the river itself: the water is warmer than the air over it at first
+	# light, so it steams. A wind tears it apart and rain never lets it form.
+	river_mist = haze * haze * (1.0 - storm) * (1.0 - smoothstep(1.4, 3.0, gust))
+	RenderingServer.global_shader_parameter_set("river_mist", river_mist)
 	env.fog_height = 3.0
 	env.fog_height_density = 0.04 * haze
 	# Air thick enough to show shafts at the low sun, clearing through the day.

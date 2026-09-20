@@ -57,6 +57,11 @@ func _ready() -> void:
 	if river_surface is Water:
 		(river_surface as Water).follow = leader.camera
 
+	var mist := RiverMist.new()
+	mist.build(terrain)
+	mist.follow = leader.camera
+	add_child(mist)
+
 	var butterflies := Butterflies.new()
 	butterflies.build(terrain)
 	butterflies.follow = leader.camera
