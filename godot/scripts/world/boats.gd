@@ -81,11 +81,12 @@ static func keelboat() -> Node3D:
 	# The colours at the stern.
 	var staff := Vector3(-length / 2.0 + 0.4, deck_y, 0)
 	boat.add_child(Props.cylinder(0.035, 3.2, WOOD.darkened(0.3), staff + Vector3(0, 1.6, 0)))
-	# Streaming aft (-X) from the staff so it reads from the bank.
-	for i in 7:
-		var col := Color(0.72, 0.12, 0.12) if i % 2 == 0 else Color(0.93, 0.91, 0.86)
-		boat.add_child(Props.box(Vector3(1.1, 0.09, 0.02), col, staff + Vector3(-0.58, 3.05 - i * 0.09, 0)))
-	boat.add_child(Props.box(Vector3(0.46, 0.36, 0.025), Color(0.12, 0.18, 0.42), staff + Vector3(-0.26, 2.92, 0)))
+	# The colours at the stern, streaming aft.
+	var colours := Props.flag(1.15, 0.7)
+	colours.position = staff + Vector3(-0.03, 2.65, 0)
+	colours.rotation_degrees.y = 180.0
+	boat.add_child(colours)
+
 	# Oars shipped along the lockers.
 	for i in 6:
 		var side := -1.0 if i % 2 == 0 else 1.0

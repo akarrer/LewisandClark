@@ -92,6 +92,27 @@ static func puff_texture() -> GradientTexture2D:
 	return puff
 
 
+static func flag(width: float, height: float) -> Node3D:
+	## The fifteen-star colours, flying on the wind (see flag.gdshader). The node's
+	## own origin is the hoist, so it can be placed straight onto a staff.
+	var holder := Node3D.new()
+	holder.name = "Colours"
+	var mesh := PlaneMesh.new()
+	mesh.size = Vector2(width, height)
+	mesh.subdivide_width = 24
+	mesh.subdivide_depth = 6
+	mesh.orientation = PlaneMesh.FACE_Z
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.position = Vector3(width * 0.5, 0, 0)  # hoist at the holder's origin
+	var m := ShaderMaterial.new()
+	m.shader = load("res://scripts/world/flag.gdshader")
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	holder.add_child(mi)
+	return holder
+
+
 static func smoke_column() -> GPUParticles3D:
 	var p := GPUParticles3D.new()
 	p.amount = 90
