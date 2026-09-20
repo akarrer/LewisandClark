@@ -14,6 +14,8 @@ var leader: Leader
 var corps := {}  # key -> CorpsFigure (leader included)
 var director: TrailMomentDirector
 var prairie_dogs: Node3D
+var stores: Stores
+var inventory: InventoryScreen
 var smoke: GPUParticles3D
 
 var _clock := 0.0
@@ -103,6 +105,11 @@ func _place_world_features() -> void:
 	add_child(Boats.fleet(terrain))
 	add_child(Camp.pitch(terrain))
 
+	stores = Stores.load_manifest()
+	inventory = InventoryScreen.new()
+	inventory.build(stores)
+	add_child(inventory)
+
 	prairie_dogs = Interactable.prairie_dog_town(terrain.points["prairie_dog_town"], terrain)
 	add_child(prairie_dogs)
 
@@ -140,6 +147,12 @@ func _process(delta: float) -> void:
 		prompt = "[%s]  %s" % [GameInput.hint("interact"), _nearby.label]
 	elif _moment.has("hint"):
 		prompt = _moment["hint"]
+	if Input.is_action_just_pressed("inventory"):
+		inventory.toggle()
+		# The Leader stands still while the quartermaster looks over the stores.
+		leader.input_enabled = not inventory.open
+		leader.look_enabled = not inventory.open
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if inventory.open else Input.MOUSE_MODE_CAPTURED
 	hud.update(state, delta, prompt, sky)
 	if Input.is_action_just_pressed("interact") and _nearby:
 		_nearby.interact()

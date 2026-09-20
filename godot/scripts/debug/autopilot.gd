@@ -36,6 +36,15 @@ func begin(p_main) -> void:
 	if "--scenery" in OS.get_cmdline_user_args():
 		_steps = _scenery_steps()
 		return
+	if "--stores" in OS.get_cmdline_user_args():
+		main.hud.visible = false
+		_steps = [["wait", 1.5]]
+		for hold in Stores.HOLDS:
+			_steps.append(["stores", hold])
+			_steps.append(["wait", 0.4])
+			_steps.append(["shot", "stores_" + hold])
+		_steps.append(["report"])
+		return
 	if "--march" in OS.get_cmdline_user_args():
 		_steps = _march_steps()
 		return
@@ -319,6 +328,14 @@ func _process(delta: float) -> void:
 			cam.look_at_from_position(eye, look, Vector3.UP)
 			cam.make_current()
 			main.sky.follow = cam
+			_next()
+		"stores":
+			var inv: InventoryScreen = main.inventory
+			inv.open = true
+			inv.visible = true
+			inv._hold = str(s[1])
+			inv._build_holds()
+			inv._fill()
 			_next()
 		"clear_detour":
 			_detour = ""
