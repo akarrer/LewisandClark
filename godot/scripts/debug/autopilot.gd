@@ -12,7 +12,7 @@ var _wait := 0.0
 var _t := 0.0
 var _frames: Array[float] = []
 var _frame_at: Array[float] = []   # when each of those frames ended, for locating hitches
-var _skip_frame := false           # the frame a screenshot was saved on is ours, not the game's
+var _skip_frames := 0              # frames a screenshot cost us: ours, not the game's
 var _log: Array[String] = []
 var _target := Vector3.ZERO
 var _shot_n := 0
@@ -371,10 +371,10 @@ func _scenery_steps() -> Array:
 
 func _process(delta: float) -> void:
 	_t += delta
-	if _t > 2.0 and not _skip_frame:
+	if _t > 2.0 and _skip_frames <= 0:
 		_frames.append(delta)
 		_frame_at.append(_t)
-	_skip_frame = false
+	_skip_frames -= 1
 	_watch_moments()
 	if _step >= _steps.size():
 		return
@@ -596,7 +596,8 @@ func _next() -> void:
 func _shot(name: String) -> void:
 	# Reading the viewport back and writing a PNG costs over a tenth of a second;
 	# that is the harness, not the game, so it must not land in the frame stats.
-	_skip_frame = true
+	# The readback stalls the frame it is on and the one after it.
+	_skip_frames = 2
 	_shot_n += 1
 	var img := get_viewport().get_texture().get_image()
 	var path := "%s/%02d_%s.png" % [shots_dir, _shot_n, name]

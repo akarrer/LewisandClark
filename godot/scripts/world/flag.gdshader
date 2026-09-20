@@ -40,10 +40,10 @@ void fragment() {
 	// UV.y runs DOWN the cloth; everything below is written in flag terms, with
 	// the first stripe at the bottom and the union over the top seven.
 	vec2 uv = vec2(UV.x, 1.0 - UV.y);
-	// The reverse of a flag is the same cloth seen through: mirror it.
-	if (!FRONT_FACING) {
-		uv.x = 1.0 - uv.x;
-	}
+	// No mirroring for the reverse. That is right when the cloth carries a
+	// painted image, but this one is woven out of UV.x, which is 0 at the hoist
+	// whichever side you are standing on -- and a flag's union is at the hoist
+	// from both sides. Mirroring moved it out to the fly end.
 	// Fifteen stripes, red at top and bottom.
 	float band = floor(uv.y * 15.0);
 	vec3 c = mod(band, 2.0) < 0.5 ? red : white;

@@ -343,21 +343,5 @@ func _build_distant_hills(mat: Material) -> MeshInstance3D:
 
 
 func _build_water() -> MeshInstance3D:
-	var plane := PlaneMesh.new()
-	# Big enough to run past the map edge, fine enough for the swells to show:
-	# ~3 m between vertices against a 11 m wave (see water.gdshader).
-	plane.size = Vector2(SIZE * 1.6, SIZE * 1.6)
-	plane.subdivide_width = 520
-	plane.subdivide_depth = 520
-	var mi := MeshInstance3D.new()
-	mi.name = "Missouri"
-	mi.mesh = plane
-	mi.position = Vector3(SIZE / 2.0, WATER_Y - 0.35, SIZE / 2.0)
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://scripts/world/water.gdshader")
-	mat.set_shader_parameter("river_tex", GrassField._texture(_river))  # the current follows the channel
-	mat.set_shader_parameter("map_size", SIZE)
-	mat.set_shader_parameter("river_half", river_half_width())
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return mi
+	## See water.gd: a ring grid centred on the camera, not a plane over the map.
+	return Water.build(self)
