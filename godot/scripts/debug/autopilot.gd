@@ -18,6 +18,7 @@ var _stuck_t := 0.0
 var _last_pos := Vector3.ZERO
 var _storm_shot := false
 var _detour := ""
+var _free_cam: Camera3D
 var _debug_t := 0.0
 var _blocked := 0
 
@@ -251,7 +252,7 @@ func _scenery_steps() -> Array:
 		["camp_night", camp_eye.x, camp_eye.z, _yaw_to(camp_eye, camp), -4.0, 22.0, 0.0],
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
 		["sunrise_grove", grove.x, grove.z, -90.0, 4.0, 6.4, 0.0],
-		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 2.0, 17.5, 0.0],
+		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 0.0, 17.5, 0.0, 6.5],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
 		["wader", wader_eye.x, wader_eye.z, _yaw_to(wader_eye, wader), -3.0, 10.5, 0.0],
 		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
@@ -264,8 +265,8 @@ func _scenery_steps() -> Array:
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
 		["lightning", dogs.x, dogs.z, 20.0, 12.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
-		["night_sky", bluff.x, bluff.z, 20.0, 30.0, 1.5, 0.0],
-		["moon", bluff.x, bluff.z, moon_yaw, moon_pitch, 1.5, 0.0],
+		["night_sky", bluff.x, bluff.z, 20.0, 30.0, 1.5, 0.0, 2.6],
+		["moon", bluff.x, bluff.z, moon_yaw, moon_pitch, 1.5, 0.0, 5.5],
 	]
 	for a in args:
 		if a.begins_with("--only="):
@@ -357,6 +358,22 @@ func _process(delta: float) -> void:
 			l._yaw = s[4]
 			l._pitch = s[5]
 			l.camera_rig.global_position = pos + Vector3(0, 1.65, 0)
+			# A view can ask for a higher eye than a man's; the Leader's own rig is
+			# pinned to his head, so those are shot on a free camera instead.
+			var eye_height: float = float(s[8]) if s.size() > 8 else 0.0
+			if eye_height > 2.0:
+				if _free_cam == null:
+					_free_cam = Camera3D.new()
+					_free_cam.fov = 62.0
+					_free_cam.far = 1600.0
+					main.add_child(_free_cam)
+				_free_cam.global_position = pos + Vector3(0, eye_height, 0)
+				_free_cam.rotation = Vector3(deg_to_rad(float(s[5])), deg_to_rad(float(s[4])), 0.0)
+				_free_cam.make_current()
+				main.sky.follow = _free_cam
+			else:
+				l.camera.make_current()
+				main.sky.follow = l.camera
 			l.trail.clear()
 			l.trail.append(pos)
 			main.state.minute_of_day = int(float(s[6]) * 60.0)
