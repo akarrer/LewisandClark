@@ -260,8 +260,10 @@ void fragment() {
 	// Flecks of foam and drift riding the current. On a reach this wide they are
 	// most of what tells you the water is moving at all -- but they are specks
 	// of dirty foam, not sparks, so they are small, few, and only half bright.
+	// Their break-up is at a fifth of a metre, so they are gone by forty yards:
+	// past that a pixel covers several of them and they alias into a hatch.
 	float drift = noise((w - along * TIME * flow_speed * 1.25) * 5.5);
-	float fleck = smoothstep(0.93, 1.0, drift) * (1.0 - smoothstep(40.0, 140.0, dist));
+	float fleck = smoothstep(0.93, 1.0, drift) * (1.0 - smoothstep(12.0, 42.0, dist));
 	foam = clamp(foam + fleck * 0.22, 0.0, 1.0);
 	c = mix(c, foam_color, foam * 0.85);
 

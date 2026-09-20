@@ -53,6 +53,9 @@ func _ready() -> void:
 	var river_life := RiverLife.new()
 	river_life.build(terrain, leader)
 	add_child(river_life)
+	var drift := RiverDrift.new()
+	drift.build(terrain, leader)
+	add_child(drift)
 	var river_surface := terrain.get_node_or_null("Missouri")
 	if river_surface is Water:
 		(river_surface as Water).follow = leader.camera
