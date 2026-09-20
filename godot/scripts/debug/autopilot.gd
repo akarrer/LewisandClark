@@ -236,6 +236,31 @@ func _scenery_steps() -> Array:
 					break
 			if found2:
 				break
+	# The pelican raft on its bar, from the near bank across the shallows.
+	var pelican := bank
+	var pelican_eye := bank
+	if main.has_node("Wildlife"):
+		var raft: Array[Vector3] = []
+		for c in main.get_node("Wildlife").get_children():
+			if str(c.name).begins_with("Pelican"):
+				raft.append(c.position)
+		if not raft.is_empty():
+			pelican = Vector3.ZERO
+			for q in raft:
+				pelican += q
+			pelican /= raft.size()
+			# Stand back off the bar so the whole flock is in frame and none flush.
+			var nearest := 1e9
+			for k in 36:
+				var ang3 := k * TAU / 36.0
+				var e3: Vector3 = pelican + Vector3(cos(ang3), 0, sin(ang3)) * 34.0
+				if not tr.walkable(e3.x, e3.z):
+					continue
+				var d3 := e3.distance_to(bank)
+				if d3 < nearest:
+					nearest = d3
+					pelican_eye = e3
+
 	# A beaver-cut stump on the bank, from a few paces off.
 	var beaver := bank
 	var beaver_eye := bank
@@ -268,6 +293,7 @@ func _scenery_steps() -> Array:
 		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 0.0, 17.5, 0.0, 6.5],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
 		["wader", wader_eye.x, wader_eye.z, _yaw_to(wader_eye, wader), -3.0, 10.5, 0.0],
+		["pelicans", pelican_eye.x, pelican_eye.z, _yaw_to(pelican_eye, pelican), -4.0, 9.0, 0.0],
 		["beaver", beaver_eye.x, beaver_eye.z, _yaw_to(beaver_eye, beaver), -28.0, 11.0, 0.0, 5.0],
 		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],

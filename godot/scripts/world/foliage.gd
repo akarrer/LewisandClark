@@ -5,6 +5,10 @@ extends Node3D
 
 const NATURE := "res://assets/third_party/nature/"
 const CHUNK := 64.0
+## Wildflower stands are thin, so they batch over a much coarser grid than the
+## grass; past this range a flower is a coloured speck and is better not drawn.
+const FLOWER_CHUNK := 256.0
+const FLOWER_RANGE := 130.0
 
 var terrain: Terrain
 var rng := RandomNumberGenerator.new()
@@ -32,9 +36,9 @@ const PROFILES := {
 	# Wildflower stands. Every flower in the kit shares one atlas, so the model
 	# chosen decides the colour and these tints only nudge it: the yellow models
 	# toward gold rather than orange, the purple ones a shade cooler.
-	"sunflower": {"sway": 0.19, "flutter": 0.3, "translucency": 0.28, "tint": Color(1.12, 1.00, 0.52), "variation": 0.16},
+	"sunflower": {"sway": 0.19, "flutter": 0.3, "translucency": 0.12, "tint": Color(0.86, 1.02, 1.30), "variation": 0.16},
 	"coneflower": {"sway": 0.13, "flutter": 0.3, "translucency": 0.32, "tint": Color(1.00, 0.92, 1.10), "variation": 0.18},
-	"goldenrod": {"sway": 0.17, "flutter": 0.4, "translucency": 0.35, "tint": Color(1.45, 1.30, 0.50), "variation": 0.15},
+	"goldenrod": {"sway": 0.17, "flutter": 0.4, "translucency": 0.25, "tint": Color(1.38, 1.26, 0.58), "variation": 0.15},
 	"yarrow": {"sway": 0.09, "flutter": 0.25, "translucency": 0.3, "tint": Color(1.22, 1.20, 1.12), "variation": 0.10},
 }
 
@@ -384,11 +388,12 @@ func _scatter_wildflowers() -> void:
 			if _near_point(p, 9.0):
 				continue
 			var scale := rng.randf_range(float(spec["smin"]), float(spec["smax"]))
-			# One MultiMesh per species and model for the whole map: the stands are
-			# thin enough that chunking them costs far more in draw calls than the
-			# distance culling saves.
+			# A coarse chunk: fine enough that the stands still cull at distance
+			# (a flower two hundred yards off is a coloured speck and reads badly),
+			# coarse enough that the batching costs a few dozen draw calls, not
+			# hundreds, since these are thin scatters.
 			_add(spec["kind"], variants[rng.randi() % variants.size()], p - Vector3(0, 0.04 * scale, 0),
-					scale, Vector3.UP, 0.0, spec["stretch"], Terrain.SIZE * 2.0)
+					scale, Vector3.UP, FLOWER_RANGE, spec["stretch"], FLOWER_CHUNK)
 			placed += 1
 		if OS.is_stdout_verbose():
 			print("foliage: %s x%d" % [spec["kind"], placed])
@@ -486,7 +491,9 @@ func _scatter_beaver_sign() -> void:
 		var p := _random_point()
 		var d := _dist_to_river(p)
 		# In the willow and cottonwood fringe, within a beaver's haul of the water.
-		if d < 2.0 or d > 26.0 or rng.randf() < 0.55:
+		# Off the open sand: a stump alone on a bar, with no tree it came from, reads
+		# as a mistake. Beaver work belongs in the willow and cottonwood fringe.
+		if d < 2.0 or d > 26.0 or rng.randf() < 0.55 or _on_bar(p, -0.1):
 			continue
 		var h := rng.randf_range(0.45, 0.9)
 		var lean := Basis(Vector3.RIGHT, deg_to_rad(rng.randf_range(-5, 5))) * Basis(Vector3.UP, rng.randf() * TAU)
@@ -523,18 +530,51 @@ func _batch(batch_name: String, mesh: Mesh, xforms: Array[Transform3D], visibili
 
 
 static func _stump_mesh() -> Mesh:
-	## A stump about 0.7 m high, cut to a blunt point the way a beaver leaves it.
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.05
-	cm.bottom_radius = 0.22
-	cm.height = 0.7
-	cm.radial_segments = 8
-	cm.rings = 1
+	## A stump about 0.7 m high, chewed to a blunt point. A smooth cylinder reads
+	## as a traffic cone on the sand, so this is faceted the way a beaver leaves
+	## it: dark bark up the sides, pale gnawed wood on the cut, and the facets
+	## uneven, because the animal works round the trunk a bite at a time.
+	var bark := Color(0.38, 0.30, 0.21)
+	var wood := Color(0.90, 0.78, 0.55)
+	var sides := 9
+	var shaft := 0.32      # bark up to here; above it the cut runs to a blunt point
+	var height := 0.7
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 91
+	var radii: Array[float] = []
+	for i in sides:
+		radii.append(0.22 * rng.randf_range(0.88, 1.06))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in sides:
+		var j := (i + 1) % sides
+		var a := i * TAU / sides
+		var b := j * TAU / sides
+		var ra: float = radii[i]
+		var rb: float = radii[j]
+		var p0 := Vector3(cos(a) * ra, 0.0, sin(a) * ra)
+		var p1 := Vector3(cos(b) * rb, 0.0, sin(b) * rb)
+		var q0 := Vector3(cos(a) * ra * 0.94, shaft, sin(a) * ra * 0.94)
+		var q1 := Vector3(cos(b) * rb * 0.94, shaft, sin(b) * rb * 0.94)
+		# The bark, still on below the cut.
+		for v in [p0, p1, q1, p0, q1, q0]:
+			st.set_color(bark.lightened(rng.randf_range(0.0, 0.12)))
+			st.add_vertex(v)
+		# The gnawed cone above it, each facet a different bite.
+		var lift := rng.randf_range(0.88, 1.06)
+		var tip := Vector3(0.0, height * lift, 0.0)
+		var c := wood.darkened(rng.randf_range(0.0, 0.12))
+		for v in [q0, q1, tip]:
+			st.set_color(c)
+			st.add_vertex(v)
+	st.generate_normals()
 	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.74, 0.66, 0.50)  # pale where the bark is gone
+	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
 	m.roughness = 0.95
-	cm.material = m
-	return cm
+	var mesh := st.commit()
+	mesh.surface_set_material(0, m)
+	return mesh
 
 
 static func _chip_mesh() -> Mesh:

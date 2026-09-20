@@ -13,6 +13,7 @@ var watch: Node3D  # the Leader
 var _animals: Array[Dictionary] = []
 var _flocks: Array[Dictionary] = []
 var _waders: Array[Dictionary] = []
+var _pelicans: Array[Dictionary] = []
 var _rng := RandomNumberGenerator.new()
 ## Off while the autopilot frames scenery shots, so the animals hold still for it.
 var shy := true
@@ -27,6 +28,7 @@ static func populate(t: Terrain, leader: Node3D) -> Wildlife:
 	w._place_herds()
 	w._place_flocks()
 	w._place_waders()
+	w._place_pelicans()
 	w._place_swallows()
 	return w
 
@@ -80,6 +82,7 @@ func _process(delta: float) -> void:
 	var t := Time.get_ticks_msec() / 1000.0
 	_fly(delta, t)
 	_wade(delta, t)
+	_loaf(delta, t)
 	var leader := watch.global_position if watch else Vector3.INF
 	for a in _animals:
 		var n: Node3D = a["node"]
@@ -273,6 +276,132 @@ static func _bird(colour: Color) -> Node3D:
 
 
 # ---------------------------------------------------------------- waders
+
+
+func _place_pelicans() -> void:
+	## A raft of white pelicans loafing on a bar. On 8 August 1804, a little above
+	## here, the Corps came on "a flock of several hundred" of them, and Lewis
+	## poured water into a dead one's pouch to measure it: five gallons.
+	var bar := Vector3.INF
+	for attempt in 6000:
+		var p := Vector3(_rng.randf_range(60, 960), 0, _rng.randf_range(60, 960))
+		# Out on the dry sand of a bar, off the grass and well away from the camp.
+		if terrain.height_at(p.x, p.z) < Terrain.WATER_Y - 0.2:
+			continue
+		var edge := terrain.river_distance(p.x, p.z) - terrain.river_half_width()
+		if edge > 2.0 or edge < -30.0 or _near_points(p, 60.0):
+			continue
+		bar = Vector3(p.x, terrain.height_at(p.x, p.z), p.z)
+		break
+	if bar == Vector3.INF:
+		return
+	var heading := _rng.randf() * TAU
+	for i in 13:
+		var a := _rng.randf() * TAU
+		var r := sqrt(_rng.randf()) * 7.5
+		var p := bar + Vector3(cos(a) * r, 0, sin(a) * r)
+		p.y = maxf(terrain.height_at(p.x, p.z), Terrain.WATER_Y - 0.28)
+		var bird := _pelican()
+		bird.name = "Pelican%d" % i
+		bird.position = p
+		# A loafing flock nearly all faces the same way, into the wind.
+		bird.rotation.y = heading + _rng.randf_range(-0.6, 0.6)
+		add_child(bird)
+		_pelicans.append({"node": bird, "home": p, "phase": _rng.randf() * 100.0, "flight": 0.0,
+				"preen": _rng.randf_range(0.2, 1.4)})
+	# And three off the bar on the water, riding high the way they do.
+	var toward := terrain.toward_river(bar.x, bar.z)
+	for i in 3:
+		var p := bar + toward * (14.0 + i * 5.0) + Vector3(_rng.randf_range(-5, 5), 0, _rng.randf_range(-5, 5))
+		p.y = Terrain.WATER_Y - 0.62      # body riding on the surface, legs under it
+		var bird := _pelican()
+		bird.name = "PelicanSwim%d" % i
+		bird.position = p
+		bird.rotation.y = heading + _rng.randf_range(-1.2, 1.2)
+		add_child(bird)
+		_pelicans.append({"node": bird, "home": p, "phase": _rng.randf() * 100.0, "flight": 0.0,
+				"preen": _rng.randf_range(0.2, 1.4)})
+
+
+func _loaf(delta: float, t: float) -> void:
+	## Standing about, turning the head, preening down onto the back; and away in
+	## a line if a man walks up on the bar.
+	var leader := watch.global_position if watch else Vector3.INF
+	for i in _pelicans.size():
+		var w: Dictionary = _pelicans[i]
+		var n: Node3D = w["node"]
+		var ph: float = w["phase"]
+		var flight: float = w["flight"]
+		var home: Vector3 = w["home"]
+		if shy and flight <= 0.0 and Vector2(n.position.x - leader.x, n.position.z - leader.z).length() < 30.0:
+			# They go up raggedly, one after another, not all at once.
+			w["flight"] = 11.0 - i * 0.22
+			n.rotation.y = atan2(n.position.x - leader.x, n.position.z - leader.z)
+		if flight > 0.0:
+			w["flight"] = flight - delta
+			var gone := (11.0 - i * 0.22) - flight
+			n.position += -n.global_transform.basis.z * delta * 8.0
+			n.position.y = home.y + minf(maxf(gone, 0.0) * 1.9, 18.0)
+			var beat := sin(t * 3.4 + ph) * 0.5
+			n.get_node("WingL").rotation.z = beat
+			n.get_node("WingR").rotation.z = -beat
+			n.get_node("Neck").rotation.x = deg_to_rad(-26.0)
+			if flight - delta <= 0.0:
+				n.position = home
+				n.rotation.y = _rng.randf() * TAU
+				n.get_node("Neck").rotation.x = 0.0
+		else:
+			var preen: float = maxf(sin(t * 0.17 + ph) - float(w["preen"]) * 0.5, 0.0) * 9.0
+			n.get_node("Neck").rotation.x = deg_to_rad(lerpf(-4.0, 96.0, clampf(preen, 0.0, 1.0)))
+			n.rotation.y += sin(t * 0.09 + ph * 1.7) * delta * 0.18
+			n.position.y = home.y + sin(t * 0.5 + ph) * 0.006
+			for wing in ["WingL", "WingR"]:
+				n.get_node(wing).rotation.z = 0.0
+
+
+static func _pelican() -> Node3D:
+	## Heavy and low: a deep white body, short black-tipped wings folded along it,
+	## a thick neck set back on the shoulders and a great pouched bill.
+	var white := Color(0.94, 0.93, 0.90)
+	var black := Color(0.16, 0.16, 0.18)
+	var bill_colour := Color(0.92, 0.66, 0.22)
+	var b := Node3D.new()
+	for side in [-0.09, 0.09]:
+		b.add_child(Props.cylinder(0.022, 0.2, bill_colour.darkened(0.35), Vector3(side, 0.1, 0)))
+		b.add_child(_blob(Vector3(0.09, 0.04, 0.16), bill_colour.darkened(0.35), Vector3(side, 0.02, 0.06)))
+	b.add_child(_blob(Vector3(0.34, 0.34, 0.86), white, Vector3(0, 0.36, 0)))
+	var tail := _blob(Vector3(0.18, 0.1, 0.24), white.darkened(0.08), Vector3(0, 0.34, -0.5))
+	tail.rotation_degrees.x = 14.0
+	b.add_child(tail)
+	for w in [["WingL", 1.0], ["WingR", -1.0]]:
+		var pivot := Node3D.new()
+		pivot.name = w[0]
+		pivot.position = Vector3(float(w[1]) * 0.13, 0.4, -0.04)
+		b.add_child(pivot)
+		pivot.add_child(_blob(Vector3(0.08, 0.2, 0.74), white, Vector3(0, 0.0, -0.06)))
+		# Black primaries showing at the folded tip, which is how you know the bird.
+		pivot.add_child(_blob(Vector3(0.07, 0.13, 0.26), black, Vector3(0, -0.02, -0.42)))
+	var neck := Node3D.new()
+	neck.name = "Neck"
+	neck.position = Vector3(0, 0.5, 0.26)
+	b.add_child(neck)
+	var column := _blob(Vector3(0.15, 0.3, 0.17), white, Vector3(0, 0.13, 0.0))
+	column.rotation_degrees.x = 10.0
+	neck.add_child(column)
+	var head := _blob(Vector3(0.14, 0.15, 0.2), white, Vector3(0, 0.3, 0.06))
+	neck.add_child(head)
+	# The bill: a long upper mandible with the pouch slung beneath it.
+	var upper := Props.cylinder(0.02, 0.56, bill_colour, Vector3(0, 0.3, 0.36), 0.008)
+	upper.rotation_degrees.x = 94.0
+	neck.add_child(upper)
+	var pouch := _blob(Vector3(0.1, 0.13, 0.44), bill_colour.darkened(0.2), Vector3(0, 0.24, 0.36))
+	pouch.rotation_degrees.x = 5.0
+	neck.add_child(pouch)
+	for c in b.find_children("*", "GeometryInstance3D", true, false):
+		var g := c as GeometryInstance3D
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		g.visibility_range_end = 380.0
+	return b
 
 
 func _place_waders() -> void:
