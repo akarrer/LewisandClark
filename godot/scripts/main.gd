@@ -124,6 +124,8 @@ func _process(delta: float) -> void:
 		_clock -= whole
 		state.advance_minutes(whole)
 
+	sky.moon_phase = SkyAndWeather.moon_phase_for(state.current_year, state.current_month, state.current_day)
+	sky.meteor_rate = SkyAndWeather.meteors_for(state.current_month, state.current_day)
 	sky.update(state.hour(), delta)
 	Interactable.animate_prairie_dogs(prairie_dogs, _time, _leader_near(terrain.points["prairie_dog_town"], 10.0) and leader.ground_speed() > 2.5)
 

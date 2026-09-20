@@ -159,6 +159,11 @@ func _scenery_steps() -> Array:
 	if main.has_node("Camp"):
 		camp = main.get_node("Camp").global_position
 		camp_eye = camp + tr.toward_river(camp.x, camp.z) * 11.0 + Vector3(2, 0, 2)
+	# Aimed at the moon. Its night bearing is fixed in sky.gd (pitch -40, yaw 35),
+	# and the sky has not yet been wound forward to night when these are built.
+	var moon_dir := Basis.from_euler(Vector3(deg_to_rad(-40.0), deg_to_rad(35.0), 0.0)).z
+	var moon_yaw := rad_to_deg(atan2(-moon_dir.x, -moon_dir.z))
+	var moon_pitch := rad_to_deg(asin(clampf(moon_dir.y, -1.0, 1.0)))
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -188,6 +193,7 @@ func _scenery_steps() -> Array:
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
 		["night_sky", bluff.x, bluff.z, 20.0, 30.0, 1.5, 0.0],
+		["moon", bluff.x, bluff.z, moon_yaw, moon_pitch, 1.5, 0.0],
 	]
 	for a in args:
 		if a.begins_with("--only="):

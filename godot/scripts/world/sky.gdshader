@@ -17,6 +17,8 @@ uniform vec3 cloud_shadow : source_color = vec3(0.55, 0.60, 0.70);
 uniform float star_amount = 0.0;
 uniform vec3 moon_dir = vec3(0.3, 0.6, -0.7);
 uniform float moon_amount = 0.0;
+uniform float moon_phase = 0.6;      // 0 and 1 new, 0.5 full; set from the date
+uniform float meteor_rate = 0.06;    // meteors a second (the Perseids run in August)
 uniform float wind_speed = 0.006;
 
 float hash12(vec2 p) {
@@ -133,8 +135,54 @@ void sky() {
 			col += vec3(0.9, 0.92, 1.0) * band * faint * 2.5 * clear_sky;  // the band is thick with faint stars
 		}
 
+		// Meteors: a streak every so often, out of the north-east in August.
+		if (star_amount > 0.001 && up > 0.0 && meteor_rate > 0.0) {
+			float span = 1.0 / meteor_rate;
+			float slot = floor(TIME / span);
+			float within = fract(TIME / span);
+			float fall = smoothstep(0.0, 0.03, within) * (1.0 - smoothstep(0.06, 0.16, within));
+			if (fall > 0.001) {
+				// Radiant around Perseus, low in the north-east, drifting each night.
+				vec3 radiant = normalize(vec3(0.55 + 0.2 * hash12(vec2(slot, 3.3)), 0.55, -0.62));
+				vec3 tangent = normalize(cross(radiant, vec3(hash12(vec2(slot, 7.7)) - 0.5, 1.0, hash12(vec2(slot, 9.1)) - 0.5)));
+				float head = 0.08 + 0.5 * hash12(vec2(slot, 11.3));  // how far it has run
+				float trail = 0.05 + 0.07 * hash12(vec2(slot, 13.9));
+				float near_trail = 0.0;
+				for (int k = 0; k < 8; k++) {
+					float a = head - trail * float(k) / 7.0;
+					vec3 pt = normalize(radiant * cos(a) + tangent * sin(a));
+					float taper = 1.0 - float(k) / 7.0;  // brightest at the head
+					near_trail = max(near_trail, smoothstep(0.0025, 0.0, distance(dir, pt)) * taper);
+				}
+				col += vec3(1.0, 0.96, 0.85) * near_trail * fall * 2.2 * star_amount * (1.0 - cloud_coverage);
+			}
+		}
+
+		// The moon: a disc with its phase, its maria, and limb darkening, with the
+		// dark limb faintly lit by earthshine.
+		vec3 mdir = normalize(moon_dir);
+		float ang_r = 0.03;  // a little larger than life, as a moon in a game must be
+		vec3 up_ref = abs(mdir.y) > 0.95 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+		vec3 mright = normalize(cross(up_ref, mdir));
+		vec3 mup = cross(mdir, mright);
+		vec2 muv = vec2(dot(dir, mright), dot(dir, mup)) / ang_r;
+		float mr = length(muv);
+		float disc = smoothstep(1.0, 0.93, mr) * step(0.0, dot(dir, mdir));
+		if (disc > 0.001) {
+			// The terminator is an ellipse across the disc; the lit lune is on the
+			// waxing side. Illuminated fraction works out as (1 - cos(2*pi*phase))/2.
+			float k = cos(moon_phase * 6.28318);
+			// Waxing moons are lit on the right in these latitudes, waning on the left.
+			float waxing = moon_phase < 0.5 ? -1.0 : 1.0;
+			float terminator = k * sqrt(max(1.0 - muv.y * muv.y, 0.0));
+			float lit = smoothstep(-0.05, 0.05, muv.x * waxing - terminator);
+			float maria = 0.72 + 0.28 * fbm(muv * 1.5 + 11.0, 4);
+			float limb = sqrt(max(1.0 - mr * mr * 0.85, 0.0));
+			vec3 face = vec3(0.95, 0.94, 0.88) * maria * (0.55 + 0.45 * limb);
+			// Earthshine only just shows the dark limb.
+			col = mix(col, face * (lit * 2.6 + 0.015), disc * moon_amount);
+		}
 		float moon = smoothstep(0.99935, 0.9995, dot(dir, normalize(moon_dir)));
-		col += vec3(0.95, 0.94, 0.88) * moon * moon_amount * 2.2;
 		col += vec3(0.30, 0.34, 0.48) * pow(max(dot(dir, normalize(moon_dir)), 0.0), 60.0) * moon_amount * 0.35;
 		col += vec3(0.16, 0.19, 0.30) * pow(max(dot(dir, normalize(moon_dir)), 0.0), 16.0) * moon_amount * 0.07;
 	}

@@ -12,6 +12,9 @@ var _flash := 0.0
 var rain: GPUParticles3D
 var rain_mat: StandardMaterial3D
 var _wet := 0.0
+## Set from the Day Clock's date (see moon_phase_for / meteors_for).
+var moon_phase := 0.6
+var meteor_rate := 0.02
 var follow: Node3D  # rain follows this (the camera)
 var _rng := RandomNumberGenerator.new()
 
@@ -133,6 +136,30 @@ func _build_rain() -> void:
 	add_child(rain)
 
 
+static func julian_day(year: int, month: int, day: int) -> float:
+	## Julian Day at noon, by the standard civil-calendar formula.
+	var y := year
+	var m := month
+	if m <= 2:
+		y -= 1
+		m += 12
+	var a := int(floor(y / 100.0))
+	var b := 2 - a + int(floor(a / 4.0))
+	return floor(365.25 * (y + 4716)) + floor(30.6001 * (m + 1)) + day + b - 1524.5
+
+
+static func moon_phase_for(year: int, month: int, day: int) -> float:
+	## 0 and 1 new, 0.5 full. Counted from the new moon of 2000-01-06, which is
+	## as true for 1804 as for now: the Corps navigated by these.
+	return fposmod((julian_day(year, month, day) - 2451550.1) / 29.530588853, 1.0)
+
+
+static func meteors_for(month: int, day: int) -> float:
+	## Sporadics most nights; the Perseids swell around 12 August.
+	var perseid := exp(-pow(float(day) - 12.0, 2.0) / 60.0) if month == 8 else 0.0
+	return 0.02 + 0.5 * perseid
+
+
 static func palette(hour: float) -> Array:
 	## Interpolated [zenith, horizon, glow, light colour, light energy, ambient] for ``hour``.
 	var h := fposmod(hour, 24.0)
@@ -194,6 +221,8 @@ func update(hour: float, delta: float) -> void:
 	sky_mat.set_shader_parameter("star_amount", night * (1.0 - storm))
 	sky_mat.set_shader_parameter("moon_amount", night * (1.0 - storm))
 	sky_mat.set_shader_parameter("moon_dir", sun.global_transform.basis.z)
+	sky_mat.set_shader_parameter("moon_phase", moon_phase)
+	sky_mat.set_shader_parameter("meteor_rate", meteor_rate * night * (1.0 - storm))
 
 	# Rain takes the colour of the sky behind it rather than glowing white.
 	var rc := horizon.lerp(Color(0.8, 0.84, 0.9), 0.35).lerp(Color.WHITE, _flash * 0.6)
