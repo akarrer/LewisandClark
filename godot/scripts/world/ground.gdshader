@@ -138,9 +138,20 @@ void fragment() {
 	vec3 sandy = c * (0.9 + ripple * 0.2);
 	float wet = 1.0 - smoothstep(-0.2, 0.9, v_world.y + (vnoise(p * 0.5) - 0.5) * 0.4);
 	sandy = mix(sandy, sandy * vec3(0.62, 0.60, 0.58), wet * 0.85);
+	// A bar is not one sheet of clean sand. The river leaves silt in it, and the
+	// last fall of the water leaves damp patches that dry from the edges in.
+	float damp = smoothstep(0.42, 0.74, fbm(p * 0.09)) * (1.0 - smoothstep(0.6, 2.6, v_world.y));
+	sandy = mix(sandy, sandy * vec3(0.70, 0.67, 0.62), damp * 0.7);
+	float silt = smoothstep(0.52, 0.8, fbm(p * 0.35 + 19.0));
+	sandy = mix(sandy, sandy * vec3(0.78, 0.74, 0.66), silt * 0.45);
 	// Drift lines: dark bands of twigs and silt left where the river last stood.
 	float drift_line = smoothstep(0.06, 0.0, abs(fract(v_world.y * 1.3 + vnoise(p * 0.2) * 0.6) - 0.5) - 0.44);
-	sandy *= 1.0 - drift_line * 0.25 * smoothstep(0.2, 0.8, vnoise(p * 1.1));
+	sandy *= 1.0 - drift_line * 0.38 * smoothstep(0.2, 0.8, vnoise(p * 1.1));
+	// Shell and pebble flecks, thickest in the drift lines where the water sorted
+	// them, and only worth drawing where the player can see them.
+	float fleck_near = 1.0 - smoothstep(5.0, 26.0, dist);
+	float fleck = smoothstep(0.90, 0.995, fbm(p * 9.0)) * (0.35 + drift_line);
+	sandy += vec3(0.10, 0.095, 0.085) * fleck * fleck_near;
 	// Fine grain up close: coarser sand and silt in soft flecks.
 	float grain = fbm(p * 5.5);
 	sandy *= 1.0 + (grain - 0.5) * 0.16 * (1.0 - smoothstep(4.0, 20.0, length(v_world - CAMERA_POSITION_WORLD)));
@@ -193,6 +204,6 @@ void fragment() {
 		NORMAL = normalize((VIEW_MATRIX * vec4(bumped, 0.0)).xyz);
 	}
 	ALBEDO = c * cloud_light(v_world) * mix(1.0, 0.62, wetness);
-	ROUGHNESS = mix(0.95, 0.42, wetness);
+	ROUGHNESS = mix(0.95, 0.42, max(wetness, sand * wet * 0.55));
 	SPECULAR = mix(0.2, 0.5, wetness);
 }

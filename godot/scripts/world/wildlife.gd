@@ -30,6 +30,7 @@ static func populate(t: Terrain, leader: Node3D) -> Wildlife:
 	w._place_waders()
 	w._place_pelicans()
 	w._place_swallows()
+	w._place_soarers()
 	return w
 
 
@@ -225,6 +226,55 @@ func _place_swallows() -> void:
 	})
 
 
+func _place_soarers() -> void:
+	## Turkey vultures over the bluffs and a hawk hunting the prairie. They ride
+	## the thermal off the loess face for an hour at a time without a wingbeat,
+	## holding the wings up in a shallow V and rocking from side to side, which
+	## is how you tell a vulture from a hawk when it is only a shape in the sky.
+	var bluff: Vector3 = terrain.points.get("council_bluff", Vector3(512, 0, 512))
+	for i in 3:
+		var vulture := i < 2
+		var centre := bluff + Vector3(_rng.randf_range(-170, 170), 0, _rng.randf_range(-170, 170))
+		centre.y = terrain.height_at(centre.x, centre.z) + _rng.randf_range(65, 125)
+		var node := Node3D.new()
+		node.name = "Soarer%d" % i
+		add_child(node)
+		var bird := _raptor(vulture)
+		node.add_child(bird)
+		var one: Array[Node3D] = [bird]
+		_flocks.append({
+			"node": node, "centre": centre, "radius": _rng.randf_range(38, 75),
+			"speed": _rng.randf_range(0.05, 0.095), "phase": _rng.randf() * TAU,
+			"birds": one, "soar": true, "dihedral": 0.3 if vulture else 0.05,
+		})
+
+
+static func _raptor(vulture: bool) -> Node3D:
+	## Seen from underneath at a few hundred feet: a body, long broad wings with
+	## the primaries spread like fingers at the tip, and a fanned tail.
+	var colour := Color(0.11, 0.10, 0.10) if vulture else Color(0.30, 0.24, 0.18)
+	var b := Node3D.new()
+	b.add_child(Props.box(Vector3(0.16, 0.14, 0.62), colour, Vector3.ZERO))
+	b.add_child(Props.box(Vector3(0.34 if vulture else 0.26, 0.03, 0.26 if vulture else 0.42),
+			colour.lightened(0.08), Vector3(0, 0, -0.45)))
+	for side in [["L", 1.0], ["R", -1.0]]:
+		var pivot := Node3D.new()
+		pivot.name = side[0]
+		b.add_child(pivot)
+		var sx := float(side[1])
+		pivot.add_child(Props.box(Vector3(0.72, 0.035, 0.34), colour, Vector3(sx * 0.4, 0, -0.02)))
+		for k in 4:
+			var finger := Props.box(Vector3(0.34, 0.025, 0.07), colour,
+					Vector3(sx * 0.92, 0, -0.14 + k * 0.1))
+			finger.rotation_degrees.y = sx * (-14.0 + k * 8.0)
+			pivot.add_child(finger)
+	for c in b.find_children("*", "GeometryInstance3D", true, false):
+		var g := c as GeometryInstance3D
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		g.visibility_range_end = 900.0
+	return b
+
+
 func _fly(delta: float, t: float) -> void:
 	for f in _flocks:
 		var node: Node3D = f["node"]
@@ -248,6 +298,14 @@ func _fly(delta: float, t: float) -> void:
 				b.rotation.z = sin(t * 2.6 + j) * 0.7   # banking hard
 				b.get_node("L").rotation.z = sin(t * 11.0 + j) * 0.7
 				b.get_node("R").rotation.z = -sin(t * 11.0 + j) * 0.7
+				continue
+			if f.get("soar", false):
+				# No wingbeat at all: the V is held and the whole bird rocks.
+				var dih: float = f["dihedral"]
+				var rock := sin(t * 0.5 + float(f["phase"])) * 0.15
+				b.get_node("L").rotation.z = dih + rock
+				b.get_node("R").rotation.z = -dih + rock
+				b.rotation.z = rock * 1.6
 				continue
 			# Each bird flaps at its own rate, with glides between.
 			var flap := sin(t * (5.5 + float(i % 5) * 0.7) + float(i))
