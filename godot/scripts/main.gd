@@ -53,6 +53,11 @@ func _ready() -> void:
 	var river_life := RiverLife.new()
 	river_life.build(terrain, leader)
 	add_child(river_life)
+	var butterflies := Butterflies.new()
+	butterflies.build(terrain)
+	butterflies.follow = leader.camera
+	add_child(butterflies)
+
 	var motes := Motes.new()
 	motes.build(terrain)
 	motes.follow = leader.camera
