@@ -350,6 +350,8 @@ func _scenery_steps() -> Array:
 		main.sky.env.ssao_enabled = false
 	if "--no-ssil" in args:
 		main.sky.env.ssil_enabled = false
+	if "--no-ssr" in args:
+		main.sky.env.ssr_enabled = false
 	if "--no-vfog" in args:
 		main.sky.env.volumetric_fog_enabled = false
 	if "--no-grass-shadow" in args:

@@ -357,6 +357,7 @@ func _build_water() -> MeshInstance3D:
 	mat.shader = load("res://scripts/world/water.gdshader")
 	mat.set_shader_parameter("river_tex", GrassField._texture(_river))  # the current follows the channel
 	mat.set_shader_parameter("map_size", SIZE)
+	mat.set_shader_parameter("river_half", river_half_width())
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi
