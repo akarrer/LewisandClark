@@ -16,9 +16,9 @@ render_mode cull_disabled;
 // the wave pattern are regular, that aliasing comes out as long straight
 // interference bands ruled across the reach.
 
-uniform vec3 deep_color : source_color = vec3(0.27, 0.22, 0.15);
-uniform vec3 mid_color : source_color = vec3(0.42, 0.34, 0.22);
-uniform vec3 shallow_color : source_color = vec3(0.60, 0.52, 0.36);
+uniform vec3 deep_color : source_color = vec3(0.19, 0.155, 0.105);
+uniform vec3 mid_color : source_color = vec3(0.46, 0.355, 0.205);
+uniform vec3 shallow_color : source_color = vec3(0.70, 0.58, 0.365);
 uniform vec3 foam_color : source_color = vec3(0.84, 0.81, 0.74);
 uniform float flow_speed = 0.9;       // m/s the silt patterns travel downriver
 uniform sampler2D river_tex : filter_linear, repeat_disable;  // distance to the 1804 channel (m)
@@ -27,6 +27,7 @@ uniform float river_half = 55.0;      // metres from the channel centre to the b
 uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
 global uniform vec4 sky_horizon;
 global uniform float wind_strength;
+// sun_dir comes in with cloud_shadow.gdshaderinc, just below.
 #include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 const mat2 TURN = mat2(vec2(0.80, 0.60), vec2(-0.60, 0.80));
@@ -256,7 +257,9 @@ void fragment() {
 	float contact = smoothstep(0.3, 0.0, depth)
 			* (0.55 + 0.45 * noise(w * 1.4 - along * TIME * 1.6))
 			* (1.0 - smoothstep(22.0, 65.0, dist));
-	float foam = clamp(cap + lap + contact * 0.9, 0.0, 1.0);
+	// Foam is not a flat wash: it breaks into streaks that run with the water.
+	float grain = 0.5 + 0.5 * noise(vec2(t * 1.1, (s - TIME * flow_speed) * 0.32));
+	float foam = clamp((cap + lap) * (0.45 + 0.75 * grain) + contact * 0.9, 0.0, 1.0);
 	// Flecks of foam and drift riding the current. On a reach this wide they are
 	// most of what tells you the water is moving at all -- but they are specks
 	// of dirty foam, not sparks, so they are small, few, and only half bright.
@@ -265,7 +268,7 @@ void fragment() {
 	float drift = noise((w - along * TIME * flow_speed * 1.25) * 5.5);
 	float fleck = smoothstep(0.93, 1.0, drift) * (1.0 - smoothstep(12.0, 42.0, dist));
 	foam = clamp(foam + fleck * 0.22, 0.0, 1.0);
-	c = mix(c, foam_color, foam * 0.85);
+	c = mix(c, foam_color, smoothstep(0.05, 0.75, foam) * 0.92);
 
 	// Not a mirror: silty water scatters, and a tight lobe on a rippled surface
 	// gives hard glints that read as scratches rather than as water. Foam is
@@ -286,7 +289,16 @@ void fragment() {
 	EMISSION = sheen * fres * mix(0.03, 0.30, smoothstep(5.0, 120.0, dist)) * (1.0 - foam);
 	// Light coming up through the back of a crest, which is most of what gives a
 	// swell its shape from a low angle.
-	BACKLIGHT = shallow_color * clamp(h / max(SWELL_AMP, 0.001), 0.0, 1.0) * 0.5 * (1.0 - foam);
+	float crest = clamp(h / max(SWELL_AMP, 0.001), 0.0, 1.0);
+	BACKLIGHT = mix(mid_color, shallow_color, 0.65) * 1.5 * crest * (1.0 - foam);
+	// The sun's road. Taken off the same wave normal as everything else, so it
+	// breaks up with the ripple and fades out with it. A sparkle laid on as its
+	// own noise would alias into a glitter of fireflies at any distance, which
+	// is the mistake this shader has already made twice.
+	vec3 sun = normalize(sun_dir);
+	vec3 eye = normalize(CAMERA_POSITION_WORLD - world);
+	float mirror = pow(clamp(dot(wn, normalize(sun + eye)), 0.0, 1.0), 90.0);
+	EMISSION += vec3(1.0, 0.94, 0.82) * mirror * 1.7 * (1.0 - foam) * smoothstep(0.0, 0.18, sun.y);
 
 	ALBEDO = c * mix(1.0, cloud_light(world), 0.7);
 	// The Missouri is opaque: Clark could not see a foot into it, and letting the

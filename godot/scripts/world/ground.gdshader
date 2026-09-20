@@ -16,7 +16,9 @@ uniform float camp_radius = 9.0;
 uniform vec2 trace_a = vec2(-1000.0);  // a path worn between two places
 uniform vec2 trace_b = vec2(-1000.0);
 uniform vec2 trace_c = vec2(-1000.0);
-uniform float trace_width = 1.05;
+// Narrower than it was. What forty-five men walking the same line wear into a
+// prairie is a footpath with the grass beaten out of it, not a cart road.
+uniform float trace_width = 0.62;
 global uniform float wetness;
 
 varying vec3 v_world;
@@ -160,19 +162,24 @@ void fragment() {
 	// Trampled ground: bare earth around the camp and along the ways between it,
 	// the boats and the bluff, with a scuffed fringe either side of the path.
 	float half_w;
-	float to_path = trace_field(p, trace_a, trace_b, trace_c, trace_width, half_w) + (vnoise(p * 1.2) - 0.5) * 0.7;
-	float on_path = 1.0 - smoothstep(half_w * 0.5, half_w, to_path);
-	float fringe = 1.0 - smoothstep(half_w, half_w * 2.3, to_path);
+	float to_path = trace_field(p, trace_a, trace_b, trace_c, trace_width, half_w) + (vnoise(p * 1.2) - 0.5) * 0.55;
+	float on_path = 1.0 - smoothstep(half_w * 0.35, half_w * 0.85, to_path);
+	// A trail comes and goes along its length -- bare where the ground is hard
+	// or the traffic funnels, grassed over between. A line of even width and
+	// even colour from end to end reads as something graded, not something worn.
+	on_path *= smoothstep(0.32, 0.62, fbm(p * 0.09));
+	float fringe = 1.0 - smoothstep(half_w * 0.8, half_w * 2.2, to_path);
 	float worn = 1.0 - smoothstep(camp_radius * 0.5, camp_radius, distance(p, camp) + (vnoise(p * 0.6) - 0.5) * 2.0);
 	worn = max(worn, on_path);
-	vec3 earth = pow(vec3(0.40, 0.32, 0.24), vec3(2.2)) * (0.82 + vnoise(p * 3.0) * 0.36);
+	// Loess, which is pale: the dust these bluffs are made of is tan, not peat.
+	vec3 earth = pow(vec3(0.52, 0.44, 0.33), vec3(2.2)) * (0.85 + fbm(p * 2.2) * 0.3);
 	// Two ruts where the feet fall, and dust and small stones between them.
 	float rut = 1.0 - smoothstep(0.0, half_w * 0.35, abs(to_path - half_w * 0.5));
 	earth *= 1.0 - rut * 0.16;
 	earth += vec3(0.05, 0.045, 0.035) * smoothstep(0.86, 0.99, vnoise(p * 14.0)) * on_path;
 	// The fringe: grass bruised and bent, paler and drier, before the bare ground.
-	c = mix(c, mix(c, earth, 0.35) * 1.04, fringe * prairie * 0.75);
-	c = mix(c, earth, worn * prairie * 0.95);
+	c = mix(c, mix(c, earth, 0.3) * 1.05, fringe * prairie * 0.7);
+	c = mix(c, earth, worn * prairie * 0.8);
 
 	c *= 1.0 + (n - 0.5) * mottle * 2.0;
 	// Slight warm/cool drift over large areas.

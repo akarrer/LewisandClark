@@ -25,7 +25,7 @@ uniform float town_radius = 24.0;
 uniform vec2 trace_a = vec2(-1000.0);
 uniform vec2 trace_b = vec2(-1000.0);
 uniform vec2 trace_c = vec2(-1000.0);
-uniform float trace_width = 1.05;
+uniform float trace_width = 0.62;   // keep in step with ground.gdshader
 uniform bool fade_out = true;
 
 float hash(vec2 p) {
