@@ -18,6 +18,9 @@ var haze := 0.0
 var night_amount := 0.0
 ## Set from the Day Clock's date (see moon_phase_for / meteors_for).
 ## The weather this day was given (rules/weather.gd day_pattern).
+## The date, for where the sun and moon stand (set with the day's weather).
+var month_now := 8
+var day_now := 1
 var cover_today := 0.42
 var storm_today := false
 var storm_hour := 99.0
@@ -167,8 +170,11 @@ func _fork(st: SurfaceTool, from: Vector3, to: Vector3, width: float, steps: int
 		previous = next
 
 
-func set_day(pattern: Dictionary) -> void:
-	## Give the sky the weather this day was dealt.
+func set_day(pattern: Dictionary, month: int = -1, day: int = -1) -> void:
+	## Give the sky the weather this day was dealt, and the date it belongs to.
+	if month > 0:
+		month_now = month
+		day_now = day
 	cover_today = clampf(float(pattern.get("cover", 0.42)), 0.0, 1.0)
 	storm_today = bool(pattern.get("storm", false))
 	storm_hour = float(pattern.get("storm_hour", 99.0))
@@ -210,6 +216,51 @@ func _build_rain() -> void:
 	rain.draw_pass_1 = streak
 	rain.emitting = false
 	add_child(rain)
+
+
+## Where the Corps stood: Council Bluff, on the Missouri.
+const LATITUDE := 41.52
+const LONGITUDE := -95.92
+
+
+static func day_of_year(month: int, day: int) -> int:
+	const BEFORE := [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+	return BEFORE[clampi(month - 1, 0, 11)] + day
+
+
+static func solar_position(month: int, day: int, hour: float) -> Vector2:
+	## The sun's elevation and azimuth in degrees (azimuth 0 = north, 90 = east),
+	## by the usual declination-and-hour-angle reckoning. Good to a fraction of a
+	## degree, which is far closer than the eye can tell.
+	var n := float(day_of_year(month, day))
+	var decl := deg_to_rad(23.44 * sin(deg_to_rad(360.0 / 365.0 * (n + 284.0))))
+	# Local solar time: the sun is not obliging enough to keep clock time.
+	var b := deg_to_rad(360.0 / 365.0 * (n - 81.0))
+	var equation := 9.87 * sin(2.0 * b) - 7.53 * cos(b) - 1.5 * sin(b)  # minutes
+	var meridian := -90.0  # the centre of this longitude's zone
+	var solar_hour := hour + (4.0 * (LONGITUDE - meridian) + equation) / 60.0
+	var hour_angle := deg_to_rad(15.0 * (solar_hour - 12.0))
+	var lat := deg_to_rad(LATITUDE)
+	var sin_el := sin(lat) * sin(decl) + cos(lat) * cos(decl) * cos(hour_angle)
+	var elevation := asin(clampf(sin_el, -1.0, 1.0))
+	var cos_az := (sin(decl) - sin(elevation) * sin(lat)) / maxf(cos(elevation) * cos(lat), 0.0001)
+	var azimuth := acos(clampf(cos_az, -1.0, 1.0))
+	if hour_angle > 0.0:
+		azimuth = TAU - azimuth  # afternoon: west of south
+	return Vector2(rad_to_deg(elevation), rad_to_deg(azimuth))
+
+
+static func day_length(month: int, day: int) -> float:
+	## Hours between sunrise and sunset, which is what a season feels like.
+	var n := float(day_of_year(month, day))
+	var decl := deg_to_rad(23.44 * sin(deg_to_rad(360.0 / 365.0 * (n + 284.0))))
+	var lat := deg_to_rad(LATITUDE)
+	var cos_h := -tan(lat) * tan(decl)
+	if cos_h <= -1.0:
+		return 24.0
+	if cos_h >= 1.0:
+		return 0.0
+	return 2.0 * rad_to_deg(acos(cos_h)) / 15.0
 
 
 static func julian_day(year: int, month: int, day: int) -> float:
@@ -271,12 +322,15 @@ func update(hour: float, delta: float) -> void:
 	if _bolt:
 		_bolt.visible = _bolt_left > 0.0
 
-	# Sun path: rises ~5:45, sets ~19:30 in August. At night the light becomes the moon, high in the south-east.
+	# The sun's bearing is the almanac's: it rises north of east in August and
+	# south of east in December, so shadows fall differently by season. Its height
+	# keeps to the Day Clock's own arc, which the palette below is tuned to.
 	var day_t := clampf((hour - 5.75) / (19.5 - 5.75), -0.15, 1.15)
 	var elevation := sin(day_t * PI)
 	var is_day := elevation > 0.02
 	var pitch := -rad_to_deg(asin(clampf(elevation, -1.0, 1.0))) * 0.95
-	sun.rotation_degrees = Vector3(min(pitch, -1.5) if is_day else -40.0, 150.0 - day_t * 120.0 if is_day else 35.0, 0.0)
+	var bearing := solar_position(month_now, day_now, hour).y
+	sun.rotation_degrees = Vector3(min(pitch, -1.5), 180.0 - bearing, 0.0) if is_day 			else Vector3(-40.0, 35.0, 0.0)
 
 	var p := palette(hour)
 	var zenith: Color = p[0]
