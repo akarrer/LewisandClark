@@ -201,7 +201,10 @@ func _process(delta: float) -> void:
 
 	sky.moon_phase = SkyAndWeather.moon_phase_for(state.current_year, state.current_month, state.current_day)
 	sky.meteor_rate = SkyAndWeather.meteors_for(state.current_month, state.current_day)
-	sky.update(state.hour(), delta)
+	# The Day Clock counts whole minutes, which is what the Journal and the
+	# rations want. The sky needs better than that: at two game-minutes a second
+	# the sun would step half a degree twice a second, and it reads as a stutter.
+	sky.update((state.minute_of_day + _clock) / 60.0, delta)
 	Interactable.animate_prairie_dogs(prairie_dogs, _time, _leader_near(terrain.points["prairie_dog_town"], 10.0) and leader.ground_speed() > 2.5)
 
 	var started := director.update(delta, leader.ground_speed() > 0.5, _moment_context())

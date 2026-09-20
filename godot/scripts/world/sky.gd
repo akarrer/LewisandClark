@@ -251,6 +251,19 @@ static func solar_position(month: int, day: int, hour: float) -> Vector2:
 	return Vector2(rad_to_deg(elevation), rad_to_deg(azimuth))
 
 
+static func moon_position(month: int, day: int, hour: float, phase: float) -> Vector2:
+	## The moon's elevation and azimuth in degrees, taken as the sun's position
+	## ``phase`` of a day earlier. That ignores the five degrees its orbit is
+	## tipped to the sun's, which nobody standing on a sandbar would notice.
+	return solar_position(month, day, fposmod(hour - phase * 24.0, 24.0))
+
+
+static func moon_direction(position: Vector2) -> Vector3:
+	## A unit vector toward the moon, built the way the sun's light is aimed so
+	## the two agree.
+	return Basis.from_euler(Vector3(deg_to_rad(-position.x), deg_to_rad(180.0 - position.y), 0.0)).z
+
+
 static func day_length(month: int, day: int) -> float:
 	## Hours between sunrise and sunset, which is what a season feels like.
 	var n := float(day_of_year(month, day))
@@ -331,7 +344,20 @@ func update(hour: float, delta: float) -> void:
 	var is_day := elevation > 0.02
 	var pitch := -rad_to_deg(asin(clampf(elevation, -1.0, 1.0))) * 0.95
 	var bearing := solar_position(month_now, day_now, hour).y
-	sun.rotation_degrees = Vector3(min(pitch, -1.5), 180.0 - bearing, 0.0) if is_day 			else Vector3(-40.0, 35.0, 0.0)
+	# The moon runs the sun's own path, lagging it by its phase: with the sun at
+	# new, opposite it at full, so a full moon rises as the sun goes down. It
+	# used to be pinned in one place all night, which was the plainest thing
+	# wrong with the night sky.
+	var moon := moon_position(month_now, day_now, hour, moon_phase)
+	if is_day:
+		sun.rotation_degrees = Vector3(min(pitch, -1.5), 180.0 - bearing, 0.0)
+	elif moon.x > 2.0:
+		# Moonlight comes from the moon.
+		sun.rotation_degrees = Vector3(-maxf(moon.x, 10.0), 180.0 - moon.y, 0.0)
+	else:
+		# With the moon down, a token light from high in the north-west, so the
+		# night is dark rather than black.
+		sun.rotation_degrees = Vector3(-40.0, 35.0, 0.0)
 
 	var p := palette(hour)
 	var zenith: Color = p[0]
@@ -361,8 +387,9 @@ func update(hour: float, delta: float) -> void:
 	sky_mat.set_shader_parameter("cloud_shadow", horizon.lerp(zenith, 0.5).darkened(0.25).lerp(Color(0.04, 0.05, 0.09), night))
 	sky_mat.set_shader_parameter("cloud_coverage", cloud_cover)
 	sky_mat.set_shader_parameter("star_amount", night * (1.0 - storm))
-	sky_mat.set_shader_parameter("moon_amount", night * (1.0 - storm))
-	sky_mat.set_shader_parameter("moon_dir", sun.global_transform.basis.z)
+	# Drawn only while it is above the horizon, and faded in as it clears it.
+	sky_mat.set_shader_parameter("moon_amount", night * (1.0 - storm) * smoothstep(-2.0, 4.0, moon.x))
+	sky_mat.set_shader_parameter("moon_dir", moon_direction(moon))
 	sky_mat.set_shader_parameter("moon_phase", moon_phase)
 	sky_mat.set_shader_parameter("meteor_rate", meteor_rate * night * (1.0 - storm))
 

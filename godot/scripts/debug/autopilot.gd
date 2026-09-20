@@ -207,9 +207,21 @@ func _scenery_steps() -> Array:
 	if main.has_node("Camp"):
 		camp = main.get_node("Camp").global_position
 		camp_eye = camp + tr.toward_river(camp.x, camp.z) * 11.0 + Vector3(2, 0, 2)
-	# Aimed at the moon. Its night bearing is fixed in sky.gd (pitch -40, yaw 35),
-	# and the sky has not yet been wound forward to night when these are built.
-	var moon_dir := Basis.from_euler(Vector3(deg_to_rad(-40.0), deg_to_rad(35.0), 0.0)).z
+	# Aimed at the moon, at whatever hour of the night it stands highest: it
+	# moves now, rising and setting with its phase, so there is no one hour it is
+	# always up.
+	var st: ExpeditionState = main.state
+	var phase := SkyAndWeather.moon_phase_for(st.current_year, st.current_month, st.current_day)
+	var moon_hour := 1.5
+	var best_el := -90.0
+	for q in 41:
+		var hh := fposmod(20.0 + q * 0.25, 24.0)
+		var mp := SkyAndWeather.moon_position(st.current_month, st.current_day, hh, phase)
+		if mp.x > best_el:
+			best_el = mp.x
+			moon_hour = hh
+	var moon_dir := SkyAndWeather.moon_direction(
+			SkyAndWeather.moon_position(st.current_month, st.current_day, moon_hour, phase))
 	var moon_yaw := rad_to_deg(atan2(-moon_dir.x, -moon_dir.z))
 	var moon_pitch := rad_to_deg(asin(clampf(moon_dir.y, -1.0, 1.0)))
 	# A heron in the shallows, seen from 30 m: outside the range at which it flushes.
@@ -360,7 +372,7 @@ func _scenery_steps() -> Array:
 		["lightning", dogs.x, dogs.z, 20.0, 12.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
 		["night_sky", bluff.x, bluff.z, 20.0, 30.0, 1.5, 0.0, 2.6],
-		["moon", bluff.x, bluff.z, moon_yaw, moon_pitch, 1.5, 0.0, 5.5],
+		["moon", bluff.x, bluff.z, moon_yaw, moon_pitch, moon_hour, 0.0, 5.5],
 	]
 	for a in args:
 		if a.begins_with("--only="):
