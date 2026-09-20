@@ -291,6 +291,7 @@ func _scatter_driftwood() -> void:
 	## Bleached driftwood stranded on the sandbars, and snags - whole trees jammed
 	## in the riverbed, angled downstream - that made the Missouri so dangerous.
 	var variants := ["dead_tree_2", "dead_tree_4", "dead_tree_5"]
+	var snags: Array[Vector3] = []
 	for i in 3000:
 		var p := _random_point()
 		var d := _dist_to_river(p)
@@ -300,13 +301,46 @@ func _scatter_driftwood() -> void:
 			var side := Vector3(cos(ang), rng.randf_range(0.05, 0.2), sin(ang))
 			_add("driftwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), rng.randf_range(0.35, 0.8),
 					side, 900.0, Vector3.ONE, COARSE_CHUNK)
-		elif d > -24.0 and d < -6.0 and rng.randf() < 0.08:
+		elif d > -30.0 and d < -4.0 and p.y < Terrain.WATER_Y - 0.9 and rng.randf() < 0.5:
 			# A snag: rooted underwater, leaning 30-60 degrees out of the current.
+			# Rooted underwater means under water: the channel is wide enough that
+			# a planform distance from its centre will put you on a dry bar.
 			var ang := rng.randf() * TAU
 			var lean := Vector3(cos(ang), rng.randf_range(0.6, 1.6), sin(ang))
 			var bed := Vector3(p.x, Terrain.WATER_Y - 1.2, p.z)
 			_add("driftwood", variants[rng.randi() % variants.size()], bed, rng.randf_range(0.4, 0.7), lean, 900.0,
 					Vector3.ONE, COARSE_CHUNK)
+			snags.append(p)
+
+
+	_wakes(snags)
+
+
+func _wakes(snags: Array[Vector3]) -> void:
+	## The water piling against each snag and running white away below it. One
+	## quad apiece, lying on the surface with its near edge at the trunk and its
+	## length down the channel, on a single MultiMesh.
+	if snags.is_empty():
+		return
+	var quad := PlaneMesh.new()
+	quad.size = Vector2(1.0, 1.0)
+	quad.orientation = PlaneMesh.FACE_Y
+	# The plane is centred on its origin, so shift the UVs' origin to the trunk
+	# by placing the quad half a length downstream of it instead.
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://scripts/world/wake.gdshader")
+	# The river is one huge transparent surface and sorts over these unless told.
+	mat.render_priority = 7
+	quad.surface_set_material(0, mat)
+	var xforms: Array[Transform3D] = []
+	for p in snags:
+		var down := terrain.downriver(p.x, p.z)
+		var length := rng.randf_range(4.5, 9.0)
+		var width := length * rng.randf_range(0.42, 0.62)
+		var basis := Basis(Vector3.UP, atan2(down.x, down.z)).scaled(Vector3(width, 1.0, length))
+		var centre := Vector3(p.x, Terrain.WATER_Y - 0.31, p.z) + down * (length * 0.5)
+		xforms.append(Transform3D(basis, centre))
+	_batch("SnagWakes", quad, xforms, 320.0)
 
 
 func _on_bar(p: Vector3, min_above: float) -> bool:
@@ -579,6 +613,7 @@ func _batch(batch_name: String, mesh: Mesh, xforms: Array[Transform3D], visibili
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = batch_name
 	mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# No visibility range here: one MultiMesh spans the whole bank, so a range
 	# would measure from the middle of it and cull the lot.
 	add_child(mmi)

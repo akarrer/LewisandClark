@@ -102,6 +102,19 @@ func is_dry(x: float, z: float) -> bool:
 	return river_distance(x, z) > river_half_width() + 4.0
 
 
+func downriver(x: float, z: float) -> Vector3:
+	## Horizontal direction the water runs: along the channel, and southward.
+	## The same field water.gdshader takes the current from, so a wake on the
+	## surface and the streaks in it agree about which way is down.
+	var to_water := toward_river(x, z)
+	var along := Vector3(-to_water.z, 0.0, to_water.x)
+	return align_downstream(along)
+
+
+func align_downstream(along: Vector3) -> Vector3:
+	return along if along.z >= 0.0 else -along
+
+
 func toward_river(x: float, z: float) -> Vector3:
 	## Horizontal direction in which the river gets closer.
 	var e := 6.0

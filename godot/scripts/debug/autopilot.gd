@@ -275,6 +275,19 @@ func _scenery_steps() -> Array:
 					nearest = d3
 					pelican_eye = e3
 
+	# A snag standing in the channel, from the bank on the near side of it.
+	var snag := bank
+	var snag_eye := bank
+	for c in main.foliage.get_children():
+		if c is MultiMeshInstance3D and c.name == "SnagWakes" and c.multimesh.instance_count > 0:
+			# The quad sits downstream of the trunk; back up to the trunk itself.
+			var wake_t: Transform3D = c.multimesh.get_instance_transform(0)
+			snag = wake_t.origin - wake_t.basis.z * 0.5
+			var out := tr.toward_river(bank.x, bank.z)
+			snag_eye = snag - out * 26.0
+			snag_eye.y = tr.height_at(snag_eye.x, snag_eye.z)
+			break
+
 	# A beaver-cut stump on the bank, from a few paces off.
 	var beaver := bank
 	var beaver_eye := bank
@@ -310,6 +323,7 @@ func _scenery_steps() -> Array:
 		["river_mist", bank.x, bank.z, bank_yaw, -4.0, 6.3, 0.0],
 		["wader", wader_eye.x, wader_eye.z, _yaw_to(wader_eye, wader), -3.0, 10.5, 0.0],
 		["pelicans", pelican_eye.x, pelican_eye.z, _yaw_to(pelican_eye, pelican), -4.0, 9.0, 0.0],
+		["snag", snag_eye.x, snag_eye.z, _yaw_to(snag_eye, snag), -6.0, 11.0, 0.0],
 		["beaver", beaver_eye.x, beaver_eye.z, _yaw_to(beaver_eye, beaver), -28.0, 11.0, 0.0, 5.0],
 		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],

@@ -152,6 +152,17 @@ vec2 chop_slope(vec2 base, vec2 along, float tt, float flow, float pix, float gu
 }
 
 
+// How deep the water is at a point on screen: the height of the surface above
+// whatever the depth buffer has behind it. Whatever that is -- the bed, a hull,
+// a snag, a man's legs -- the water breaks against it the same way.
+float water_depth_at(vec2 suv, float surface_y, sampler2D dtex, mat4 inv_proj, mat4 inv_view) {
+	float dd = texture(dtex, suv).r;
+	vec4 bb = inv_proj * vec4(suv * 2.0 - 1.0, dd, 1.0);
+	vec3 bw = (inv_view * vec4(bb.xyz / bb.w, 1.0)).xyz;
+	return max(surface_y - bw.y, 0.0);
+}
+
+
 void vertex() {
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_base = world;
@@ -190,10 +201,7 @@ void fragment() {
 	// distance along the view ray to the bed, which is the same number only when
 	// you are looking straight down, and which on a bank runs to hundreds of
 	// metres over a river three deep.
-	float d = texture(depth_tex, SCREEN_UV).r;
-	vec4 behind = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, d, 1.0);
-	vec3 bed = (INV_VIEW_MATRIX * vec4(behind.xyz / behind.w, 1.0)).xyz;
-	float depth = max(world.y - bed.y, 0.0);
+	float depth = water_depth_at(SCREEN_UV, world.y, depth_tex, INV_PROJECTION_MATRIX, INV_VIEW_MATRIX);
 	// Broken up a little: the bed is a 4 m mesh and its triangle edges would
 	// otherwise show as straight contours running through the shoals.
 	float d_soft = depth + (fbm(w * 0.07) - 0.5) * 0.9 + (noise(w * 0.8) - 0.5) * 0.22;
@@ -240,7 +248,21 @@ void fragment() {
 	float lap = smoothstep(0.24, -0.02, d_soft)
 			* smoothstep(0.3, 0.75, noise(w * 1.1 + along * TIME * 0.5) * 0.7
 					+ 0.3 * (sin(TIME * 1.9 + t * 0.7) * 0.5 + 0.5));
-	float foam = clamp(cap + lap, 0.0, 1.0);
+	// Foam where the water breaks against something standing in it -- a moored
+	// hull, a snag, a man wading. The depth buffer does not care which.
+	// Its break-up is at a third of a metre, which is a good deal finer than a
+	// pixel covers past about twenty yards, so it is faded out over that range
+	// rather than left to alias into a cross-hatch over the whole shallows.
+	float contact = smoothstep(0.3, 0.0, depth)
+			* (0.55 + 0.45 * noise(w * 1.4 - along * TIME * 1.6))
+			* (1.0 - smoothstep(22.0, 65.0, dist));
+	float foam = clamp(cap + lap + contact * 0.9, 0.0, 1.0);
+	// Flecks of foam and drift riding the current. On a reach this wide they are
+	// most of what tells you the water is moving at all -- but they are specks
+	// of dirty foam, not sparks, so they are small, few, and only half bright.
+	float drift = noise((w - along * TIME * flow_speed * 1.25) * 5.5);
+	float fleck = smoothstep(0.93, 1.0, drift) * (1.0 - smoothstep(40.0, 140.0, dist));
+	foam = clamp(foam + fleck * 0.22, 0.0, 1.0);
 	c = mix(c, foam_color, foam * 0.85);
 
 	// Not a mirror: silty water scatters, and a tight lobe on a rippled surface
