@@ -295,13 +295,14 @@ func _scatter_driftwood() -> void:
 	for i in 3000:
 		var p := _random_point()
 		var d := _dist_to_river(p)
-		if d > -2.0 and d < 12.0:
+		if d > -2.0 and d < 12.0 and not _near_point(p, 30.0):
 			# Lying on the bar: tipped onto its side, trunk along a random heading.
+			# Not across the landing, where the fleet is made fast.
 			var ang := rng.randf() * TAU
 			var side := Vector3(cos(ang), rng.randf_range(0.05, 0.2), sin(ang))
 			_add("driftwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), rng.randf_range(0.35, 0.8),
 					side, 900.0, Vector3.ONE, COARSE_CHUNK)
-		elif d > -30.0 and d < -4.0 and p.y < Terrain.WATER_Y - 0.9 and rng.randf() < 0.5:
+		elif d > -30.0 and d < -4.0 and p.y < Terrain.WATER_Y - 0.9 				and not _near_point(p, 34.0) and rng.randf() < 0.42:
 			# A snag: rooted underwater, leaning 30-60 degrees out of the current.
 			# Rooted underwater means under water: the channel is wide enough that
 			# a planform distance from its centre will put you on a dry bar.
@@ -313,6 +314,8 @@ func _scatter_driftwood() -> void:
 			snags.append(p)
 
 
+	if OS.is_stdout_verbose():
+		print("foliage: snags x%d" % snags.size())
 	_wakes(snags)
 
 
@@ -581,7 +584,7 @@ func _scatter_beaver_sign() -> void:
 		# In the willow and cottonwood fringe, within a beaver's haul of the water.
 		# Off the open sand: a stump alone on a bar, with no tree it came from, reads
 		# as a mistake. Beaver work belongs in the willow and cottonwood fringe.
-		if d < 2.0 or d > 26.0 or rng.randf() < 0.55 or _on_bar(p, -0.1):
+		if d < 2.0 or d > 26.0 or rng.randf() < 0.55 or _on_bar(p, -0.1) or _near_point(p, 22.0):
 			continue
 		var h := rng.randf_range(0.45, 0.9)
 		var lean := Basis(Vector3.RIGHT, deg_to_rad(rng.randf_range(-5, 5))) * Basis(Vector3.UP, rng.randf() * TAU)

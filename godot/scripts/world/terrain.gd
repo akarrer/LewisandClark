@@ -163,6 +163,25 @@ func _search(rect: Rect2, score: Callable) -> Vector3:
 	return best
 
 
+## Where each hull lies: metres along the bank from the landing, how far its
+## inboard side must clear the channel edge, and what it draws. Read by boats.gd.
+const MOORINGS := [[0.0, 7.0, 0.95], [-26.0, 4.5, 0.6], [-42.0, 4.5, 0.6]]
+
+
+func afloat(from: Vector3, to_water: Vector3, inset: float, draught: float) -> Vector3:
+	## Walk out from the bank until there is both water enough under the hull and
+	## room enough beside it. The second test alone is a planform distance from
+	## the middle of the channel, and the channel is wide enough here that it
+	## leaves a boat sitting up on a dry bar.
+	var p := from
+	for i in 400:
+		var deep := height_at(p.x, p.z) < WATER_Y - 0.35 - draught
+		if deep and river_distance(p.x, p.z) < river_half_width() - inset:
+			break
+		p += to_water
+	return Vector3(p.x, WATER_Y - 0.35, p.z)
+
+
 func define_points() -> void:
 	var flood := float(meta["floodplain_y"])
 	# Council Bluff: the level bluff top closest to the river below it.
@@ -183,6 +202,14 @@ func define_points() -> void:
 	var along := Vector3(-to_water.z, 0.0, to_water.x)
 	var camp := landing - to_water * 6.0 + along * 10.0
 	points["camp"] = Vector3(camp.x, height_at(camp.x, camp.z), camp.z)
+	# Where the fleet lies: out from the landing until there is water under each
+	# hull to float in, which on this reach means well past the bar. Named here
+	# rather than worked out in boats.gd so that the scatters know to leave the
+	# moorings clear -- a snag lying across the keelboat looks like a mistake,
+	# whatever the river was really like.
+	for i in MOORINGS.size():
+		var m: Array = MOORINGS[i]
+		points["mooring_%d" % i] = afloat(landing + along * float(m[0]), to_water, float(m[1]), float(m[2]))
 	# Where the men walk between the camp and the boats, the grass is worn away.
 	var landing_edge := landing + to_water * 5.0
 	points["landing_edge"] = Vector3(landing_edge.x, height_at(landing_edge.x, landing_edge.z), landing_edge.z)

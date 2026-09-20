@@ -18,31 +18,24 @@ static func fleet(terrain: Terrain) -> Boats:
 	var start: Vector3 = terrain.points["start"]
 	var to_water := terrain.toward_river(start.x, start.z)
 	var along := Vector3(-to_water.z, 0.0, to_water.x)
-	var moorings := [[0.0, keelboat(), 7.0], [-26.0, pirogue(Color(0.58, 0.16, 0.11)), 4.5], [-42.0, pirogue(Color(0.86, 0.83, 0.75)), 4.5]]
-	for m in moorings:
-		var p := _mooring(terrain, start + along * float(m[0]), to_water, float(m[2]))
-		var hull: Node3D = m[1]
+	# Where each one lies is Terrain.MOORINGS, so the scatters can leave the
+	# water there clear (see Terrain.define_points).
+	var hulls := [keelboat(), pirogue(Color(0.58, 0.16, 0.11)), pirogue(Color(0.86, 0.83, 0.75))]
+	for i in hulls.size():
+		var p: Vector3 = terrain.points["mooring_%d" % i]
+		var hull: Node3D = hulls[i]
 		# Hulls are built bow toward +X; point the bow upriver along the bank.
 		hull.transform = Transform3D(Basis.looking_at(along, Vector3.UP) * Basis(Vector3.UP, PI / 2.0), p)
 		b.add_child(hull)
 		b._hulls.append(hull)
 		# Made fast to a stake on the bar: bow line slanting down to the sand.
 		var bow := p + along * (7.8 if hull.name == "Keelboat" else 5.6) + Vector3(0, 0.9, 0)
-		var stake := bow - to_water * (float(m[2]) + 2.5) + along * 1.5
+		var reach: float = float(Terrain.MOORINGS[i][1]) + 2.5
+		var stake := bow - to_water * reach + along * 1.5
 		stake.y = terrain.height_at(stake.x, stake.z)
 		b.add_child(Props.cylinder(0.05, 0.9, WOOD.darkened(0.3), stake + Vector3(0, 0.3, 0)))
 		b.add_child(_line(bow, stake + Vector3(0, 0.6, 0)))
 	return b
-
-
-static func _mooring(terrain: Terrain, from: Vector3, to_water: Vector3, inset: float) -> Vector3:
-	## Walk from the bank toward the river until the hull's inboard side clears the edge.
-	var p := from
-	for i in 200:
-		if terrain.river_distance(p.x, p.z) < terrain.river_half_width() - inset:
-			break
-		p += to_water
-	return Vector3(p.x, Terrain.WATER_Y - 0.35, p.z)
 
 
 func _process(_delta: float) -> void:
