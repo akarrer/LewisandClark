@@ -17,6 +17,7 @@ var prairie_dogs: Node3D
 var stores: Stores
 var inventory: InventoryScreen
 var council_screen: CouncilScreen
+var map_screen: MapScreen
 var _emptied: Array[String] = []
 var smoke: GPUParticles3D
 
@@ -138,6 +139,9 @@ func _place_world_features() -> void:
 	inventory = InventoryScreen.new()
 	inventory.build(stores)
 	add_child(inventory)
+	map_screen = MapScreen.new()
+	map_screen.build(terrain, leader)
+	add_child(map_screen)
 	council_screen = CouncilScreen.new()
 	council_screen.build()
 	council_screen.closed.connect(_council_closed)
@@ -218,7 +222,17 @@ func _process(delta: float) -> void:
 		prompt = "[%s]  %s" % [GameInput.hint("interact"), _nearby.label]
 	elif _moment.has("hint"):
 		prompt = _moment["hint"]
-	if Input.is_action_just_pressed("inventory"):
+	# The map: whatever ground has been walked goes onto it as he walks it.
+	map_screen.note(leader.global_position)
+	map_screen.set_date("%s   ·   the ground as far as the Corps has come" % state.full_date_str())
+	var map_key := Input.is_action_just_pressed("toggle_map") 			or (map_screen.open and Input.is_action_just_pressed("menu"))
+	if map_key and not inventory.open and not council_screen.open:
+		map_screen.toggle()
+		# He stands still with the sheet open, as he would.
+		leader.input_enabled = not map_screen.open
+		leader.look_enabled = not map_screen.open
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if map_screen.open else Input.MOUSE_MODE_CAPTURED
+	if Input.is_action_just_pressed("inventory") and not map_screen.open:
 		inventory.toggle()
 		# The Leader stands still while the quartermaster looks over the stores.
 		leader.input_enabled = not inventory.open
