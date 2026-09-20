@@ -48,7 +48,9 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 p = (UV - vec2(0.5)) * 2.0;
+	// UV.y runs DOWN the quad, so flip it: the forewing and the antennae belong
+	// at the top of the butterfly, not the bottom.
+	vec2 p = vec2(UV.x - 0.5, 0.5 - UV.y) * 2.0;
 	vec2 q = vec2(abs(p.x), p.y);          // one wing, mirrored about the body
 	float th = atan(q.y, q.x + 0.0001);    // angle out from the wing root
 	float rad = length(q);

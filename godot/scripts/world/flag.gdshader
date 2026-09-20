@@ -37,7 +37,9 @@ float star(vec2 p, float r) {
 }
 
 void fragment() {
-	vec2 uv = UV;
+	// UV.y runs DOWN the cloth; everything below is written in flag terms, with
+	// the first stripe at the bottom and the union over the top seven.
+	vec2 uv = vec2(UV.x, 1.0 - UV.y);
 	// The reverse of a flag is the same cloth seen through: mirror it.
 	if (!FRONT_FACING) {
 		uv.x = 1.0 - uv.x;
