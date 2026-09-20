@@ -85,10 +85,14 @@ func toast(text: String) -> void:
 		toasts.get_child(0).free()
 
 
-func update(state: ExpeditionState, delta: float, prompt_text: String, sky: SkyAndWeather = null) -> void:
+func update(state: ExpeditionState, delta: float, prompt_text: String, sky: SkyAndWeather = null,
+		stores: Stores = null) -> void:
 	place.text = "Sioux Country"
 	when.text = "%s  ·  %s  ·  %s" % [state.full_date_str(), state.clock_str(), state.season()]
 	supplies.text = "Food %d   Morale %d   Discoveries %d" % [state.food, state.morale, state.discoveries.size()]
+	if stores:
+		var days := stores.days_of_provisions(state.men)
+		supplies.text += "   Provisions %s" % ("%d days" % days if days > 0 else "none")
 	if sky:
 		var hour := state.hour()
 		var degrees := Weather.temperature_f(state.current_month, state.current_day, hour, sky.cloud_cover, sky.storm)

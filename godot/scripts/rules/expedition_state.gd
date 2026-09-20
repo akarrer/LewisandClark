@@ -11,6 +11,9 @@ var current_month := 8
 var current_day := 1
 var minute_of_day := 7 * 60
 var current_region := "sioux_country"
+## The party at Council Bluff: the permanent Corps and the engages who took the
+## keelboat back from the Mandan. They all eat.
+var men := 45
 var food := 80
 var morale := 80
 var landmarks_visited: Array[String] = []
@@ -18,6 +21,8 @@ var discoveries: Array[String] = []
 var journal: Array[String] = []
 
 signal journal_added(text: String)
+## One per midnight crossed, so the Stores can be drawn on a day at a time.
+signal day_passed(day: int)
 
 
 static func days_in_month(year: int, month: int) -> int:
@@ -44,7 +49,9 @@ func advance_minutes(minutes: int) -> int:
 	var days := total / (24 * 60)
 	minute_of_day = total % (24 * 60)
 	if days > 0:
-		advance_date(days)
+		for d in days:
+			advance_date(1)
+			day_passed.emit(current_day)
 	return days
 
 

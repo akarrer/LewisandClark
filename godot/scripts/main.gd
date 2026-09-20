@@ -16,6 +16,7 @@ var director: TrailMomentDirector
 var prairie_dogs: Node3D
 var stores: Stores
 var inventory: InventoryScreen
+var _emptied: Array[String] = []
 var smoke: GPUParticles3D
 
 var _clock := 0.0
@@ -106,6 +107,7 @@ func _place_world_features() -> void:
 	add_child(Camp.pitch(terrain))
 
 	stores = Stores.load_manifest()
+	state.day_passed.connect(_feed_the_corps)
 	inventory = InventoryScreen.new()
 	inventory.build(stores)
 	add_child(inventory)
@@ -153,7 +155,7 @@ func _process(delta: float) -> void:
 		leader.input_enabled = not inventory.open
 		leader.look_enabled = not inventory.open
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if inventory.open else Input.MOUSE_MODE_CAPTURED
-	hud.update(state, delta, prompt, sky)
+	hud.update(state, delta, prompt, sky, stores)
 	if Input.is_action_just_pressed("interact") and _nearby:
 		_nearby.interact()
 	if Input.is_action_just_pressed("menu"):
@@ -303,6 +305,8 @@ func _spawn_elk(enc: Dictionary) -> void:
 		add_child(track)
 	herd.on_interact = func():
 		state.food = min(100, state.food + int(enc["food"]))
+		# An elk is some three hundred pounds of meat on the hoof.
+		stores.add("fresh_meat", float(enc["food"]) * 14.0)
 		state.add_journal(enc["text"])
 		herd.enabled = false
 		var tw := create_tween()
@@ -311,6 +315,28 @@ func _spawn_elk(enc: Dictionary) -> void:
 		if not _moment.is_empty():
 			_moment["done_action"] = true
 	add_child(herd)
+
+
+func _feed_the_corps(_day: int) -> void:
+	## A day's ration off the Stores, and what the weather has cost them.
+	var short := stores.short_ration(state.men)
+	var eaten := stores.ration(state.men, 1)
+	if short:
+		state.food = maxi(0, state.food - 7)
+		state.add_journal("The ration will not stretch to the whole party; the men go hungry.")
+	else:
+		state.food = mini(100, state.food + 1)
+	# Rain in an open boat gets into the flour and the meat turns in a day.
+	var damp := clampf(sky.storm * 0.6 + (0.25 if sky.haze > 0.7 else 0.0), 0.0, 1.0)
+	if damp > 0.05:
+		var lost := stores.spoil(damp * 0.35)
+		if float(lost.get("flour", 0.0)) > 20.0:
+			state.add_journal("Wet got into the flour; a quantity of it is spoiled.")
+	# Say when a staple is broached to the last of it.
+	for id in ["salt_pork", "corn_hominy", "flour", "whiskey"]:
+		if eaten.has(id) and stores.count(id) <= 0 and not _emptied.has(id):
+			_emptied.append(id)
+			state.add_journal("The last of the %s is gone." % str(stores.find(id).get("name", id)).to_lower())
 
 
 func _start_smoke(hook: Dictionary) -> void:

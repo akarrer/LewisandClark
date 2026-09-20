@@ -18,6 +18,7 @@
     {"id": "wine", "name": "Strong wine", "category": "Provisions", "unit": "gallon", "qty": 30, "lb": 8.3, "where": "red_pirogue", "recorded": true, "note": "30 gallons in six iron-bound kegs."},
     {"id": "tea", "name": "Hyson tea", "category": "Provisions", "unit": "lb", "qty": 2, "lb": 1.0, "where": "keelboat", "recorded": true},
     {"id": "coffee_sugar", "name": "Coffee and sugar", "category": "Provisions", "unit": "lb", "qty": 120, "lb": 1.0, "where": "keelboat"},
+    {"id": "fresh_meat", "name": "Fresh meat", "category": "Provisions", "unit": "lb", "qty": 0, "lb": 1.0, "where": "keelboat", "spoils": true, "spoil_rate": 0.75, "note": "What the hunters bring in. In an August on the Missouri it keeps a day, two at the most."},
     {"id": "lard", "name": "Hog's lard", "category": "Provisions", "unit": "keg", "qty": 6, "lb": 60.0, "where": "red_pirogue", "spoils": true},
 
     {"id": "rifles", "name": "Rifles", "category": "Arms", "unit": "rifle", "qty": 18, "lb": 9.0, "where": "packs", "note": "Harpers Ferry and the men's own."},

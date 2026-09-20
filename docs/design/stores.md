@@ -50,10 +50,24 @@ biscuit, and portable soup last because the men hated it; `spoil(severity)` for
 damp, which reaches provisions and not chronometers; `give(id, n)` and
 `gift_regard()` for councils. It saves as a flat id → quantity dictionary.
 
-## Still to do
+## Wired to the Day Clock
 
-- **Hook rations to the Day Clock** so the stores actually run down, and let hunting
-  refill them. Right now the model is exercised by tests, not by play.
+Each midnight the Day Clock crosses, the Corps eat: fresh meat first because it
+will not keep, then salt pork, hominy, flour, biscuit, and portable soup last.
+Each figure in `RATION` is what that food alone would take to feed a man for a
+day — the Corps were soldiers doing the work of draft animals, and the journals
+put them at nine pounds of meat a man on a good day, with a pound and a half of
+pork or meal issued when there was no game.
+
+A hunt puts meat in the hold as well as heart in the men. Rain in an open boat
+gets into the flour, and meat turns in a day in an August on the Missouri. When
+the ration will not stretch to the whole party they go hungry and the Journal
+says so, and when a staple is broached to the last of it the Journal says that too.
+
+At the start that is about 183 days of provisions for 45 men: enough to reach the
+Mandan and winter there, if the hunting holds. The HUD carries the count.
+
+## Still to do
 - **Councils spend presents** through `give()`, with `regard` feeding the Skill Check
   odds, and the Teton Sioux stand-off reading what is left.
 - **Portage** compares `packs` weight against what the Corps can carry.

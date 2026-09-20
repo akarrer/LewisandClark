@@ -12,12 +12,17 @@ const HOLDS := ["keelboat", "red_pirogue", "white_pirogue", "packs"]
 
 ## A day's ration for one man, in the order it is drawn on: what the Corps ate
 ## when no game was killed. Lewis issued pork or meal, with a gill of whiskey.
+## A day's ration for one man, in the order it is drawn on, each figure being what
+## that food alone would take to feed him. The Corps were soldiers doing the work
+## of draft animals: the journals put them at nine pounds of meat a man on a good
+## day, and Lewis issued a pound and a half of pork or meal when there was no game.
 const RATION := [
-	{"id": "salt_pork", "per_man_per_day": 0.0139},   # a keg of 72 lb feeds 33 men a day and a half
-	{"id": "corn_hominy", "per_man_per_day": 0.0107},
-	{"id": "flour", "per_man_per_day": 0.0041},
-	{"id": "biscuit", "per_man_per_day": 0.0035},
-	{"id": "portable_soup", "per_man_per_day": 0.08},  # the last resort, and hated
+	{"id": "fresh_meat", "per_man_per_day": 4.0},     # eaten first: it will not keep in August
+	{"id": "salt_pork", "per_man_per_day": 0.0208},   # 1.5 lb of a 72 lb keg
+	{"id": "corn_hominy", "per_man_per_day": 0.0268}, # 1.5 lb of a 56 lb bushel
+	{"id": "flour", "per_man_per_day": 0.0077},       # 1.5 lb of a 196 lb barrel
+	{"id": "biscuit", "per_man_per_day": 0.0083},
+	{"id": "portable_soup", "per_man_per_day": 0.25},  # the last resort, and hated
 ]
 
 var items: Array[Dictionary] = []
@@ -91,6 +96,41 @@ func overloaded() -> Array:
 	return HOLDS.filter(func(h): return load_of(h) > 1.0)
 
 
+func add(id: String, amount: float) -> void:
+	## Meat from a hunt, corn from a Nation, whatever comes in.
+	var it := find(id)
+	if not it.is_empty():
+		it["qty"] = float(it["qty"]) + amount
+
+
+func days_of_provisions(men: int) -> int:
+	## Whole days the ration foods will feed this many men, drawing on each in turn.
+	if men <= 0:
+		return 0
+	var left := {}
+	for r in RATION:
+		left[r["id"]] = float(find(str(r["id"])).get("qty", 0.0))
+	var days := 0
+	while days < 3650:
+		var mouths := float(men)
+		for r in RATION:
+			if mouths <= 0.001:
+				break
+			var per: float = float(r["per_man_per_day"])
+			var fed: float = minf(mouths, float(left[r["id"]]) / per)
+			left[r["id"]] = float(left[r["id"]]) - fed * per
+			mouths -= fed
+		if mouths > 0.001:
+			return days  # the day could not be fed out of what is left
+		days += 1
+	return days
+
+
+func short_ration(men: int) -> bool:
+	## True when the day's ration cannot be met out of the stores.
+	return days_of_provisions(men) < 1
+
+
 func take(id: String, amount: float) -> float:
 	## Remove up to ``amount``; returns what was actually taken.
 	var it := find(id)
@@ -102,15 +142,19 @@ func take(id: String, amount: float) -> float:
 
 
 func ration(men: int, days: int) -> Dictionary:
-	## Feed the Corps from the stores, drawing on each ration food in turn until
-	## the day's need is met. Returns what was eaten, by id.
+	## Feed the Corps: each ration food in turn until the day's mouths are fed, so
+	## fresh meat is eaten before the salt pork is broached. Returns what was eaten.
 	var eaten := {}
 	for day in days:
+		var mouths := float(men)
 		for r in RATION:
-			var need: float = float(r["per_man_per_day"]) * float(men)
-			var got := take(str(r["id"]), need)
+			if mouths <= 0.001:
+				break
+			var per: float = float(r["per_man_per_day"])
+			var got := take(str(r["id"]), mouths * per)
 			if got > 0.0:
 				eaten[r["id"]] = float(eaten.get(r["id"], 0.0)) + got
+				mouths -= got / per
 	return eaten
 
 
@@ -121,7 +165,7 @@ func spoil(severity: float) -> Dictionary:
 	for it in items:
 		if not it.get("spoils", false) or float(it["qty"]) <= 0.0:
 			continue
-		var gone := float(it["qty"]) * clampf(severity, 0.0, 1.0) * 0.25
+		var gone := float(it["qty"]) * clampf(severity, 0.0, 1.0) * float(it.get("spoil_rate", 0.25))
 		if gone > 0.0:
 			it["qty"] = float(it["qty"]) - gone
 			lost[it["id"]] = gone

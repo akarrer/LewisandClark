@@ -32,6 +32,14 @@ func begin(p_main) -> void:
 		main.director.cadence_min = 14.0
 		main.director.cadence_max = 20.0
 		main.director._schedule()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--days="):
+			# Wind the Day Clock on, so the Stores are drawn down and the Journal fills.
+			var days := int(a.substr(7))
+			print("AP winding on %d days" % days)
+			main.state.advance_minutes(days * 24 * 60)
+			print("AP provisions left: %d days, food %d" % [
+					main.stores.days_of_provisions(main.state.men), main.state.food])
 	DirAccess.make_dir_recursive_absolute(shots_dir)
 	if "--scenery" in OS.get_cmdline_user_args():
 		_steps = _scenery_steps()
