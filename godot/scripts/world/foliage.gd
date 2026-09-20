@@ -79,6 +79,7 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 		sm.set_shader_parameter("translucency", 0.0 if bark else profile["translucency"])
 		sm.set_shader_parameter("variation", 0.04 if bark else profile["variation"])
 		sm.set_shader_parameter("alpha_cut", 0.0 if bark else 0.5)
+		sm.set_shader_parameter("bark", 1.0 if bark else 0.0)
 		out.surface_set_material(s, sm)
 	return out
 
@@ -206,7 +207,7 @@ func _scatter_cottonwoods() -> void:
 			var off := Vector3(rng.randf_range(-7, 7), 0, rng.randf_range(-7, 7))
 			var q := Vector3(p.x + off.x, terrain.height_at(p.x + off.x, p.z + off.z), p.z + off.z)
 			if _dist_to_river(q) > 8.0:
-				var under: String = ["bush_1", "bush_with_flowers_1", "plant_big_2", "tree_5"][rng.randi() % 4]
+				var under: String = ["bush_1", "bush_with_flowers_1", "plant_1", "tree_5"][rng.randi() % 4]
 				var kind := "grove" if under == "tree_5" else "bush"
 				_add(kind, under, q - Vector3(0, 0.1, 0), rng.randf_range(0.5, 0.9), Vector3.UP, 220.0)
 
@@ -273,7 +274,16 @@ func _scatter_sandbar() -> void:
 			# Sizes from knee-high suckers to two-metre stems, each leaning its own way.
 			var narrow := rng.randf_range(0.4, 0.8)
 			var lean := Vector3(rng.randf_range(-0.14, 0.14), 1.0, rng.randf_range(-0.14, 0.14))
-			_add("willow", "bush_1", q - Vector3(0, 0.1, 0), rng.randf_range(0.4, 1.35), lean, 260.0, Vector3(narrow, rng.randf_range(1.2, 2.4), narrow * rng.randf_range(0.85, 1.2)))
+			# Three kinds of stem in a thicket, or it reads as one bush repeated.
+			if rng.randf() < 0.18:
+				# A young cottonwood among the willows: it grows as a tree, not a stem,
+				# so it does not take the willow's narrow-and-tall stretch.
+				_add("grove", "tree_5", q - Vector3(0, 0.1, 0), rng.randf_range(0.22, 0.38), lean, 260.0,
+						Vector3(0.9, rng.randf_range(1.0, 1.25), 0.9))
+			else:
+				var kind: String = "bush_with_flowers_1" if rng.randf() < 0.25 else "bush_1"
+				_add("willow", kind, q - Vector3(0, 0.1, 0), rng.randf_range(0.4, 1.35), lean, 260.0,
+						Vector3(narrow, rng.randf_range(1.2, 2.4), narrow * rng.randf_range(0.85, 1.2)))
 		if rng.randf() < 0.45:
 			var q2 := p + Vector3(rng.randf_range(-5, 5), 0, rng.randf_range(-5, 5))
 			q2.y = terrain.height_at(q2.x, q2.z)
