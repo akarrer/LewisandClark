@@ -99,6 +99,26 @@ void sky() {
 			col = mix(col, cloud, density * fade * 0.95);
 		}
 
+		// Rain hanging out of a storm: curtains under the cloud base, away over the
+		// country, streaked vertically and travelling with the weather.
+		if (cloud_darkness > 0.05 && up > 0.0 && up < 0.35) {
+			float az = atan(dir.x, dir.z);
+			float curtain = fbm(vec2(az * 3.2 + TIME * 0.012, 0.7), 4);
+			curtain = smoothstep(0.42, 0.78, curtain);
+			float hangs = smoothstep(0.0, 0.04, up) * (1.0 - smoothstep(0.08, 0.34, up));
+			col = mix(col, cloud_shadow * 0.85, curtain * hangs * cloud_darkness * 0.75);
+		}
+
+		// Shafts: where the sun is low and the cloud is broken, light comes through
+		// in rays. Strongest across the sun, and never in a storm.
+		if (glow_amount > 0.01 && mu > 0.0) {
+			float az2 = atan(dir.x - sun.x, dir.z - sun.z);
+			float spokes = fbm(vec2(az2 * 2.6, 3.1), 3);
+			spokes = smoothstep(0.45, 0.85, spokes);
+			float near_sun = pow(mu, 12.0) * (1.0 - clamp(up * 2.2, 0.0, 1.0));
+			col += glow_color * spokes * near_sun * 0.5 * (1.0 - cloud_darkness) * sun_up;
+		}
+
 		// Sun disk (hidden by thick cloud).
 		float disk = smoothstep(sun_size, sun_size + 0.0003, mu);
 		col += sun_color * disk * 6.0 * (1.0 - cloud_darkness) * sun_up;
