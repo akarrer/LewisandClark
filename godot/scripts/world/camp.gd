@@ -26,6 +26,9 @@ const CAMP_WORK := [
 ]
 
 var fire_light: OmniLight3D
+## Set from main each frame: 0 by day, 1 in the dark.
+var night := 0.0
+var _moths: GPUParticles3D
 var _flames: GPUParticles3D
 var _rng := RandomNumberGenerator.new()
 var _men: Array[Dictionary] = []
@@ -199,6 +202,42 @@ func _build_fire() -> void:
 	smoke.draw_pass_1 = squad
 	add_child(smoke)
 
+	# Moths and midges, drawn to the fire once it is dark.
+	_moths = GPUParticles3D.new()
+	_moths.name = "Moths"
+	_moths.amount = 22
+	_moths.lifetime = 6.0
+	_moths.preprocess = 3.0
+	_moths.position = Vector3(0, 1.1, 0)
+	_moths.visibility_aabb = AABB(Vector3(-3, -1, -3), Vector3(6, 5, 6))
+	_moths.emitting = false
+	var mp := ParticleProcessMaterial.new()
+	mp.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	mp.emission_sphere_radius = 1.6
+	mp.direction = Vector3(0, 0.2, 0)
+	mp.spread = 180.0
+	mp.initial_velocity_min = 0.3
+	mp.initial_velocity_max = 0.9
+	mp.gravity = Vector3.ZERO
+	mp.damping_min = 0.4
+	mp.damping_max = 1.0
+	mp.turbulence_enabled = true
+	mp.turbulence_noise_strength = 2.4
+	mp.turbulence_noise_scale = 3.0
+	mp.scale_min = 0.5
+	mp.scale_max = 1.1
+	_moths.process_material = mp
+	var moth := QuadMesh.new()
+	moth.size = Vector2(0.05, 0.035)
+	var mm := StandardMaterial3D.new()
+	mm.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	mm.albedo_color = Color(0.72, 0.66, 0.52)
+	mm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mm.disable_receive_shadows = true
+	moth.material = mm
+	_moths.draw_pass_1 = moth
+	add_child(_moths)
+
 	fire_light = OmniLight3D.new()
 	fire_light.name = "FireLight"
 	fire_light.position = Vector3(0, 0.8, 0)
@@ -229,6 +268,7 @@ func _process(_delta: float) -> void:
 	# The fire breathes: the light flickers with the flames.
 	var t := Time.get_ticks_msec() / 1000.0
 	fire_light.light_energy = 2.6 + sin(t * 7.3) * 0.5 + sin(t * 2.1) * 0.35
+	_moths.emitting = night > 0.4
 
 
 func _tent() -> Node3D:

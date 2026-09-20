@@ -47,6 +47,9 @@ func _ready() -> void:
 	var hoppers := Hoppers.new()
 	hoppers.build(terrain, leader)
 	add_child(hoppers)
+	var river_life := RiverLife.new()
+	river_life.build(terrain, leader)
+	add_child(river_life)
 	var motes := Motes.new()
 	motes.build(terrain)
 	motes.follow = leader.camera
@@ -179,6 +182,8 @@ func _process(delta: float) -> void:
 		leader.input_enabled = not inventory.open
 		leader.look_enabled = not inventory.open
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if inventory.open else Input.MOUSE_MODE_CAPTURED
+	if has_node("Camp"):
+		(get_node("Camp") as Camp).night = sky.night_amount
 	hud.update(state, delta, prompt, sky, stores)
 	if Input.is_action_just_pressed("interact") and _nearby:
 		_nearby.interact()
