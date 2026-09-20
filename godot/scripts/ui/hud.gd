@@ -5,6 +5,7 @@ extends CanvasLayer
 var place: Label
 var when: Label
 var supplies: Label
+var weather: Label
 var prompt: Label
 var subtitle: Label
 var toasts: VBoxContainer
@@ -24,6 +25,9 @@ func _ready() -> void:
 	when.position = Vector2(30, 64)
 	supplies = _label(root, 18, Color(0.88, 0.82, 0.70))
 	supplies.position = Vector2(30, 92)
+
+	weather = _label(root, 18, Color(0.86, 0.88, 0.82))
+	weather.position = Vector2(30, 116)
 
 	prompt = _label(root, 24, Color(1.0, 0.86, 0.5))
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -81,10 +85,15 @@ func toast(text: String) -> void:
 		toasts.get_child(0).free()
 
 
-func update(state: ExpeditionState, delta: float, prompt_text: String) -> void:
+func update(state: ExpeditionState, delta: float, prompt_text: String, sky: SkyAndWeather = null) -> void:
 	place.text = "Sioux Country"
 	when.text = "%s  ·  %s  ·  %s" % [state.full_date_str(), state.clock_str(), state.season()]
 	supplies.text = "Food %d   Morale %d   Discoveries %d" % [state.food, state.morale, state.discoveries.size()]
+	if sky:
+		var hour := state.hour()
+		var degrees := Weather.temperature_f(state.current_month, state.current_day, hour, sky.cloud_cover, sky.storm)
+		var sky_says := Weather.describe_night(sky.cloud_cover, sky.storm) if sky.night_amount > 0.6 				else Weather.describe(sky.cloud_cover, sky.storm, hour, sky.haze)
+		weather.text = "%d °F   ·   %s" % [roundi(degrees), sky_says]
 	prompt.text = prompt_text
 	_subtitle_left -= delta
 	subtitle.modulate.a = clampf(_subtitle_left / 0.6, 0.0, 1.0)

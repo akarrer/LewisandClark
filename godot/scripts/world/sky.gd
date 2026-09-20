@@ -12,6 +12,10 @@ var _flash := 0.0
 var rain: GPUParticles3D
 var rain_mat: StandardMaterial3D
 var _wet := 0.0
+## What the sky is doing now, for the HUD and the Journal (see rules/weather.gd).
+var cloud_cover := 0.42
+var haze := 0.0
+var night_amount := 0.0
 ## Set from the Day Clock's date (see moon_phase_for / meteors_for).
 var moon_phase := 0.6
 var meteor_rate := 0.02
@@ -231,6 +235,8 @@ func update(hour: float, delta: float) -> void:
 	# Cloud shadows on the land (cloud_shadow.gdshaderinc): gone at night, and under
 	# a full overcast the whole land is already in shade.
 	var coverage := lerpf(lerpf(0.42, 0.3, night), 1.0, storm)
+	cloud_cover = coverage
+	night_amount = night
 	# Wind the plants lean into: a breathing prairie breeze, half a gale in a storm.
 	var gust := 1.0 + 0.35 * sin(Time.get_ticks_msec() / 1000.0 * 0.11) + storm * 2.6
 	RenderingServer.global_shader_parameter_set("night_amount", night)
@@ -250,7 +256,7 @@ func update(hour: float, delta: float) -> void:
 	env.fog_light_color = horizon
 	env.fog_density = 0.0006 + storm * 0.006
 	# Morning haze pooling in the bottomland.
-	var haze := clampf(1.0 - absf(hour - 6.8) / 2.2, 0.0, 1.0)
+	haze = clampf(1.0 - absf(hour - 6.8) / 2.2, 0.0, 1.0)
 	env.fog_height = 3.0
 	env.fog_height_density = 0.04 * haze
 	# Air thick enough to show shafts at the low sun, clearing through the day.

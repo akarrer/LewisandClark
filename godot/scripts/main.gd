@@ -140,7 +140,7 @@ func _process(delta: float) -> void:
 		prompt = "[%s]  %s" % [GameInput.hint("interact"), _nearby.label]
 	elif _moment.has("hint"):
 		prompt = _moment["hint"]
-	hud.update(state, delta, prompt)
+	hud.update(state, delta, prompt, sky)
 	if Input.is_action_just_pressed("interact") and _nearby:
 		_nearby.interact()
 	if Input.is_action_just_pressed("menu"):
