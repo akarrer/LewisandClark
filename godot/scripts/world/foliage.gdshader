@@ -15,6 +15,9 @@ uniform float translucency = 0.35;  // 0 for bark
 uniform float variation = 0.12;
 uniform float base_shade = 0.7;
 uniform float bark = 0.0;           // 1 on trunks: cottonwood bark is deeply furrowed
+// Where a plant stands decides how far it has cured: the MultiMesh carries that
+// per instance in COLOR.r, 0 for a green swale and 1 for the burnt-off upland.
+uniform vec4 cured : source_color = vec4(1.0);
 global uniform float wind_strength;     // darken toward the ground (fake occlusion)
 
 varying float v_height;
@@ -44,6 +47,7 @@ void vertex() {
 	float r = hash(origin.xz);
 	float g = hash(origin.zx + 7.7);
 	v_tint = vec3(1.0 + (r - 0.5) * variation * 2.0, 1.0 + (g - 0.5) * variation * 1.5, 1.0 - (r - 0.5) * variation);
+	v_tint *= mix(vec3(1.0), cured.rgb, COLOR.r);
 	v_height = h;
 	v_local = VERTEX;
 }

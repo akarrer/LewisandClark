@@ -19,12 +19,44 @@ const PROFILES := {
 	"cottonwood": {"sway": 0.35, "flutter": 1.0, "translucency": 0.45, "tint": Color(0.98, 1.0, 0.80), "variation": 0.14},
 	"grove": {"sway": 0.22, "flutter": 0.8, "translucency": 0.35, "tint": Color(0.86, 0.95, 0.78), "variation": 0.12},
 	"bush": {"sway": 0.08, "flutter": 0.6, "translucency": 0.35, "tint": Color(0.92, 1.0, 0.82), "variation": 0.16},
-	"grass": {"sway": 0.14, "flutter": 0.3, "translucency": 0.4, "tint": Color(1.0, 0.98, 0.9), "variation": 0.18},
+	# The kit's grass models are spring green. On the uplands in August the prairie
+	# has cured to straw; only the swales and the river bottom hold their colour.
+	# ``cured`` is what a fully burnt-off clump is multiplied by, blended per
+	# instance, so the whole field is still one material and one draw call.
+	"grass": {"sway": 0.14, "flutter": 0.3, "translucency": 0.4, "tint": Color(0.74, 0.85, 0.60),
+		"cured": Color(1.46, 1.22, 0.86), "variation": 0.2},
 	"flowers": {"sway": 0.10, "flutter": 0.3, "translucency": 0.3, "tint": Color(1, 1, 1), "variation": 0.1},
 	"willow": {"sway": 0.18, "flutter": 1.3, "translucency": 0.45, "tint": Color(0.82, 0.95, 0.78), "variation": 0.12},
 	"driftwood": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1, 1, 1), "variation": 0.08, "bark_tint": Color(2.1, 2.0, 1.85)},
 	"rock": {},
+	# Wildflower stands. Every flower in the kit shares one atlas, so the model
+	# chosen decides the colour and these tints only nudge it: the yellow models
+	# toward gold rather than orange, the purple ones a shade cooler.
+	"sunflower": {"sway": 0.19, "flutter": 0.3, "translucency": 0.28, "tint": Color(1.12, 1.00, 0.52), "variation": 0.16},
+	"coneflower": {"sway": 0.13, "flutter": 0.3, "translucency": 0.32, "tint": Color(1.00, 0.92, 1.10), "variation": 0.18},
+	"goldenrod": {"sway": 0.17, "flutter": 0.4, "translucency": 0.35, "tint": Color(1.45, 1.30, 0.50), "variation": 0.15},
+	"yarrow": {"sway": 0.09, "flutter": 0.25, "translucency": 0.3, "tint": Color(1.22, 1.20, 1.12), "variation": 0.10},
 }
+
+## The flowers of this reach in high summer, in stands of one kind rather than
+## mixed evenly through the grass — sunflowers down in the bottoms, purple
+## coneflower and blazing star on the dry upland, goldenrod coming on in the
+## draws, yarrow underfoot everywhere. Lewis pressed all of them that season.
+## ``low`` keeps a species to the bottomland; false keeps it to the upland.
+const WILDFLOWERS := [
+	{"kind": "sunflower", "variants": ["flower_group_2", "flower_single_2", "flower_petal_3"], "seed": 311,
+		"freq": 1.0 / 30.0, "threshold": 0.32, "tries": 26000, "smin": 0.45, "smax": 0.8,
+		"stretch": Vector3(1.0, 1.45, 1.0), "low": true},
+	{"kind": "coneflower", "variants": ["flower_petal_2", "flower_petal_4"], "seed": 512,
+		"freq": 1.0 / 22.0, "threshold": 0.36, "tries": 24000, "smin": 0.3, "smax": 0.55,
+		"stretch": Vector3(1.0, 1.2, 1.0), "low": false},
+	{"kind": "goldenrod", "variants": ["plant_1", "plant_2"], "seed": 733,
+		"freq": 1.0 / 34.0, "threshold": 0.34, "tries": 20000, "smin": 0.35, "smax": 0.7,
+		"stretch": Vector3(0.85, 1.7, 0.85), "low": false},
+	{"kind": "yarrow", "variants": ["flower_petal_1", "clover_1"], "seed": 947,
+		"freq": 1.0 / 18.0, "threshold": 0.28, "tries": 26000, "smin": 0.3, "smax": 0.5,
+		"stretch": Vector3(1.0, 1.0, 1.0), "low": true},
+]
 
 
 func build(t: Terrain) -> void:
@@ -42,8 +74,9 @@ func build(t: Terrain) -> void:
 	# Loess country has few stones: an occasional weathered boulder, mostly in the draws.
 	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0, 0.55)
 	# The GPU grass field carries the prairie; these taller clumps and flowers are accents.
-	_scatter("grass", ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"], 30000, 0.4, 0.72, _grass_ok, 60.0)
-	_scatter("flowers", ["flower_group_1", "flower_single_1", "flower_group_2", "clover_1"], 9000, 0.35, 0.6, _flower_ok, 70.0)
+	_scatter_grass_clumps()
+	_scatter("flowers", ["flower_group_1", "flower_single_1", "flower_group_2", "clover_1"], 5200, 0.35, 0.6, _flower_ok, 70.0)
+	_scatter_wildflowers()
 	_flush()
 
 
@@ -80,6 +113,7 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 		sm.set_shader_parameter("variation", 0.04 if bark else profile["variation"])
 		sm.set_shader_parameter("alpha_cut", 0.0 if bark else 0.5)
 		sm.set_shader_parameter("bark", 1.0 if bark else 0.0)
+		sm.set_shader_parameter("cured", Color(1, 1, 1) if bark else profile.get("cured", Color(1, 1, 1)))
 		out.surface_set_material(s, sm)
 	return out
 
@@ -99,14 +133,16 @@ func _summer_leaves(mesh: Mesh) -> Mesh:
 	return out if out != null else mesh
 
 
-func _add(kind: String, variant: String, pos: Vector3, scale: float, tilt := Vector3.UP, visibility := 0.0, stretch := Vector3.ONE) -> void:
+func _add(kind: String, variant: String, pos: Vector3, scale: float, tilt := Vector3.UP, visibility := 0.0, stretch := Vector3.ONE, chunk := CHUNK, cure := -1.0) -> void:
 	var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(stretch * scale)
 	if tilt != Vector3.UP:
 		basis = Basis(Quaternion(Vector3.UP, tilt.normalized())) * basis
-	var key := "%s|%s|%d|%d" % [kind, variant, int(pos.x / CHUNK), int(pos.z / CHUNK)]
+	var key := "%s|%s|%d|%d" % [kind, variant, int(pos.x / chunk), int(pos.z / chunk)]
 	if not _buckets.has(key):
-		_buckets[key] = {"variant": variant, "kind": kind, "visibility": visibility, "xforms": []}
+		_buckets[key] = {"variant": variant, "kind": kind, "visibility": visibility, "xforms": [], "cures": []}
 	_buckets[key]["xforms"].append(Transform3D(basis, pos))
+	if cure >= 0.0:
+		_buckets[key]["cures"].append(cure)
 
 
 func _flush() -> void:
@@ -114,10 +150,14 @@ func _flush() -> void:
 		var b: Dictionary = _buckets[key]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
+		var cures: Array = b["cures"]
+		mm.use_colors = cures.size() == b["xforms"].size()
 		mm.mesh = _mesh(b["variant"], b["kind"])
 		mm.instance_count = b["xforms"].size()
 		for i in mm.instance_count:
 			mm.set_instance_transform(i, b["xforms"][i])
+			if mm.use_colors:
+				mm.set_instance_color(i, Color(cures[i], 0.0, 0.0, 1.0))
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.set_meta("kind", b["kind"])
@@ -125,7 +165,7 @@ func _flush() -> void:
 			mmi.visibility_range_end = b["visibility"]
 			mmi.visibility_range_end_margin = 12.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		if str(key).begins_with("grass") or str(key).begins_with("flowers"):
+		if str(key).begins_with("grass") or str(key).begins_with("flowers") 				or str(key).begins_with("yarrow") or str(key).begins_with("coneflower") 				or str(key).begins_with("sunflower") or str(key).begins_with("goldenrod"):
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
 	_buckets.clear()
@@ -296,9 +336,62 @@ func _scatter_sandbar() -> void:
 			continue
 		var above := p.y - (Terrain.WATER_Y - 0.35)
 		if above > 0.5 and rng.randf() < 0.35:
-			_add("grass", tufts[rng.randi() % tufts.size()], p - Vector3(0, 0.05, 0), rng.randf_range(0.35, 0.7), Vector3.UP, 70.0)
+			# Sandbar tufts stand in the wet and stay green.
+			_add("grass", tufts[rng.randi() % tufts.size()], p - Vector3(0, 0.05, 0), rng.randf_range(0.35, 0.7),
+					Vector3.UP, 70.0, Vector3.ONE, CHUNK, 0.12)
 		elif above < 0.6 and rng.randf() < 0.75:
 			_add("rock", stones[rng.randi() % stones.size()], p - Vector3(0, 0.03, 0), rng.randf_range(0.35, 0.8), Vector3.UP, 55.0)
+
+
+func _scatter_grass_clumps() -> void:
+	## Taller clumps standing out of the GPU grass field. Cured straw on the open
+	## upland, still green down in the bottom and in the damp draws.
+	var variants := ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"]
+	for i in 30000:
+		var p := _random_point()
+		if not _grass_ok(p):
+			continue
+		# How far this clump has cured: green in the bottom and near the water,
+		# burnt off on the open upland, with the line between them ragged.
+		var cure := smoothstep(30.0, 150.0, _dist_to_river(p))
+		if terrain.is_bottomland(p.x, p.z):
+			cure *= 0.35
+		cure = clampf(cure + _groves.get_noise_2d(p.x * 1.7, p.z * 1.7) * 0.18, 0.18, 1.0)
+		var n := terrain.normal_at(p.x, p.z)
+		var scale := rng.randf_range(0.4, 0.72)
+		_add("grass", variants[rng.randi() % variants.size()],
+				p - Vector3(0, 0.05 * scale, 0), scale, n, 60.0, Vector3.ONE, CHUNK, cure)
+
+
+func _scatter_wildflowers() -> void:
+	## A stand of one species at a time, each keeping to the ground it likes, so the
+	## prairie reads as a patchwork of colour instead of a confetti of it.
+	var field := FastNoiseLite.new()
+	for spec in WILDFLOWERS:
+		field.seed = int(spec["seed"])
+		field.frequency = float(spec["freq"])
+		var placed := 0
+		var low: bool = spec["low"]
+		var variants: Array = spec["variants"]
+		for i in int(spec["tries"]):
+			var p := _random_point()
+			if _dist_to_river(p) < 12.0 or terrain.normal_at(p.x, p.z).y < 0.86:
+				continue
+			if terrain.is_bottomland(p.x, p.z) != low:
+				continue
+			if field.get_noise_2d(p.x, p.z) < float(spec["threshold"]):
+				continue
+			if _near_point(p, 9.0):
+				continue
+			var scale := rng.randf_range(float(spec["smin"]), float(spec["smax"]))
+			# One MultiMesh per species and model for the whole map: the stands are
+			# thin enough that chunking them costs far more in draw calls than the
+			# distance culling saves.
+			_add(spec["kind"], variants[rng.randi() % variants.size()], p - Vector3(0, 0.04 * scale, 0),
+					scale, Vector3.UP, 0.0, spec["stretch"], Terrain.SIZE * 2.0)
+			placed += 1
+		if OS.is_stdout_verbose():
+			print("foliage: %s x%d" % [spec["kind"], placed])
 
 
 func _scatter_far_country() -> void:
