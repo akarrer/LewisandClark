@@ -224,6 +224,7 @@ func _process(delta: float) -> void:
 	if has_node("Camp"):
 		(get_node("Camp") as Camp).night = sky.night_amount
 	hud.update(state, delta, prompt, sky, stores)
+	hud.show_spyglass(leader.glass_amount)
 	if Input.is_action_just_pressed("interact") and _nearby:
 		_nearby.interact()
 	if Input.is_action_just_pressed("menu"):

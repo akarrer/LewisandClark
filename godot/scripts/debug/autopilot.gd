@@ -392,6 +392,10 @@ func _scenery_steps() -> Array:
 		# one in the air rather than waiting on the dice.
 		_fish_show = main.get_node("RiverLife") as RiverLife
 		_fish_show.jump_chance = 1.0
+	if "--glass" in args:
+		main.leader.glassing = true      # the spyglass up, for a still of the field
+	if "--rifle" in args:
+		main.leader.rifle_ready = true
 	if "--no-ssr" in args:
 		main.sky.env.ssr_enabled = false
 	if "--no-vfog" in args:

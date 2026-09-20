@@ -13,11 +13,37 @@ var fps: Label
 var _subtitle_left := 0.0
 
 
+var glass: ColorRect
+
+
+func show_spyglass(amount: float) -> void:
+	## 0 with the glass down, 1 with it up. Nothing is drawn at 0.
+	if glass == null:
+		return
+	glass.visible = amount > 0.001
+	if not glass.visible:
+		return
+	var m: ShaderMaterial = glass.material
+	m.set_shader_parameter("amount", amount)
+	var size := glass.size
+	m.set_shader_parameter("aspect", size.x / maxf(size.y, 1.0))
+
+
 func _ready() -> void:
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+
+	# The spyglass field, under everything else so the Journal still reads.
+	glass = ColorRect.new()
+	glass.name = "Spyglass"
+	glass.set_anchors_preset(Control.PRESET_FULL_RECT)
+	glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var gm := ShaderMaterial.new()
+	gm.shader = load("res://scripts/ui/spyglass.gdshader")
+	glass.material = gm
+	root.add_child(glass)
 
 	place = _label(root, 30, Color(0.98, 0.94, 0.84))
 	place.position = Vector2(28, 22)

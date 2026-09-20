@@ -4,14 +4,16 @@ extends GPUParticles3D
 ## to the camera on a world grid so they drift past rather than swimming with the
 ## view. Nothing is drawn after dark, when the fireflies have the air (motes.gd).
 
-const SPAN := 24.0  # cube of air around the camera, in metres
+const SPAN := 34.0  # cube of air around the camera, in metres
 
 var follow: Node3D
 
 
 func build(terrain: Terrain) -> void:
 	name = "Butterflies"
-	amount = 70
+	# Sparse on purpose. Seventy of them in a twenty-four metre cube read as a
+	# swarm; what you actually see over a prairie is one at a time.
+	amount = 26
 	lifetime = 1000.0
 	explosiveness = 1.0
 	fixed_fps = 0

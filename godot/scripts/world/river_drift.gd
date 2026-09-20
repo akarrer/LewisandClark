@@ -8,7 +8,7 @@ extends Node3D
 ## deal of drift wood running" -- and it is the plainest sign from a bank that
 ## the river is going somewhere.
 
-const LOGS := 9
+const LOGS := 6
 const SPEED := 1.35            # m/s: rather slower than the current itself
 const UPSTREAM := 200.0        # where a log is put back when it has gone by
 const DOWNSTREAM := 170.0      # how far past the Leader it runs before that

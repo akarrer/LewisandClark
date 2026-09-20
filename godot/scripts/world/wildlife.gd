@@ -114,12 +114,37 @@ func _process(delta: float) -> void:
 		a["pos"] = pos
 		n.position = pos
 		n.rotation.y = h
+		# The gait is wound on by how far it has actually walked, so the legs and
+		# the ground can never disagree however the speed changes.
+		var gait: float = float(a.get("gait", 0.0)) + speed * delta * 2.4
+		a["gait"] = gait
+		_step_legs(n, gait, speed, fleeing)
 		# Head down to graze, up to look around (and up while running).
 		var neck: Node3D = n.get_node("Neck")
 		var down := 0.0 if fleeing else (1.0 if grazing and sin(t * 0.9 + ph * 3.0) > -0.6 else 0.0)
 		neck.rotation.x = lerpf(neck.rotation.x, deg_to_rad(lerpf(-10.0, 62.0, down)), delta * 2.0)
 		if fleeing:
 			n.position.y += absf(sin(t * 9.0 + ph)) * 0.12
+		var tail: Node3D = n.get_node_or_null("Tail")
+		if tail != null:
+			tail.rotation.x = deg_to_rad(-52.0 if fleeing else 0.0) + sin(t * 1.7 + ph) * 0.12
+
+
+static func _step_legs(animal: Node3D, gait: float, speed: float, running: bool) -> void:
+	## Diagonal pairs together, which is how a walking or trotting animal moves.
+	## The lower leg tucks on the way forward and straightens on the drive.
+	var swing := clampf(speed / 2.6, 0.0, 1.0) * (0.62 if running else 0.4)
+	var legs := ["LegFL", "LegFR", "LegHL", "LegHR"]
+	var offsets := [0.0, PI, PI, 0.0]
+	for i in 4:
+		var hip: Node3D = animal.get_node_or_null(legs[i])
+		if hip == null:
+			continue
+		var phase: float = gait + float(offsets[i])
+		hip.rotation.x = sin(phase) * swing
+		var knee: Node3D = hip.get_node_or_null("Knee")
+		if knee != null:
+			knee.rotation.x = -maxf(sin(phase + 0.9), 0.0) * swing * 1.25
 
 
 static func quadruped(coat: Color, antlered: bool, rump_patch: bool) -> Node3D:
@@ -132,10 +157,27 @@ static func quadruped(coat: Color, antlered: bool, rump_patch: bool) -> Node3D:
 	a.add_child(_blob(Vector3(0.66, 0.72, 0.7), coat.darkened(0.12), Vector3(0, 1.3, 0.55)))  # shoulders
 	if rump_patch:
 		a.add_child(_blob(Vector3(0.5, 0.52, 0.35), Color(0.86, 0.78, 0.60), Vector3(0, 1.26, -0.74)))
+	# Legs on hips that swing, with a knee below: a straight cylinder nailed to
+	# the body is why they looked like they were gliding over the ground.
 	for lx in [-0.18, 0.18]:
 		for lz in [-0.6, 0.62]:
-			var leg := Props.cylinder(0.055, 1.02, dark, Vector3(lx, 0.5, lz), 0.035)
-			a.add_child(leg)
+			var hip := Node3D.new()
+			hip.name = "Leg%s%s" % ["F" if lz > 0.0 else "H", "R" if lx > 0.0 else "L"]
+			hip.position = Vector3(lx, 1.04, lz)
+			a.add_child(hip)
+			hip.add_child(Props.cylinder(0.058, 0.54, dark, Vector3(0, -0.27, 0), 0.045))
+			var knee := Node3D.new()
+			knee.name = "Knee"
+			knee.position = Vector3(0, -0.54, 0)
+			hip.add_child(knee)
+			knee.add_child(Props.cylinder(0.042, 0.46, dark, Vector3(0, -0.23, 0), 0.028))
+			knee.add_child(Props.box(Vector3(0.085, 0.07, 0.14), dark.darkened(0.35), Vector3(0, -0.48, 0.02)))
+	# A short tail, carried down until something startles it.
+	var tail := Node3D.new()
+	tail.name = "Tail"
+	tail.position = Vector3(0, 1.32, -0.82)
+	a.add_child(tail)
+	tail.add_child(_blob(Vector3(0.11, 0.26, 0.11), coat.darkened(0.2), Vector3(0, -0.12, -0.02)))
 	var neck := Node3D.new()
 	neck.name = "Neck"
 	neck.position = Vector3(0, 1.45, 0.8)
@@ -143,8 +185,10 @@ static func quadruped(coat: Color, antlered: bool, rump_patch: bool) -> Node3D:
 	var n := _blob(Vector3(0.3, 0.72, 0.34), dark.lightened(0.15), Vector3(0, 0.32, 0.12))
 	n.rotation_degrees.x = 30.0
 	neck.add_child(n)
-	var head := _blob(Vector3(0.24, 0.26, 0.52), coat, Vector3(0, 0.68, 0.38))
+	var head := _blob(Vector3(0.24, 0.26, 0.5), coat, Vector3(0, 0.68, 0.36))
 	neck.add_child(head)
+	var muzzle := _blob(Vector3(0.15, 0.16, 0.26), coat.darkened(0.22), Vector3(0, 0.63, 0.6))
+	neck.add_child(muzzle)
 	for side in [-1.0, 1.0]:
 		var ear := Props.box(Vector3(0.05, 0.16, 0.08), coat, Vector3(side * 0.12, 0.84, 0.22))
 		ear.rotation_degrees.z = side * -25.0
@@ -191,7 +235,7 @@ func _place_flocks() -> void:
 		flock.name = "Flock%d" % f
 		add_child(flock)
 		var birds: Array[Node3D] = []
-		for i in _rng.randi_range(7, 14):
+		for i in _rng.randi_range(4, 8):
 			var b := _bird(Color(0.12, 0.11, 0.10) if f % 2 == 0 else Color(0.35, 0.33, 0.30))
 			b.position = Vector3(_rng.randf_range(-22, 22), _rng.randf_range(-6, 6), _rng.randf_range(-22, 22))
 			flock.add_child(b)
@@ -213,15 +257,17 @@ func _place_swallows() -> void:
 	flock.name = "Swallows"
 	add_child(flock)
 	var birds: Array[Node3D] = []
-	for i in 16:
+	# Nine, not sixteen, and over half again the ground: a knot of them hawking
+	# under the rim reads as a swarm of flies at anything under fifty yards.
+	for i in 9:
 		var b := _bird(Color(0.16, 0.15, 0.20))
 		b.scale = Vector3.ONE * 0.45          # a swallow is a handful of nothing
-		b.position = Vector3(_rng.randf_range(-18, 18), _rng.randf_range(-3, 3), _rng.randf_range(-18, 18))
+		b.position = Vector3(_rng.randf_range(-26, 26), _rng.randf_range(-4, 4), _rng.randf_range(-26, 26))
 		b.set_meta("jink", _rng.randf() * 100.0)
 		flock.add_child(b)
 		birds.append(b)
 	_flocks.append({
-		"node": flock, "centre": centre, "radius": 26.0, "speed": 0.5,
+		"node": flock, "centre": centre, "radius": 34.0, "speed": 0.4,
 		"phase": _rng.randf() * TAU, "birds": birds, "swallows": true,
 	})
 
@@ -291,9 +337,9 @@ func _fly(delta: float, t: float) -> void:
 				# Swallows do not glide in circles: they jink after flies.
 				var j: float = float(b.get_meta("jink"))
 				b.position = Vector3(
-					sin(t * (1.7 + j * 0.02) + j) * 17.0,
-					sin(t * (1.1 + j * 0.01) + j * 2.0) * 3.0,
-					cos(t * (1.3 + j * 0.03) + j * 1.5) * 17.0)
+					sin(t * (1.7 + j * 0.02) + j) * 26.0,
+					sin(t * (1.1 + j * 0.01) + j * 2.0) * 4.5,
+					cos(t * (1.3 + j * 0.03) + j * 1.5) * 26.0)
 				b.rotation.y = t * (1.3 + j * 0.03) + j * 1.5
 				b.rotation.z = sin(t * 2.6 + j) * 0.7   # banking hard
 				b.get_node("L").rotation.z = sin(t * 11.0 + j) * 0.7
