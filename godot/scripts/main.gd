@@ -3,7 +3,6 @@ extends Node3D
 ## Builds the world, the Corps, and runs the Day Clock and Trail Moments.
 
 const GAME_MINUTES_PER_SECOND := 2.0  # 2 in-game hours per real minute
-const COUNCIL_BLUFF_TEXT := "Council Bluff — a high bluff above the river where the Corps will hold its first council with the Otoe and Missouria."
 
 var state := ExpeditionState.new()
 var terrain := Terrain.new()
@@ -118,18 +117,27 @@ func _spawn_corps() -> void:
 
 
 func _place_world_features() -> void:
-	var bluff := Interactable.landmark_marker(terrain.points["council_bluff"], "Council Bluff")
-	bluff.on_interact = func():
-		if state.visit_landmark("council_bluff", COUNCIL_BLUFF_TEXT):
-			bluff.enabled = false
-			bluff.label = ""
-			for c in bluff.get_children():
-				if c is Decal:
-					c.visible = false
-	add_child(bluff)
+	## Everything here is asked for by the Region's data file (see region.gd);
+	## this reads the request and builds it. A Region that wants no camp, or a
+	## council somewhere else, changes its file and not this function.
+	var region := terrain.region
+	var mark := region.feature("landmark")
+	if not mark.is_empty():
+		var at: Vector3 = terrain.points[str(mark["at"])]
+		var bluff := Interactable.landmark_marker(at, str(mark["name"]))
+		bluff.on_interact = func():
+			if state.visit_landmark(str(mark["at"]), str(mark["journal"])):
+				bluff.enabled = false
+				bluff.label = ""
+				for c in bluff.get_children():
+					if c is Decal:
+						c.visible = false
+		add_child(bluff)
 
-	add_child(Boats.fleet(terrain))
-	add_child(Camp.pitch(terrain))
+	if region.has_feature("fleet"):
+		add_child(Boats.fleet(terrain))
+	if region.has_feature("camp"):
+		add_child(Camp.pitch(terrain))
 
 	stores = Stores.load_manifest()
 	state.day_passed.connect(_feed_the_corps)
@@ -148,48 +156,56 @@ func _place_world_features() -> void:
 	add_child(council_screen)
 
 	# The council ground, a little below the flag on the bluff.
-	var ground: Vector3 = terrain.points["council_bluff"] + Vector3(6, 0, 10)
-	ground.y = terrain.height_at(ground.x, ground.z)
-	var council_place := Interactable.new()
-	council_place.name = "CouncilGround"
-	council_place.position = ground
-	council_place.label = "Hold the council with the Otoe and Missouria"
-	council_place.radius = 7.0
-	council_place.on_interact = func():
-		if council_screen.open:
-			return
-		var c := Council.open("council_bluff_1804", stores)
-		c.interpreter_present = corps.has("drouillard")
-		council_screen.begin(c)
-		leader.input_enabled = false
-		leader.look_enabled = false
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	add_child(council_place)
+	var meet := region.feature("council")
+	if not meet.is_empty():
+		var off: Array = meet.get("offset", [0, 0])
+		var anchor: Vector3 = terrain.points[str(meet["at"])]
+		var ground := terrain.on_ground(anchor.x + float(off[0]), anchor.z + float(off[1]))
+		var council_place := Interactable.new()
+		council_place.name = "CouncilGround"
+		council_place.position = ground
+		council_place.label = str(meet["label"])
+		council_place.radius = float(meet.get("radius", 7.0))
+		var council_id := str(meet["id"])
+		council_place.on_interact = func():
+			if council_screen.open:
+				return
+			var c := Council.open(council_id, stores)
+			c.interpreter_present = corps.has("drouillard")
+			council_screen.begin(c)
+			leader.input_enabled = false
+			leader.look_enabled = false
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		add_child(council_place)
 
-	prairie_dogs = Interactable.prairie_dog_town(terrain.points["prairie_dog_town"], terrain)
-	add_child(prairie_dogs)
+	var town := region.feature("prairie_dog_town")
+	if not town.is_empty():
+		prairie_dogs = Interactable.prairie_dog_town(terrain.points[str(town["at"])], terrain)
+		add_child(prairie_dogs)
 
-	# The Oto and Missouria villages lie off west of the river: their fires stand
-	# in the sky at this distance, which is how the Corps knew where to send runners.
-	# The Oto and Missouria towns lie back off the river to the west, too far to
-	# walk to in the Slice. Their fires stand over the prairie, and the ridge west
-	# of the bluff hides the feet of the columns: this is how Clark had the towns
-	# on his map days before the Corps saw one.
-	var bluff_pt: Vector3 = terrain.points["council_bluff"]
-	for i in 3:
-		var far_smoke := Props.village_smoke()
-		far_smoke.name = "VillageSmoke%d" % i
-		var dist := 430.0 + i * 60.0
-		var vx := bluff_pt.x - 0.97 * dist + (i - 1) * 90.0
-		var vz := bluff_pt.z + 0.26 * dist + (i - 1) * 40.0
-		far_smoke.position = Vector3(vx, terrain.skirt_height(vx, vz) + 2.0, vz)
-		add_child(far_smoke)
+	# Fires standing over the far country, so the land reads as inhabited before
+	# anyone is met. Where and how many is the Region's business.
+	var towns := region.feature("village_smokes")
+	if not towns.is_empty():
+		var from: Vector3 = terrain.points[str(towns["from"])]
+		var bear: Array = towns.get("bearing", [0, 1])
+		var spread: Array = towns.get("spread", [0, 0])
+		for i in int(towns.get("count", 3)):
+			var far_smoke := Props.village_smoke()
+			far_smoke.name = "VillageSmoke%d" % i
+			var dist := float(towns.get("first", 430.0)) + i * float(towns.get("apart", 60.0))
+			var vx := from.x + float(bear[0]) * dist + (i - 1) * float(spread[0])
+			var vz := from.z + float(bear[1]) * dist + (i - 1) * float(spread[1])
+			far_smoke.position = Vector3(vx, terrain.skirt_height(vx, vz) + 2.0, vz)
+			add_child(far_smoke)
 
-	smoke = Props.smoke_column()
-	smoke.name = "RidgeSmoke"
-	smoke.position = terrain.points["smoke_ridge"] + Vector3(0, 0.5, 0)
-	smoke.emitting = false
-	add_child(smoke)
+	var ridge := region.feature("ridge_smoke")
+	if not ridge.is_empty():
+		smoke = Props.smoke_column()
+		smoke.name = "RidgeSmoke"
+		smoke.position = terrain.points[str(ridge["at"])] + Vector3(0, 0.5, 0)
+		smoke.emitting = false
+		add_child(smoke)
 
 
 # --------------------------------------------------------------------- loop

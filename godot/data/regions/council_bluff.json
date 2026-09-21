@@ -83,5 +83,33 @@
       "clearance": 4.5,
       "draught": 0.6
     }
-  ]
+  ],
+
+  "features": {
+    "landmark": {
+      "at": "council_bluff",
+      "name": "Council Bluff",
+      "journal": "Council Bluff — a high bluff above the river where the Corps will hold its first council with the Otoe and Missouria."
+    },
+    "council": {
+      "id": "council_bluff_1804",
+      "at": "council_bluff",
+      "offset": [6, 10],
+      "radius": 7.0,
+      "label": "Hold the council with the Otoe and Missouria"
+    },
+    "prairie_dog_town": { "at": "prairie_dog_town" },
+    "fleet": true,
+    "camp": true,
+    "ridge_smoke": { "at": "smoke_ridge" },
+    "village_smokes": {
+      "note": "The Oto and Missouria towns lie back off the river to the west, too far to walk to in the Slice. The ridge west of the bluff hides the feet of the columns, which is how Clark had the towns on his map days before the Corps saw one.",
+      "from": "council_bluff",
+      "bearing": [-0.97, 0.26],
+      "count": 3,
+      "first": 430.0,
+      "apart": 60.0,
+      "spread": [90.0, 40.0]
+    }
+  }
 }

@@ -35,6 +35,19 @@ static func load_region(region_id: String) -> Region:
 	return r
 
 
+func feature(name: String) -> Dictionary:
+	## What this Region asks for by that name, or an empty dictionary if it does
+	## not want one. A Region without a camp simply leaves "camp" out.
+	var f = data.get("features", {}).get(name, null)
+	if f is Dictionary:
+		return f
+	return {"on": true} if f == true else {}
+
+
+func has_feature(name: String) -> bool:
+	return not feature(name).is_empty()
+
+
 func resolve_points(terrain: Terrain) -> Dictionary:
 	## Work every named place out against the terrain, in file order, so a rule
 	## may refer to a place named earlier.
