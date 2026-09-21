@@ -62,6 +62,13 @@ func has_feature(name: String) -> bool:
 	return not feature(name).is_empty()
 
 
+func foliage() -> Dictionary:
+	## What grows here: which stands, how thick, from which models, and the
+	## wildflowers of the season (see foliage.gd). A Region with none is bare.
+	var f = data.get("foliage", {})
+	return f if f is Dictionary else {}
+
+
 func resolve_points(terrain: Terrain) -> Dictionary:
 	## Work every named place out against the terrain, in file order, so a rule
 	## may refer to a place named earlier.

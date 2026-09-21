@@ -111,5 +111,196 @@
       "apart": 60.0,
       "spread": [90.0, 40.0]
     }
+  },
+
+  "foliage": {
+    "note": "Loess bluffs over the Missouri bottom in August: cottonwood groves on the river, bur oak in the ravines, the upland prairie cured to straw. Tries are random points thrown at the map; each stand's own rules in foliage.gd decide which of them take.",
+    "seed": 42,
+    "stands": {
+      "cottonwoods": {
+        "tries": 5200,
+        "variants": [
+          "twisted_tree_1",
+          "twisted_tree_2",
+          "twisted_tree_3",
+          "twisted_tree_4",
+          "twisted_tree_5"
+        ],
+        "beneath": [
+          "bush_1",
+          "bush_with_flowers_1",
+          "plant_1",
+          "tree_5"
+        ]
+      },
+      "groves": {
+        "tries": 900,
+        "note": "Bur oak country in the draws; the odd lightning-struck snag.",
+        "variants": [
+          "tree_1",
+          "tree_2",
+          "tree_3",
+          "tree_4",
+          "tree_5"
+        ],
+        "snags": [
+          "dead_tree_1",
+          "dead_tree_3"
+        ],
+        "snag_share": 0.08
+      },
+      "driftwood": {
+        "tries": 3000,
+        "variants": [
+          "dead_tree_2",
+          "dead_tree_4",
+          "dead_tree_5"
+        ]
+      },
+      "sandbar": {
+        "thickets": 9000,
+        "margin": 26000,
+        "tufts": [
+          "grass_wispy_1",
+          "grass_wispy_2",
+          "tall_grass_1"
+        ],
+        "stones": [
+          "pebble_round_1",
+          "pebble_round_2",
+          "pebble_round_3",
+          "pebble_round_4",
+          "rock_path_round_small_1",
+          "rock_path_round_small_2"
+        ]
+      },
+      "far_country": {
+        "tries": 26000
+      },
+      "beaver_sign": {
+        "tries": 4000,
+        "felled": [
+          "dead_tree_2",
+          "dead_tree_4",
+          "dead_tree_5"
+        ]
+      },
+      "understory": {
+        "tries": 44000
+      },
+      "bushes": {
+        "tries": 1400,
+        "variants": [
+          "bush_1",
+          "bush_with_flowers_1"
+        ]
+      },
+      "rocks": {
+        "tries": 220,
+        "note": "Loess country has few stones: an occasional weathered boulder, mostly in the draws.",
+        "variants": [
+          "rock_medium_1",
+          "rock_medium_2",
+          "rock_medium_3"
+        ]
+      },
+      "grass_clumps": {
+        "tries": 30000,
+        "variants": [
+          "tall_grass_1",
+          "grass_wispy_1",
+          "grass_wispy_2"
+        ]
+      },
+      "flowers": {
+        "tries": 5200,
+        "variants": [
+          "flower_group_1",
+          "flower_single_1",
+          "flower_group_2",
+          "clover_1"
+        ]
+      }
+    },
+    "wildflowers_note": "The flowers of this reach in high summer, in stands of one kind: sunflowers in the bottoms, purple coneflower and blazing star on the dry upland, goldenrod coming on in the draws, yarrow underfoot everywhere. Lewis pressed all of them that season. 'low' keeps a species to the bottomland; false keeps it to the upland. Each kind needs a look in foliage.gd PROFILES.",
+    "wildflowers": [
+      {
+        "kind": "sunflower",
+        "variants": [
+          "flower_group_2",
+          "flower_single_2",
+          "flower_petal_3"
+        ],
+        "seed": 311,
+        "freq": 0.03333333333333333,
+        "threshold": 0.32,
+        "tries": 26000,
+        "smin": 0.45,
+        "smax": 0.8,
+        "stretch": [
+          1.0,
+          1.45,
+          1.0
+        ],
+        "low": true
+      },
+      {
+        "kind": "coneflower",
+        "variants": [
+          "flower_petal_2",
+          "flower_petal_4"
+        ],
+        "seed": 512,
+        "freq": 0.045454545454545456,
+        "threshold": 0.36,
+        "tries": 24000,
+        "smin": 0.3,
+        "smax": 0.55,
+        "stretch": [
+          1.0,
+          1.2,
+          1.0
+        ],
+        "low": false
+      },
+      {
+        "kind": "goldenrod",
+        "variants": [
+          "plant_1",
+          "plant_2"
+        ],
+        "seed": 733,
+        "freq": 0.029411764705882353,
+        "threshold": 0.34,
+        "tries": 20000,
+        "smin": 0.35,
+        "smax": 0.7,
+        "stretch": [
+          0.85,
+          1.7,
+          0.85
+        ],
+        "low": false
+      },
+      {
+        "kind": "yarrow",
+        "variants": [
+          "flower_petal_1",
+          "clover_1"
+        ],
+        "seed": 947,
+        "freq": 0.05555555555555555,
+        "threshold": 0.28,
+        "tries": 26000,
+        "smin": 0.3,
+        "smax": 0.5,
+        "stretch": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "low": true
+      }
+    ]
   }
 }

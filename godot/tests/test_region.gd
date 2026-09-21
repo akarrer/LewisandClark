@@ -59,3 +59,38 @@ func test_council_bluff_places_are_where_they_were():
 	t.check(terrain.points["council_bluff"].distance_to(Vector3(432, 12.8, 532)) < 1.0, "council bluff moved")
 	t.check(terrain.points["start"].distance_to(Vector3(524, 1.2, 780)) < 1.0, "landing moved")
 	terrain.free()
+
+
+func test_foliage_asks_only_for_known_stands():
+	# A typo in a Region's foliage would silently grow nothing, or crash at load.
+	for id in _regions():
+		var f := Region.load_region(id).foliage()
+		var stands: Dictionary = f.get("stands", {})
+		for name in stands:
+			t.check(Foliage.STANDS.has(name), "%s: unknown foliage stand %s" % [id, name])
+			if not Foliage.STANDS.has(name):
+				continue
+			for field in Foliage.STANDS[name]:
+				t.check(stands[name].has(field), "%s: stand %s gives no %s" % [id, name, field])
+		for w in f.get("wildflowers", []):
+			for field in Foliage.WILDFLOWER_FIELDS:
+				t.check(w.has(field), "%s: a wildflower gives no %s" % [id, field])
+			# A kind with no look would grow without wind or tint.
+			t.check(Foliage.PROFILES.has(str(w.get("kind", ""))),
+					"%s: wildflower %s has no look in Foliage.PROFILES" % [id, w.get("kind", "")])
+
+
+func test_foliage_models_exist():
+	# The art is fetched rather than committed, so CI cannot check this; locally it can.
+	if not DirAccess.dir_exists_absolute(Foliage.NATURE):
+		return
+	for id in _regions():
+		var f := Region.load_region(id).foliage()
+		var names: Array = []
+		for stand in f.get("stands", {}).values():
+			for field in ["variants", "beneath", "snags", "tufts", "stones", "felled"]:
+				names.append_array(stand.get(field, []))
+		for w in f.get("wildflowers", []):
+			names.append_array(w.get("variants", []))
+		for n in names:
+			t.check(ResourceLoader.exists(Foliage.NATURE + str(n) + ".glb"), "%s: no model %s" % [id, n])
