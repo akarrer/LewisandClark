@@ -5,3 +5,5 @@ Only wildlife can be fought (hunting and grizzly charges). Tense meetings with N
 ## Consequences
 
 A paid cultural/sensitivity review of Nation portrayal is a release requirement and must be budgeted in the release plan. Sources include tribal histories, not only the expedition journals.
+
+Amended by ADR-0011 (Two Medicine is told in the Epilogue, not played as a Stand-off) and ADR-0013 (the review also covers York and Sacagawea).

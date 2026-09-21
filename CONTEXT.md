@@ -11,8 +11,16 @@ The whole expedition party the player is responsible for.
 _Avoid_: party, team, crew
 
 **Corps Strength**:
-The headcount of the unnamed members of the Corps, tracked as a single number.
-_Avoid_: troops, men
+The number of men of the Corps fit for duty. Every man of the Corps is known by name and tracked individually; Corps Strength is counted from them, not kept as a number of its own.
+_Avoid_: troops, men, headcount
+
+**Mess**:
+One of the Corps' three squads, each under a sergeant, through which the captain sets duties.
+_Avoid_: squad, team, unit
+
+**Morning Report**:
+The sergeants' account of the Corps at the start of each day: who is sick or lame, what is short, what is wet.
+_Avoid_: status screen, daily summary
 
 **Companion**:
 A named historical member of the Corps (Clark, York, Drouillard, Sacagawea, …) with their own health, Conditions, and Ability.
@@ -56,12 +64,20 @@ _Avoid_: waypoint, POI
 The strategic overview of the whole route, used to plan and undertake Legs and to review Discoveries.
 _Avoid_: hex map, world map, overworld
 
+**Field Map**:
+Clark's sketch of the ground the Corps has actually covered in a Region, filled in as the Leader walks it.
+_Avoid_: minimap, local map
+
+**Act**:
+One of the chapters of the journey, from Council Bluff to the Pacific, each closing at a Winter Quarters or at the Pacific.
+_Avoid_: chapter, episode, level
+
 **Landing**:
 The spot at the upstream end of a Region where the Corps sets out on a Leg.
 _Avoid_: exit, dock, travel point
 
 **Leg**:
-A journey between two Regions taken on the Expedition Map, costing days or weeks on the Calendar.
+A journey between two Regions taken on the Expedition Map a day at a time, costing days or weeks on the Calendar.
 _Avoid_: fast travel, trip
 
 **Day Clock**:
@@ -73,7 +89,7 @@ The historical date of the expedition, which drives seasons.
 _Avoid_: day clock, turn
 
 **Winter Quarters**:
-A Region where the Corps can safely see out the winter, such as the Mandan Villages; setting out from one into winter means wintering there first.
+A Region where the Corps can safely see out the winter, such as the Mandan Villages; the winter there is played, compressed. Setting out from one into winter means wintering there first.
 _Avoid_: safe zone, fort
 
 **Winter Lock**:
@@ -126,6 +142,10 @@ _Avoid_: battle, fight, combat
 A plant, animal, or geographic feature documented in the Journal, which grants a lasting benefit.
 _Avoid_: collectible, specimen
 
+**Field Sketch**:
+A drawing of a living subject made through the spyglass, graded Rough, Fair, Good or Fine; a Good sketch or better makes a Discovery.
+_Avoid_: photo, snapshot, capture
+
 **Journal**:
 The expedition's running record of Discoveries and events, ending with a comparison to what really happened.
 _Avoid_: log, codex
@@ -143,13 +163,17 @@ _Avoid_: faction standing, hostility
 ### Outcomes
 
 **Ending**:
-How an expedition concludes — reaching the Pacific and returning, or failing through collapsed Corps Strength, mutiny, a lost season, or the Leader's death.
+How an expedition concludes — reaching the Pacific, or failing through collapsed Corps Strength, mutiny, a lost season, a Stand-off gone wrong, or the Leader's death.
 _Avoid_: game over, win/lose screen
+
+**Epilogue**:
+The journey home after the Pacific, told rather than played in full, and shaped by the state the expedition reached it in.
+_Avoid_: Act VI, return trip, credits
 
 **Ironman**:
 An optional mode with a single save that cannot be reloaded.
 _Avoid_: hardcore, permadeath mode
 
 **Vertical Slice**:
-The single playable Region (Council Bluffs → Teton Sioux, Aug–Sept 1804) built to prove the game is fun before committing to an engine and art direction.
+The first three Regions and the two Legs between them (Council Bluff to Bad River, Aug–Sept 1804), built to prove the game is fun and to measure what a Region costs to make.
 _Avoid_: demo, prototype, MVP

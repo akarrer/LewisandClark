@@ -49,7 +49,11 @@ pattern:
 - Standing should persist **per Nation** and travel upriver ahead of the Corps, so a
   slighted Nation is met by a colder one next time.
 - The **Teton Sioux stand-off** is the same machinery with the stakes reversed: they
-  hold the river, and what is left in the hold decides how the meeting goes.
+  hold the river, and what is left in the hold decides how the meeting goes. It is
+  **staged in the world** at Bad River, not in a panel — the Corps at the bank, the
+  Teton on it, Black Buffalo and the Partisan present, the swivel gun manned or not —
+  and it can end the Slice badly (turned back, or a crippling toll) without ever
+  becoming combat (ADR-0004).
 - Speech quality should depend on who is present (Drouillard interpreting, York,
   the captains' own Corps Skills), not only on whether an interpreter is there.
 - The chiefs should be **in the world** for the council rather than named in a panel.
