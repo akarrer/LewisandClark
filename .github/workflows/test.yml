@@ -2,6 +2,11 @@ name: Tests
 
 on:
   pull_request:
+  push:
+    branches: [main]
+
+env:
+  GODOT_VERSION: "4.7.2"
 
 jobs:
   unit-tests:
@@ -37,3 +42,35 @@ jobs:
         env:
           SDL_VIDEODRIVER: dummy
         run: python -m pytest tests/ -v --tb=short
+
+  # The live game. These suites are pure rules -- weather, rations, stores,
+  # councils, the almanac, terrain sampling -- so they need none of the
+  # third-party art, which is fetched rather than committed.
+  godot-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_VERSION }}
+
+      - name: Install Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -sSL -o /tmp/godot.zip             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q -o /tmp/godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          chmod +x ~/godot/godot
+
+      # Builds the global class name cache, which the test scripts need and
+      # which is not committed.
+      - name: Import project
+        run: timeout 300 ~/godot/godot --headless --path godot --import || true
+
+      - name: Run Godot tests
+        run: timeout 300 ~/godot/godot --headless --path godot -s tests/run_tests.gd
