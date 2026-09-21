@@ -18,8 +18,8 @@ static func fleet(terrain: Terrain) -> Boats:
 	var start: Vector3 = terrain.points["start"]
 	var to_water := terrain.toward_river(start.x, start.z)
 	var along := Vector3(-to_water.z, 0.0, to_water.x)
-	# Where each one lies is Terrain.MOORINGS, so the scatters can leave the
-	# water there clear (see Terrain.define_points).
+	# Where each one lies is a named place in the Region file, so the scatters
+	# can be told to leave that water clear (see region.gd).
 	var hulls := [keelboat(), pirogue(Color(0.58, 0.16, 0.11)), pirogue(Color(0.86, 0.83, 0.75))]
 	for i in hulls.size():
 		var p: Vector3 = terrain.points["mooring_%d" % i]
@@ -30,7 +30,7 @@ static func fleet(terrain: Terrain) -> Boats:
 		b._hulls.append(hull)
 		# Made fast to a stake on the bar: bow line slanting down to the sand.
 		var bow := p + along * (7.8 if hull.name == "Keelboat" else 5.6) + Vector3(0, 0.9, 0)
-		var reach: float = float(Terrain.MOORINGS[i][1]) + 2.5
+		var reach: float = (7.0 if hull.name == "Keelboat" else 4.5) + 2.5
 		var stake := bow - to_water * reach + along * 1.5
 		stake.y = terrain.height_at(stake.x, stake.z)
 		b.add_child(Props.cylinder(0.05, 0.9, WOOD.darkened(0.3), stake + Vector3(0, 0.3, 0)))

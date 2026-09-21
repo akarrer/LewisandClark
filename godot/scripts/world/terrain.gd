@@ -9,6 +9,7 @@ extends Node3D
 const SIZE := 1024.0  # metres
 const RES := 256  # cells per side
 const WATER_Y := 0.0
+## The default terrain data; a Region names its own (see region.gd).
 const DATA := "res://data/terrain/council_bluff"
 
 var meta := {}
@@ -20,16 +21,24 @@ var _tint := FastNoiseLite.new()
 var points := {}
 
 
-func _init() -> void:
+## The Region this terrain carries, and where its data lives.
+var region: Region
+var data_path := DATA
+
+
+func _init(p_region: Region = null) -> void:
 	_tint.seed = 91
 	_tint.frequency = 1.0 / 90.0
+	region = p_region
+	if region != null and region.terrain_path != "":
+		data_path = region.terrain_path
 	load_data()
 
 
 func load_data() -> void:
-	meta = JSON.parse_string(FileAccess.get_file_as_string(DATA + ".json"))
-	_heights = FileAccess.get_file_as_bytes(DATA + ".height").to_float32_array()
-	_river = FileAccess.get_file_as_bytes(DATA + ".river").to_float32_array()
+	meta = JSON.parse_string(FileAccess.get_file_as_string(data_path + ".json"))
+	_heights = FileAccess.get_file_as_bytes(data_path + ".height").to_float32_array()
+	_river = FileAccess.get_file_as_bytes(data_path + ".river").to_float32_array()
 	assert(_heights.size() == (RES + 1) * (RES + 1), "heightmap size mismatch")
 
 
@@ -115,6 +124,11 @@ func align_downstream(along: Vector3) -> Vector3:
 	return along if along.z >= 0.0 else -along
 
 
+func on_ground(x: float, z: float) -> Vector3:
+	## The point on the surface at these map coordinates.
+	return Vector3(x, height_at(x, z), z)
+
+
 func toward_river(x: float, z: float) -> Vector3:
 	## Horizontal direction in which the river gets closer.
 	var e := 6.0
@@ -163,11 +177,6 @@ func _search(rect: Rect2, score: Callable) -> Vector3:
 	return best
 
 
-## Where each hull lies: metres along the bank from the landing, how far its
-## inboard side must clear the channel edge, and what it draws. Read by boats.gd.
-const MOORINGS := [[0.0, 7.0, 0.95], [-26.0, 4.5, 0.6], [-42.0, 4.5, 0.6]]
-
-
 func afloat(from: Vector3, to_water: Vector3, inset: float, draught: float) -> Vector3:
 	## Walk out from the bank until there is both water enough under the hull and
 	## room enough beside it. The second test alone is a planform distance from
@@ -183,43 +192,11 @@ func afloat(from: Vector3, to_water: Vector3, inset: float, draught: float) -> V
 
 
 func define_points() -> void:
-	var flood := float(meta["floodplain_y"])
-	# Council Bluff: the level bluff top closest to the river below it.
-	points["council_bluff"] = _search(Rect2(360, 440, 140, 150), func(x, z):
-		var ok := height_at(x, z) > flood + 9.0 and normal_at(x, z).y > 0.93
-		return -river_distance(x, z) if ok else -INF)
-	# The way up: higher ground behind the bluff, reached across the upland.
-	var bluff: Vector3 = points["council_bluff"]
-	points["bluff_approach"] = _search(Rect2(bluff.x - 170, bluff.z + 40, 120, 140), func(x, z):
-		return -absf(height_at(x, z) - bluff.y) - normal_at(x, z).distance_to(Vector3.UP) * 40.0)
-	# Start on the bottomland south of the bluff, a little way from the water.
-	points["start"] = _search(Rect2(520, 780, 70, 70), func(x, z):
-		return normal_at(x, z).y * 10.0 - absf(river_distance(x, z) - 75.0) * 0.2)
-	# Prairie dogs like a broad, flat upland rise.
-	# The Corps' camp, pitched a little back from the landing along the bank.
-	var landing: Vector3 = points["start"]
-	var to_water := toward_river(landing.x, landing.z)
-	var along := Vector3(-to_water.z, 0.0, to_water.x)
-	var camp := landing - to_water * 6.0 + along * 10.0
-	points["camp"] = Vector3(camp.x, height_at(camp.x, camp.z), camp.z)
-	# Where the fleet lies: out from the landing until there is water under each
-	# hull to float in, which on this reach means well past the bar. Named here
-	# rather than worked out in boats.gd so that the scatters know to leave the
-	# moorings clear -- a snag lying across the keelboat looks like a mistake,
-	# whatever the river was really like.
-	for i in MOORINGS.size():
-		var m: Array = MOORINGS[i]
-		points["mooring_%d" % i] = afloat(landing + along * float(m[0]), to_water, float(m[1]), float(m[2]))
-	# Where the men walk between the camp and the boats, the grass is worn away.
-	var landing_edge := landing + to_water * 5.0
-	points["landing_edge"] = Vector3(landing_edge.x, height_at(landing_edge.x, landing_edge.z), landing_edge.z)
-
-	points["prairie_dog_town"] = _search(Rect2(300, 600, 150, 170), func(x, z):
-		var h := height_at(x, z)
-		return normal_at(x, z).y * 50.0 if h > flood + 6.0 else -INF)
-	# Smoke rises from the highest hill in the western uplands.
-	points["smoke_ridge"] = _search(Rect2(40, 380, 260, 440), func(x, z):
-		return height_at(x, z))
+	## Where this Region's named places are. The rules live in its data file, not
+	## here, so a new Region costs a heightmap and a JSON file (ADR-0014).
+	if region == null:
+		region = Region.load_region("council_bluff")
+	points = region.resolve_points(self)
 
 
 func find_route(from: Vector3, goal: Vector3) -> Array[Vector3]:

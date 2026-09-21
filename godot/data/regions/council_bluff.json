@@ -1,0 +1,115 @@
+{
+  "id": "council_bluff",
+  "name": "Council Bluff",
+  "note": "The reach the Corps reached on 30 July 1804, where the council with the Otoe and Missouria was held on 3 August. See docs/adr/0014-showcase-region-first.md: a Region is a heightmap plus this file.",
+  "terrain": "res://data/terrain/council_bluff",
+
+  "points": [
+    {
+      "name": "council_bluff",
+      "note": "The level bluff top closest to the river below it.",
+      "rule": "bluff_top",
+      "rect": [360, 440, 140, 150],
+      "above_flood": 9.0,
+      "level": 0.93
+    },
+    {
+      "name": "bluff_approach",
+      "note": "The way up: higher ground behind the bluff, reached across the upland.",
+      "rule": "level_with",
+      "of": "council_bluff",
+      "rect_of": "council_bluff",
+      "rect_offset": [-170, 40],
+      "rect_size": [120, 140]
+    },
+    {
+      "name": "start",
+      "note": "The landing, on the bottomland south of the bluff.",
+      "rule": "bank_stand",
+      "rect": [520, 780, 70, 70],
+      "from_water": 75.0
+    },
+    {
+      "name": "camp",
+      "note": "Pitched a little back from the landing, along the bank.",
+      "rule": "offset_from",
+      "of": "start",
+      "toward_water": -6.0,
+      "along_bank": 10.0
+    },
+    {
+      "name": "landing_edge",
+      "note": "Where the men step off toward the boats; the grass between is worn.",
+      "rule": "offset_from",
+      "of": "start",
+      "toward_water": 5.0
+    },
+    {
+      "name": "prairie_dog_town",
+      "rule": "flat_upland",
+      "rect": [300, 600, 150, 170],
+      "above_flood": 6.0
+    },
+    {
+      "name": "smoke_ridge",
+      "note": "The highest hill in the western uplands.",
+      "rule": "highest",
+      "rect": [40, 380, 260, 440]
+    },
+    {
+      "name": "mooring_0",
+      "note": "The keelboat, loaded, needs the most water under her.",
+      "rule": "afloat",
+      "of": "start",
+      "along_bank": 0.0,
+      "clearance": 7.0,
+      "draught": 0.95
+    },
+    {
+      "name": "mooring_1",
+      "note": "The red pirogue.",
+      "rule": "afloat",
+      "of": "start",
+      "along_bank": -26.0,
+      "clearance": 4.5,
+      "draught": 0.6
+    },
+    {
+      "name": "mooring_2",
+      "note": "The white pirogue.",
+      "rule": "afloat",
+      "of": "start",
+      "along_bank": -42.0,
+      "clearance": 4.5,
+      "draught": 0.6
+    }
+  ],
+
+  "features": {
+    "landmark": {
+      "at": "council_bluff",
+      "name": "Council Bluff",
+      "journal": "Council Bluff — a high bluff above the river where the Corps will hold its first council with the Otoe and Missouria."
+    },
+    "council": {
+      "id": "council_bluff_1804",
+      "at": "council_bluff",
+      "offset": [6, 10],
+      "radius": 7.0,
+      "label": "Hold the council with the Otoe and Missouria"
+    },
+    "prairie_dog_town": { "at": "prairie_dog_town" },
+    "fleet": true,
+    "camp": true,
+    "ridge_smoke": { "at": "smoke_ridge" },
+    "village_smokes": {
+      "note": "The Oto and Missouria towns lie back off the river to the west, too far to walk to in the Slice. The ridge west of the bluff hides the feet of the columns, which is how Clark had the towns on his map days before the Corps saw one.",
+      "from": "council_bluff",
+      "bearing": [-0.97, 0.26],
+      "count": 3,
+      "first": 430.0,
+      "apart": 60.0,
+      "spread": [90.0, 40.0]
+    }
+  }
+}
