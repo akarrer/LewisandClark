@@ -5,7 +5,6 @@ calendar hard deadlines (P3), and tribal reputation web (P4).
 
 from __future__ import annotations
 
-import random
 
 from lewis_clark import assets
 
