@@ -62,6 +62,12 @@ func has_feature(name: String) -> bool:
 	return not feature(name).is_empty()
 
 
+func wildlife() -> Dictionary:
+	## What lives here: herds, birds, and how lively the river is (see wildlife.gd).
+	var w = data.get("wildlife", {})
+	return w if w is Dictionary else {}
+
+
 func foliage() -> Dictionary:
 	## What grows here: which stands, how thick, from which models, and the
 	## wildflowers of the season (see foliage.gd). A Region with none is bare.

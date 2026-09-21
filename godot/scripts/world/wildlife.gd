@@ -8,6 +8,28 @@ extends Node3D
 const ELK := Color(0.56, 0.40, 0.25)
 const DEER := Color(0.62, 0.44, 0.28)
 
+## Which animals live in a Region, and how many, is the Region's to say (the
+## "wildlife" block of its data file, ADR-0014). What stays here is how each
+## kind looks, where it keeps, and how it moves. Anything the Region leaves out
+## is not placed. Kinds are always placed in the order below.
+##
+## How each herd animal keeps: the ground it wants, how far from the named places
+## it stays, how loosely a group stands, and its size against an elk.
+const HERDS := {
+	"elk": {"ground": "upland", "clear_of": 140.0, "spread": 16.0, "size": 1.0},
+	"deer": {"ground": "edge", "clear_of": 90.0, "spread": 6.0, "size": 0.62},
+}
+## Every group a Region may ask for, and the fields each one must give.
+const GROUPS := {
+	"herds": [],
+	"flocks": ["count"],
+	"waders": ["count"],
+	"pelicans": ["on_bar", "afloat"],
+	"swallows": ["at", "count"],
+	"soarers": ["over", "vultures", "hawks"],
+	"river": ["fish_rise_every", "drift_logs"],
+}
+
 var terrain: Terrain
 var watch: Node3D  # the Leader
 var _animals: Array[Dictionary] = []
@@ -24,40 +46,56 @@ static func populate(t: Terrain, leader: Node3D) -> Wildlife:
 	w.name = "Wildlife"
 	w.terrain = t
 	w.watch = leader
-	w._rng.seed = 1804
-	w._place_herds()
-	w._place_flocks()
-	w._place_waders()
-	w._place_pelicans()
-	w._place_swallows()
-	w._place_soarers()
+	var spec := t.region.wildlife() if t.region != null else {}
+	w._rng.seed = int(spec.get("seed", 1804))
+	for herd in spec.get("herds", []):
+		w._place_herds(herd)
+	if spec.has("flocks"):
+		w._place_flocks(spec["flocks"])
+	if spec.has("waders"):
+		w._place_waders(spec["waders"])
+	if spec.has("pelicans"):
+		w._place_pelicans(spec["pelicans"])
+	if spec.has("swallows"):
+		w._place_swallows(spec["swallows"])
+	if spec.has("soarers"):
+		w._place_soarers(spec["soarers"])
 	return w
 
 
-func _place_herds() -> void:
-	# Elk out on open upland, well away from the landing and the landmarks.
-	var herds := 0
+func _place_herds(spec: Dictionary) -> void:
+	## Groups of one kind, each kind on its own ground: elk out on open upland,
+	## deer in twos and threes where the groves meet open ground. Both well away
+	## from the landing and the landmarks.
+	var kind := str(spec["kind"])
+	var how: Dictionary = HERDS[kind]
+	var size: Array = spec["size"]
+	var spread := float(how["spread"])
+	var placed := 0
 	for attempt in 400:
-		if herds >= 4:
+		if placed >= int(spec["groups"]):
 			break
 		var c := Vector3(_rng.randf_range(40, 980), 0, _rng.randf_range(40, 980))
-		if terrain.is_bottomland(c.x, c.z) or not terrain.walkable(c.x, c.z) or _near_points(c, 140.0):
+		if not terrain.walkable(c.x, c.z) or not _keeps_to(c, str(how["ground"])):
 			continue
-		for i in _rng.randi_range(5, 9):
-			_add(quadruped(ELK, i == 0, true), c + Vector3(_rng.randf_range(-16, 16), 0, _rng.randf_range(-16, 16)), 1.0)
-		herds += 1
-	# Deer in twos and threes where the groves meet open ground.
-	var groups := 0
-	for attempt in 400:
-		if groups >= 5:
-			break
-		var c := Vector3(_rng.randf_range(40, 980), 0, _rng.randf_range(40, 980))
-		var d := terrain.river_distance(c.x, c.z) - terrain.river_half_width()
-		if d < 60.0 or d > 180.0 or not terrain.walkable(c.x, c.z) or _near_points(c, 90.0):
+		if _near_points(c, float(how["clear_of"])):
 			continue
-		for i in _rng.randi_range(2, 3):
-			_add(quadruped(DEER, i == 0 and _rng.randf() < 0.5, false), c + Vector3(_rng.randf_range(-6, 6), 0, _rng.randf_range(-6, 6)), 0.62)
-		groups += 1
+		for i in _rng.randi_range(int(size[0]), int(size[1])):
+			var animal: Node3D
+			if kind == "elk":
+				animal = quadruped(ELK, i == 0, true)
+			else:
+				animal = quadruped(DEER, i == 0 and _rng.randf() < 0.5, false)
+			_add(animal, c + Vector3(_rng.randf_range(-spread, spread), 0, _rng.randf_range(-spread, spread)), float(how["size"]))
+		placed += 1
+
+
+func _keeps_to(c: Vector3, ground: String) -> bool:
+	if ground == "upland":
+		return not terrain.is_bottomland(c.x, c.z)
+	# The edge: back from the river, where the bottomland groves give out.
+	var d := terrain.river_distance(c.x, c.z) - terrain.river_half_width()
+	return d >= 60.0 and d <= 180.0
 
 
 func _near_points(p: Vector3, r: float) -> bool:
@@ -225,10 +263,10 @@ static func _blob(size: Vector3, color: Color, pos: Vector3) -> MeshInstance3D:
 # ---------------------------------------------------------------- birds
 
 
-func _place_flocks() -> void:
+func _place_flocks(spec: Dictionary) -> void:
 	## Birds wheeling over the river and the bluffs: too far off to identify,
 	## which is what you see of them from the ground.
-	for f in 3:
+	for f in int(spec["count"]):
 		var centre := Vector3(_rng.randf_range(200, 800), 0, _rng.randf_range(200, 800))
 		centre.y = terrain.height_at(centre.x, centre.z) + _rng.randf_range(40, 90)
 		var flock := Node3D.new()
@@ -246,10 +284,12 @@ func _place_flocks() -> void:
 		})
 
 
-func _place_swallows() -> void:
+func _place_swallows(spec: Dictionary) -> void:
 	## Cliff swallows hawking low over the water under the bluff. They nest in
 	## the loess itself; the Corps found their nests all along these banks.
-	var under_bluff: Vector3 = terrain.points.get("council_bluff", Vector3(512, 0, 512))
+	if not terrain.points.has(str(spec["at"])):
+		return
+	var under_bluff: Vector3 = terrain.points[str(spec["at"])]
 	# Close under the rim, where the nests are, rather than away over the water.
 	var centre := under_bluff + terrain.toward_river(under_bluff.x, under_bluff.z) * 20.0
 	centre.y = maxf(under_bluff.y - 3.0, Terrain.WATER_Y + 4.0)
@@ -259,7 +299,7 @@ func _place_swallows() -> void:
 	var birds: Array[Node3D] = []
 	# Nine, not sixteen, and over half again the ground: a knot of them hawking
 	# under the rim reads as a swarm of flies at anything under fifty yards.
-	for i in 9:
+	for i in int(spec["count"]):
 		var b := _bird(Color(0.16, 0.15, 0.20))
 		b.scale = Vector3.ONE * 0.45          # a swallow is a handful of nothing
 		b.position = Vector3(_rng.randf_range(-26, 26), _rng.randf_range(-4, 4), _rng.randf_range(-26, 26))
@@ -272,14 +312,17 @@ func _place_swallows() -> void:
 	})
 
 
-func _place_soarers() -> void:
+func _place_soarers(spec: Dictionary) -> void:
 	## Turkey vultures over the bluffs and a hawk hunting the prairie. They ride
 	## the thermal off the loess face for an hour at a time without a wingbeat,
 	## holding the wings up in a shallow V and rocking from side to side, which
 	## is how you tell a vulture from a hawk when it is only a shape in the sky.
-	var bluff: Vector3 = terrain.points.get("council_bluff", Vector3(512, 0, 512))
-	for i in 3:
-		var vulture := i < 2
+	if not terrain.points.has(str(spec["over"])):
+		return
+	var bluff: Vector3 = terrain.points[str(spec["over"])]
+	var vultures := int(spec["vultures"])
+	for i in vultures + int(spec["hawks"]):
+		var vulture := i < vultures
 		var centre := bluff + Vector3(_rng.randf_range(-170, 170), 0, _rng.randf_range(-170, 170))
 		centre.y = terrain.height_at(centre.x, centre.z) + _rng.randf_range(65, 125)
 		var node := Node3D.new()
@@ -382,7 +425,7 @@ static func _bird(colour: Color) -> Node3D:
 # ---------------------------------------------------------------- waders
 
 
-func _place_pelicans() -> void:
+func _place_pelicans(spec: Dictionary) -> void:
 	## A raft of white pelicans loafing on a bar. On 8 August 1804, a little above
 	## here, the Corps came on "a flock of several hundred" of them, and Lewis
 	## poured water into a dead one's pouch to measure it: five gallons.
@@ -400,7 +443,7 @@ func _place_pelicans() -> void:
 	if bar == Vector3.INF:
 		return
 	var heading := _rng.randf() * TAU
-	for i in 13:
+	for i in int(spec["on_bar"]):
 		var a := _rng.randf() * TAU
 		var r := sqrt(_rng.randf()) * 7.5
 		var p := bar + Vector3(cos(a) * r, 0, sin(a) * r)
@@ -413,9 +456,9 @@ func _place_pelicans() -> void:
 		add_child(bird)
 		_pelicans.append({"node": bird, "home": p, "phase": _rng.randf() * 100.0, "flight": 0.0,
 				"preen": _rng.randf_range(0.2, 1.4)})
-	# And three off the bar on the water, riding high the way they do.
+	# And a few off the bar on the water, riding high the way they do.
 	var toward := terrain.toward_river(bar.x, bar.z)
-	for i in 3:
+	for i in int(spec["afloat"]):
 		var p := bar + toward * (14.0 + i * 5.0) + Vector3(_rng.randf_range(-5, 5), 0, _rng.randf_range(-5, 5))
 		p.y = Terrain.WATER_Y - 0.62      # body riding on the surface, legs under it
 		var bird := _pelican()
@@ -508,12 +551,12 @@ static func _pelican() -> Node3D:
 	return b
 
 
-func _place_waders() -> void:
+func _place_waders(spec: Dictionary) -> void:
 	## Herons and egrets standing in the shallows. The Corps shot a great egret at
 	## this very place on 2 August 1804, and found herons in numbers upriver.
 	var placed := 0
 	for attempt in 3000:
-		if placed >= 5:
+		if placed >= int(spec["count"]):
 			break
 		var p := Vector3(_rng.randf_range(40, 980), 0, _rng.randf_range(40, 980))
 		var edge := terrain.river_distance(p.x, p.z) - terrain.river_half_width()

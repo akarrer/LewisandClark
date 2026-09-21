@@ -160,5 +160,38 @@
         "low": false
       }
     ]
+  },
+  "wildlife": {
+    "note": "Deliberately unlike Council Bluff: deer but no elk, no pelican raft, the swallows and a lone hawk at the lookout, and a quieter river.",
+    "seed": 9,
+    "herds": [
+      {
+        "kind": "deer",
+        "groups": 3,
+        "size": [
+          2,
+          4
+        ]
+      }
+    ],
+    "flocks": {
+      "count": 2
+    },
+    "waders": {
+      "count": 2
+    },
+    "swallows": {
+      "at": "lookout",
+      "count": 6
+    },
+    "soarers": {
+      "over": "lookout",
+      "vultures": 0,
+      "hawks": 1
+    },
+    "river": {
+      "fish_rise_every": 4.0,
+      "drift_logs": 2
+    }
   }
 }

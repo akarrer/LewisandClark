@@ -8,7 +8,6 @@ extends Node3D
 ## deal of drift wood running" -- and it is the plainest sign from a bank that
 ## the river is going somewhere.
 
-const LOGS := 6
 const SPEED := 1.35            # m/s: rather slower than the current itself
 const UPSTREAM := 200.0        # where a log is put back when it has gone by
 const DOWNSTREAM := 170.0      # how far past the Leader it runs before that
@@ -25,8 +24,10 @@ func build(p_terrain: Terrain, p_watch: Node3D) -> void:
 	terrain = p_terrain
 	watch = p_watch
 	_rng.randomize()
+	# How much timber this Region's river carries ("river" in its wildlife data).
+	var river: Dictionary = terrain.region.wildlife().get("river", {}) if terrain.region != null else {}
 	var wake_mesh := _wake_mesh()
-	for i in LOGS:
+	for i in int(river.get("drift_logs", 0)):
 		var node := Node3D.new()
 		node.name = "Drift%d" % i
 		var timber := MeshInstance3D.new()

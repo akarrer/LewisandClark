@@ -8,9 +8,11 @@ extends Node3D
 ## The Corps lived off this river. Clark counts catfish by the dozen in a night,
 ## so it is not empty water they are walking beside.
 
-const RISE_EVERY := 1.8   # seconds, on average
 const RINGS := 14
 const FISH := 5
+## Seconds between rises, on average: how full of fish this Region's river is
+## ("river" in its wildlife data). None there, and nothing rises.
+var rise_every := 0.0
 ## Of a rise: a back breaking the surface, and clear of the water altogether.
 ## Not constants, so the autopilot can ask for one on demand (--fish).
 var roll_chance := 0.3
@@ -33,6 +35,8 @@ func build(p_terrain: Terrain, p_watch: Node3D) -> void:
 	terrain = p_terrain
 	watch = p_watch
 	_rng.randomize()
+	var river: Dictionary = terrain.region.wildlife().get("river", {}) if terrain.region != null else {}
+	rise_every = float(river.get("fish_rise_every", 0.0))
 	var mesh := PlaneMesh.new()
 	mesh.size = Vector2(1.0, 1.0)
 	var mat := ShaderMaterial.new()
@@ -60,11 +64,11 @@ func build(p_terrain: Terrain, p_watch: Node3D) -> void:
 
 
 func _process(delta: float) -> void:
-	if watch == null:
+	if watch == null or rise_every <= 0.0:
 		return
 	_next -= delta
 	if _next <= 0.0:
-		_next = _rng.randf_range(RISE_EVERY * 0.4, RISE_EVERY * 1.6)
+		_next = _rng.randf_range(rise_every * 0.4, rise_every * 1.6)
 		rise()
 	_move_fish(delta)
 	for r in _live.duplicate():

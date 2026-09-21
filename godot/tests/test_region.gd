@@ -94,3 +94,34 @@ func test_foliage_models_exist():
 			names.append_array(w.get("variants", []))
 		for n in names:
 			t.check(ResourceLoader.exists(Foliage.NATURE + str(n) + ".glb"), "%s: no model %s" % [id, n])
+
+
+func test_wildlife_asks_only_for_known_animals():
+	for id in _regions():
+		var r := Region.load_region(id)
+		var w := r.wildlife()
+		for group in w:
+			if group in ["note", "seed"]:
+				continue
+			t.check(Wildlife.GROUPS.has(group), "%s: unknown wildlife group %s" % [id, group])
+			if not Wildlife.GROUPS.has(group) or group == "herds":
+				continue
+			for field in Wildlife.GROUPS[group]:
+				t.check(w[group].has(field), "%s: %s gives no %s" % [id, group, field])
+		for herd in w.get("herds", []):
+			t.check(Wildlife.HERDS.has(str(herd.get("kind", ""))), "%s: no such herd animal %s" % [id, herd.get("kind", "")])
+			t.check(herd.has("groups") and herd.has("size"), "%s: a herd gives no groups or size" % id)
+
+
+func test_wildlife_keeps_to_named_places():
+	# Swallows at a bluff that the Region never names would silently not be placed.
+	for id in _regions():
+		var r := Region.load_region(id)
+		var terrain := Terrain.new(r)
+		terrain.define_points()
+		var w := r.wildlife()
+		for pair in [["swallows", "at"], ["soarers", "over"]]:
+			if w.has(pair[0]):
+				t.check(terrain.points.has(str(w[pair[0]][pair[1]])),
+						"%s: %s keep to unnamed place %s" % [id, pair[0], w[pair[0]][pair[1]]])
+		terrain.free()
