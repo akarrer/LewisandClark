@@ -43,6 +43,11 @@ func build() -> void:
 	mat.shader = load("res://scripts/world/ground.gdshader")
 	var camp: Vector3 = points.get("camp", Vector3(-1000, 0, -1000))
 	mat.set_shader_parameter("camp", Vector2(camp.x, camp.z))
+	var edge: Vector3 = points.get("landing_edge", camp)
+	mat.set_shader_parameter("trace_a", Vector2(camp.x, camp.z))
+	mat.set_shader_parameter("trace_b", Vector2(edge.x, edge.z))
+	var bluff: Vector3 = points.get("council_bluff", edge)
+	mat.set_shader_parameter("trace_c", Vector2(bluff.x, bluff.z))
 	mi.material_override = mat
 	add_child(mi)
 	add_child(_build_distant_hills(mat))
@@ -97,6 +102,19 @@ func is_dry(x: float, z: float) -> bool:
 	return river_distance(x, z) > river_half_width() + 4.0
 
 
+func downriver(x: float, z: float) -> Vector3:
+	## Horizontal direction the water runs: along the channel, and southward.
+	## The same field water.gdshader takes the current from, so a wake on the
+	## surface and the streaks in it agree about which way is down.
+	var to_water := toward_river(x, z)
+	var along := Vector3(-to_water.z, 0.0, to_water.x)
+	return align_downstream(along)
+
+
+func align_downstream(along: Vector3) -> Vector3:
+	return along if along.z >= 0.0 else -along
+
+
 func toward_river(x: float, z: float) -> Vector3:
 	## Horizontal direction in which the river gets closer.
 	var e := 6.0
@@ -145,6 +163,25 @@ func _search(rect: Rect2, score: Callable) -> Vector3:
 	return best
 
 
+## Where each hull lies: metres along the bank from the landing, how far its
+## inboard side must clear the channel edge, and what it draws. Read by boats.gd.
+const MOORINGS := [[0.0, 7.0, 0.95], [-26.0, 4.5, 0.6], [-42.0, 4.5, 0.6]]
+
+
+func afloat(from: Vector3, to_water: Vector3, inset: float, draught: float) -> Vector3:
+	## Walk out from the bank until there is both water enough under the hull and
+	## room enough beside it. The second test alone is a planform distance from
+	## the middle of the channel, and the channel is wide enough here that it
+	## leaves a boat sitting up on a dry bar.
+	var p := from
+	for i in 400:
+		var deep := height_at(p.x, p.z) < WATER_Y - 0.35 - draught
+		if deep and river_distance(p.x, p.z) < river_half_width() - inset:
+			break
+		p += to_water
+	return Vector3(p.x, WATER_Y - 0.35, p.z)
+
+
 func define_points() -> void:
 	var flood := float(meta["floodplain_y"])
 	# Council Bluff: the level bluff top closest to the river below it.
@@ -165,6 +202,17 @@ func define_points() -> void:
 	var along := Vector3(-to_water.z, 0.0, to_water.x)
 	var camp := landing - to_water * 6.0 + along * 10.0
 	points["camp"] = Vector3(camp.x, height_at(camp.x, camp.z), camp.z)
+	# Where the fleet lies: out from the landing until there is water under each
+	# hull to float in, which on this reach means well past the bar. Named here
+	# rather than worked out in boats.gd so that the scatters know to leave the
+	# moorings clear -- a snag lying across the keelboat looks like a mistake,
+	# whatever the river was really like.
+	for i in MOORINGS.size():
+		var m: Array = MOORINGS[i]
+		points["mooring_%d" % i] = afloat(landing + along * float(m[0]), to_water, float(m[1]), float(m[2]))
+	# Where the men walk between the camp and the boats, the grass is worn away.
+	var landing_edge := landing + to_water * 5.0
+	points["landing_edge"] = Vector3(landing_edge.x, height_at(landing_edge.x, landing_edge.z), landing_edge.z)
 
 	points["prairie_dog_town"] = _search(Rect2(300, 600, 150, 170), func(x, z):
 		var h := height_at(x, z)
@@ -267,12 +315,32 @@ func _build_mesh() -> ArrayMesh:
 	return st.commit()
 
 
+var _skirt_noise: FastNoiseLite
+
+
+func skirt_height(x: float, z: float) -> float:
+	## The country beyond the playable kilometre: edge heights carried outward,
+	## rising into hazy hills with distance. Inside the map this is height_at.
+	if _skirt_noise == null:
+		_skirt_noise = FastNoiseLite.new()
+		_skirt_noise.seed = 404
+		_skirt_noise.frequency = 1.0 / 700.0
+	var cx := clampf(x, 0.0, SIZE)
+	var cz := clampf(z, 0.0, SIZE)
+	var out := Vector2(x - cx, z - cz).length()
+	var h := height_at(cx, cz)
+	h = lerpf(h, 12.0 + _skirt_noise.get_noise_2d(x, z) * 45.0 + out * 0.012, smoothstep(0.0, 900.0, out))
+	if out > 0.0 and out < 1.0:
+		h -= 0.4  # meet the playable edge just below it
+	return h
+
+
 func _build_distant_hills(mat: Material) -> MeshInstance3D:
-	## Low-detail country beyond the map edge so the world doesn't end at 1 km:
-	## the edge heights carried outward, rising into hazy hills with distance.
-	var noise := FastNoiseLite.new()
+	## Built from skirt_height() on a coarse grid.
+	var noise := _skirt_noise if _skirt_noise != null else FastNoiseLite.new()
 	noise.seed = 404
 	noise.frequency = 1.0 / 700.0
+	_skirt_noise = noise
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var step := 64.0
@@ -283,14 +351,7 @@ func _build_distant_hills(mat: Material) -> MeshInstance3D:
 		for i in n:
 			var x := lo + i * step
 			var z := lo + j * step
-			var cx := clampf(x, 0.0, SIZE)
-			var cz := clampf(z, 0.0, SIZE)
-			var out := Vector2(x - cx, z - cz).length()
-			var h := height_at(cx, cz)
-			h = lerpf(h, 12.0 + noise.get_noise_2d(x, z) * 45.0 + out * 0.012, smoothstep(0.0, 900.0, out))
-			if out < 1.0:
-				h -= 0.4  # meet the playable edge just below it
-			verts.append(Vector3(x, h, z))
+			verts.append(Vector3(x, skirt_height(x, z), z))
 	for j in n:
 		for i in n:
 			var v := verts[j * n + i]
@@ -322,18 +383,5 @@ func _build_distant_hills(mat: Material) -> MeshInstance3D:
 
 
 func _build_water() -> MeshInstance3D:
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(SIZE * 5.0, SIZE * 5.0)
-	plane.subdivide_width = 8
-	plane.subdivide_depth = 8
-	var mi := MeshInstance3D.new()
-	mi.name = "Missouri"
-	mi.mesh = plane
-	mi.position = Vector3(SIZE / 2.0, WATER_Y - 0.35, SIZE / 2.0)
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://scripts/world/water.gdshader")
-	mat.set_shader_parameter("river_tex", GrassField._texture(_river))  # the current follows the channel
-	mat.set_shader_parameter("map_size", SIZE)
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return mi
+	## See water.gd: a ring grid centred on the camera, not a plane over the map.
+	return Water.build(self)

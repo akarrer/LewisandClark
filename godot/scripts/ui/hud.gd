@@ -5,11 +5,28 @@ extends CanvasLayer
 var place: Label
 var when: Label
 var supplies: Label
+var weather: Label
 var prompt: Label
 var subtitle: Label
 var toasts: VBoxContainer
 var fps: Label
 var _subtitle_left := 0.0
+
+
+var glass: ColorRect
+
+
+func show_spyglass(amount: float) -> void:
+	## 0 with the glass down, 1 with it up. Nothing is drawn at 0.
+	if glass == null:
+		return
+	glass.visible = amount > 0.001
+	if not glass.visible:
+		return
+	var m: ShaderMaterial = glass.material
+	m.set_shader_parameter("amount", amount)
+	var size := glass.size
+	m.set_shader_parameter("aspect", size.x / maxf(size.y, 1.0))
 
 
 func _ready() -> void:
@@ -18,12 +35,25 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
+	# The spyglass field, under everything else so the Journal still reads.
+	glass = ColorRect.new()
+	glass.name = "Spyglass"
+	glass.set_anchors_preset(Control.PRESET_FULL_RECT)
+	glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var gm := ShaderMaterial.new()
+	gm.shader = load("res://scripts/ui/spyglass.gdshader")
+	glass.material = gm
+	root.add_child(glass)
+
 	place = _label(root, 30, Color(0.98, 0.94, 0.84))
 	place.position = Vector2(28, 22)
 	when = _label(root, 20, Color(0.93, 0.88, 0.76))
 	when.position = Vector2(30, 64)
 	supplies = _label(root, 18, Color(0.88, 0.82, 0.70))
 	supplies.position = Vector2(30, 92)
+
+	weather = _label(root, 18, Color(0.86, 0.88, 0.82))
+	weather.position = Vector2(30, 116)
 
 	prompt = _label(root, 24, Color(1.0, 0.86, 0.5))
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -81,10 +111,19 @@ func toast(text: String) -> void:
 		toasts.get_child(0).free()
 
 
-func update(state: ExpeditionState, delta: float, prompt_text: String) -> void:
+func update(state: ExpeditionState, delta: float, prompt_text: String, sky: SkyAndWeather = null,
+		stores: Stores = null) -> void:
 	place.text = "Sioux Country"
 	when.text = "%s  ·  %s  ·  %s" % [state.full_date_str(), state.clock_str(), state.season()]
 	supplies.text = "Food %d   Morale %d   Discoveries %d" % [state.food, state.morale, state.discoveries.size()]
+	if stores:
+		var days := stores.days_of_provisions(state.men)
+		supplies.text += "   Provisions %s" % ("%d days" % days if days > 0 else "none")
+	if sky:
+		var hour := state.hour()
+		var degrees := Weather.temperature_f(state.current_month, state.current_day, hour, sky.cloud_cover, sky.storm)
+		var sky_says := Weather.describe_night(sky.cloud_cover, sky.storm) if sky.night_amount > 0.6 				else Weather.describe(sky.cloud_cover, sky.storm, hour, sky.haze)
+		weather.text = "%d °F   ·   %s" % [roundi(degrees), sky_says]
 	prompt.text = prompt_text
 	_subtitle_left -= delta
 	subtitle.modulate.a = clampf(_subtitle_left / 0.6, 0.0, 1.0)

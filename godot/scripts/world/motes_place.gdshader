@@ -5,6 +5,11 @@ render_mode disable_velocity, disable_force;
 
 uniform float span = 34.0;
 uniform int count = 700;
+uniform sampler2D height_tex : filter_linear, repeat_disable;
+uniform sampler2D river_tex : filter_linear, repeat_disable;
+uniform float map_size = 1024.0;
+uniform float river_clear = 56.0;
+global uniform float night_amount;
 
 float hash(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -30,8 +35,22 @@ void process() {
 	// Bob, so they swirl rather than slide.
 	float w = hash(vec2(i, 3.3)) * 6.2831;
 	p += vec3(sin(TIME * 0.5 + w), sin(TIME * 0.7 + w * 1.3) * 0.6, cos(TIME * 0.45 + w)) * 0.5;
-	float s = mix(0.6, 1.6, hash(vec2(i, 11.7)));
+	// After dark these are fireflies: hold them low over the grass, below the
+	// horizon from standing height, and never out over the water.
+	float ground = texture(height_tex, p.xz / map_size).r;
+	float river = texture(river_tex, p.xz / map_size).r;
+	// Most keep to the grass, a few drift up toward head height and above.
+	float lift = pow(hash(vec2(i, 23.7)), 1.8);
+	float low = ground + mix(0.15, 3.6, lift) + sin(TIME * 0.6 + i) * 0.35;
+	p.y = mix(p.y, low, night_amount);
+	float on_grass = step(river_clear, river);
+	// Fireflies only: in daylight these read as flickering specks, so there are none.
+	float is_firefly = step(0.8, hash(vec2(i, 31.3)));
+	float after_dark = smoothstep(0.35, 0.7, night_amount);
+	float s = mix(0.6, 1.6, hash(vec2(i, 11.7))) * on_grass * is_firefly * after_dark;
 	TRANSFORM = mat4(vec4(s, 0.0, 0.0, 0.0), vec4(0.0, s, 0.0, 0.0), vec4(0.0, 0.0, s, 0.0), vec4(p, 1.0));
-	CUSTOM = vec4(hash(vec2(i, 13.1)), hash(vec2(i, 17.9)), 0.0, 0.0);
+	// The draw shader billboards by replacing the basis, which drops this scale,
+	// so carry it through CUSTOM.z as well: 0 means "not drawn".
+	CUSTOM = vec4(hash(vec2(i, 13.1)), hash(vec2(i, 17.9)), s, 0.0);
 	VELOCITY = vec3(0.0);
 }

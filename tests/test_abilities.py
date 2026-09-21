@@ -12,7 +12,6 @@ of constructing a full pygame screen.
 
 from __future__ import annotations
 
-import pytest
 from lewis_clark import assets
 from lewis_clark.screens.game.mixin_abilities import AbilitiesMixin
 from lewis_clark.state import GameState

@@ -26,11 +26,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
+      # The Python game is frozen as the port spec for rules not yet carried
+      # into Godot (ADR-0009), so its tests still guard it but its formatting
+      # is no longer enforced: reformatting code nobody is editing buys
+      # nothing. `ruff check` stays, because it catches real mistakes.
       - name: Ruff check
         run: ruff check lewis_clark tests
-
-      - name: Ruff format
-        run: ruff format --check lewis_clark tests
 
       - name: Run unit tests
         env:

@@ -14,10 +14,15 @@ uniform float flutter = 1.0;        // 0 for bark
 uniform float translucency = 0.35;  // 0 for bark
 uniform float variation = 0.12;
 uniform float base_shade = 0.7;
+uniform float bark = 0.0;           // 1 on trunks: cottonwood bark is deeply furrowed
+// Where a plant stands decides how far it has cured: the MultiMesh carries that
+// per instance in COLOR.r, 0 for a green swale and 1 for the burnt-off upland.
+uniform vec4 cured : source_color = vec4(1.0);
 global uniform float wind_strength;     // darken toward the ground (fake occlusion)
 
 varying float v_height;
 varying vec3 v_tint;
+varying vec3 v_local;
 #include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 float hash(vec2 p) {
@@ -42,13 +47,25 @@ void vertex() {
 	float r = hash(origin.xz);
 	float g = hash(origin.zx + 7.7);
 	v_tint = vec3(1.0 + (r - 0.5) * variation * 2.0, 1.0 + (g - 0.5) * variation * 1.5, 1.0 - (r - 0.5) * variation);
+	v_tint *= mix(vec3(1.0), cured.rgb, COLOR.r);
 	v_height = h;
+	v_local = VERTEX;
 }
 
 void fragment() {
 	vec4 tex = texture(albedo_tex, UV);
 	vec3 c = tex.rgb * tint.rgb * v_tint;
 	c *= mix(base_shade, 1.08, smoothstep(0.0, 0.6, v_height));
+	if (bark > 0.5) {
+		// Furrows running up the trunk, deeper and wider low down, as a mature
+		// cottonwood's bark is: the texture alone reads as painted-on card.
+		float around = atan(v_local.x, v_local.z);
+		float furrow = sin(around * 26.0 + v_local.y * 1.4) * 0.5 + 0.5;
+		furrow = pow(furrow, 1.6);
+		float grain = hash(vec2(floor(around * 22.0), floor(v_local.y * 6.0))) * 0.5;
+		float depth = mix(0.22, 0.42, 1.0 - smoothstep(0.0, 0.5, v_height));
+		c *= 1.0 - (1.0 - furrow) * depth - grain * 0.06;
+	}
 	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 	// Mip levels average leaf alpha toward the cut, so distant canopies would
 	// dissolve into bare branches; boost alpha as the mip level climbs.

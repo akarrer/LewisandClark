@@ -122,6 +122,29 @@ func _add_rifle(skeleton: Skeleton3D) -> void:
 
 const RIFLE_POS := Vector3(0.18, -0.35, -0.14)
 const RIFLE_ROT := Vector3(0, 0, 28)
+## Off the back and across the chest at the ready, muzzle forward and up.
+const RIFLE_READY_POS := Vector3(-0.02, -0.28, 0.3)
+const RIFLE_READY_ROT := Vector3(-72, 26, 14)
+
+## 0 slung, 1 in the hands. Lerped rather than switched, so it comes off the
+## shoulder rather than teleporting there.
+var rifle_out := 0.0
+
+
+func set_rifle_out(t: float, delta: float) -> void:
+	rifle_out = move_toward(rifle_out, clampf(t, 0.0, 1.0), delta * 3.4)
+	var rifle: Node3D = _rifle_node()
+	if rifle == null:
+		return
+	var e := rifle_out * rifle_out * (3.0 - 2.0 * rifle_out)
+	rifle.position = RIFLE_POS.lerp(RIFLE_READY_POS, e)
+	rifle.rotation_degrees = RIFLE_ROT.lerp(RIFLE_READY_ROT, e)
+
+
+func _rifle_node() -> Node3D:
+	for n in find_children("Rifle", "Node3D", true, false):
+		return n as Node3D
+	return null
 
 
 func _add_hat(skeleton: Skeleton3D) -> void:
@@ -163,10 +186,23 @@ func play(name: String, blend := 0.25) -> void:
 		_current_anim = name
 
 
+## How quickly he gets under way and pulls up, in metres per second per second.
+const ACCEL := 15.0
+const BRAKE := 19.0
+
+
 func apply_locomotion(move_velocity: Vector3, delta: float) -> void:
 	## Move with gravity, face the direction of travel, and pick the animation.
-	velocity.x = move_velocity.x
-	velocity.z = move_velocity.z
+	##
+	## Eased into and out of rather than set outright. A man does not reach a jog
+	## in one frame or stop dead in the next, and driving the velocity straight
+	## off the keys made the whole thing feel like a cursor.
+	var going := Vector3(velocity.x, 0.0, velocity.z)
+	var want := Vector3(move_velocity.x, 0.0, move_velocity.z)
+	var rate := ACCEL if want.length() > going.length() else BRAKE
+	var eased := going.move_toward(want, rate * delta)
+	velocity.x = eased.x
+	velocity.z = eased.z
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	else:

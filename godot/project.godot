@@ -67,3 +67,7 @@ night_amount={
 "type": "float",
 "value": 0.0
 }
+river_mist={
+"type": "float",
+"value": 0.0
+}

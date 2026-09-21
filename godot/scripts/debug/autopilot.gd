@@ -11,6 +11,10 @@ var _step := 0
 var _wait := 0.0
 var _t := 0.0
 var _frames: Array[float] = []
+var _frame_at: Array[float] = []   # when each of those frames ended, for locating hitches
+var _skip_frames := 0              # frames a screenshot cost us: ours, not the game's
+var _fish_show: RiverLife          # --fish: keep something in the air for the camera
+var _fish_t := 0.0
 var _log: Array[String] = []
 var _target := Vector3.ZERO
 var _shot_n := 0
@@ -18,6 +22,7 @@ var _stuck_t := 0.0
 var _last_pos := Vector3.ZERO
 var _storm_shot := false
 var _detour := ""
+var _free_cam: Camera3D
 var _debug_t := 0.0
 var _blocked := 0
 
@@ -32,9 +37,50 @@ func begin(p_main) -> void:
 		main.director.cadence_min = 14.0
 		main.director.cadence_max = 20.0
 		main.director._schedule()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--days="):
+			# Wind the Day Clock on, so the Stores are drawn down and the Journal fills.
+			var days := int(a.substr(7))
+			print("AP winding on %d days" % days)
+			main.state.advance_minutes(days * 24 * 60)
+			print("AP provisions left: %d days, food %d" % [
+					main.stores.days_of_provisions(main.state.men), main.state.food])
 	DirAccess.make_dir_recursive_absolute(shots_dir)
 	if "--scenery" in OS.get_cmdline_user_args():
 		_steps = _scenery_steps()
+		return
+	if "--stores" in OS.get_cmdline_user_args():
+		main.hud.visible = false
+		_steps = [["wait", 1.5]]
+		for hold in Stores.HOLDS:
+			_steps.append(["stores", hold])
+			_steps.append(["wait", 0.4])
+			_steps.append(["shot", "stores_" + hold])
+		_steps.append(["report"])
+		return
+	if "--council" in OS.get_cmdline_user_args():
+		main.hud.visible = false
+		var c := Council.open("council_bluff_1804", main.stores)
+		main.council_screen.begin(c)
+		_steps = [["wait", 1.0], ["shot", "council_open"]]
+		_steps.append(["council_offer", "medals", 5])
+		_steps.append(["council_offer", "flags", 1])
+		_steps.append(["wait", 0.3])
+		_steps.append(["shot", "council_offered"])
+		for taken in ["speech", "medals", "air_gun"]:
+			_steps.append(["council_take", taken])
+			_steps.append(["wait", 0.3])
+		_steps.append(["shot", "council_part_way"])
+		_steps.append(["council_offer", "powder", 1])
+		_steps.append(["council_offer", "whiskey", 2])
+		_steps.append(["council_take", "the_ask"])
+		_steps.append(["council_offer", "medals", 1])
+		_steps.append(["council_offer", "flags", 1])
+		_steps.append(["council_offer", "tobacco", 6])
+		_steps.append(["council_take", "send_after"])
+		_steps.append(["wait", 0.4])
+		_steps.append(["shot", "council_verdict"])
+		_steps.append(["report"])
 		return
 	if "--march" in OS.get_cmdline_user_args():
 		_steps = _march_steps()
@@ -77,6 +123,8 @@ func _scenery_steps() -> Array:
 	main.hud.visible = false
 	main.leader.input_enabled = false
 	main.barks_enabled = false
+	if main.has_node("Wildlife"):
+		(main.get_node("Wildlife") as Wildlife).shy = false
 	var tr: Terrain = main.terrain
 	# Stand beside the flag, not on it, so the pole doesn't split the frame.
 	var bluff: Vector3 = tr.points["council_bluff"] + Vector3(0, 0, 8)
@@ -127,7 +175,8 @@ func _scenery_steps() -> Array:
 		herd = main.get_node("Wildlife").get_child(0).position
 		var space: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
 		var target := herd + Vector3(0, 1.2, 0)
-		for r in range(70, 30, -10):
+		# Outside the ~45 m at which they flush, or the herd is gone before the shot.
+		for r in range(95, 55, -10):
 			var found := false
 			for k in 24:
 				var ang := k * TAU / 24.0
@@ -158,6 +207,128 @@ func _scenery_steps() -> Array:
 	if main.has_node("Camp"):
 		camp = main.get_node("Camp").global_position
 		camp_eye = camp + tr.toward_river(camp.x, camp.z) * 11.0 + Vector3(2, 0, 2)
+	# Aimed at the moon, at whatever hour of the night it stands highest: it
+	# moves now, rising and setting with its phase, so there is no one hour it is
+	# always up.
+	var st: ExpeditionState = main.state
+	var phase := SkyAndWeather.moon_phase_for(st.current_year, st.current_month, st.current_day)
+	var moon_hour := 1.5
+	var best_el := -90.0
+	for q in 41:
+		var hh := fposmod(20.0 + q * 0.25, 24.0)
+		var mp := SkyAndWeather.moon_position(st.current_month, st.current_day, hh, phase)
+		if mp.x > best_el:
+			best_el = mp.x
+			moon_hour = hh
+	var moon_dir := SkyAndWeather.moon_direction(
+			SkyAndWeather.moon_position(st.current_month, st.current_day, moon_hour, phase))
+	var moon_yaw := rad_to_deg(atan2(-moon_dir.x, -moon_dir.z))
+	var moon_pitch := rad_to_deg(asin(clampf(moon_dir.y, -1.0, 1.0)))
+	# A heron in the shallows, seen from 30 m: outside the range at which it flushes.
+	var wader := bank
+	var wader_eye := bank
+	if main.has_node("Wildlife"):
+		for c in main.get_node("Wildlife").get_children():
+			if c.has_node("Neck") and c.has_node("WingL"):
+				wader = c.position
+				break
+		# Somewhere with a clear sight of it, not behind a snag.
+		var space2: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
+		var target2 := Vector3(wader.x, wader.y + 0.9, wader.z)
+		for r in [12.0, 16.0, 20.0]:
+			var radius := float(r)
+			var found2 := false
+			for k in 20:
+				var ang2 := k * TAU / 20.0
+				var e2: Vector3 = wader + Vector3(cos(ang2), 0, sin(ang2)) * radius
+				if not tr.walkable(e2.x, e2.z):
+					continue
+				var eye2 := Vector3(e2.x, tr.height_at(e2.x, e2.z) + 1.7, e2.z)
+				if space2.intersect_ray(PhysicsRayQueryParameters3D.create(eye2, target2)).is_empty():
+					wader_eye = e2
+					found2 = true
+					break
+			if found2:
+				break
+	var approach: Vector3 = tr.points["bluff_approach"]
+	# Stand in the ravine understory itself, looking up the draw.
+	var draw_eye := approach
+	var draw_at := approach
+	for c in main.foliage.get_children():
+		if c is MultiMeshInstance3D and c.get_meta("kind", "") == "understory" and c.multimesh.instance_count > 2:
+			draw_at = c.multimesh.get_instance_transform(0).origin
+			var up_slope: Vector3 = (Vector3(tr.points["council_bluff"]) - draw_at).normalized()
+			draw_eye = draw_at - up_slope * 9.0
+			draw_eye.y = tr.height_at(draw_eye.x, draw_eye.z)
+			break
+
+	# The pelican raft on its bar, from the near bank across the shallows.
+	var pelican := bank
+	var pelican_eye := bank
+	if main.has_node("Wildlife"):
+		var raft: Array[Vector3] = []
+		for c in main.get_node("Wildlife").get_children():
+			if str(c.name).begins_with("Pelican"):
+				raft.append(c.position)
+		if not raft.is_empty():
+			pelican = Vector3.ZERO
+			for q in raft:
+				pelican += q
+			pelican /= raft.size()
+			# Stand back off the bar so the whole flock is in frame and none flush.
+			var nearest := 1e9
+			for k in 36:
+				var ang3 := k * TAU / 36.0
+				var e3: Vector3 = pelican + Vector3(cos(ang3), 0, sin(ang3)) * 34.0
+				if not tr.walkable(e3.x, e3.z):
+					continue
+				var d3 := e3.distance_to(bank)
+				if d3 < nearest:
+					nearest = d3
+					pelican_eye = e3
+
+	# A log running down the river, from the bank abreast of it.
+	var drift := bank
+	var drift_eye := bank
+	if main.has_node("RiverDrift"):
+		for c in main.get_node("RiverDrift").get_children():
+			if c is Node3D and (c as Node3D).visible:
+				drift = (c as Node3D).position
+				# Walk out of the channel from the log itself until there is dry
+				# ground to stand on: the drift is launched relative to wherever
+				# the Leader started, which is not near this view's bank.
+				var eye := drift
+				for step in 80:
+					eye -= tr.toward_river(eye.x, eye.z) * 4.0
+					if tr.height_at(eye.x, eye.z) > Terrain.WATER_Y + 0.25:
+						break
+				drift_eye = Vector3(eye.x, tr.height_at(eye.x, eye.z), eye.z)
+				break
+
+	# A snag standing in the channel, from the bank on the near side of it.
+	var snag := bank
+	var snag_eye := bank
+	for c in main.foliage.get_children():
+		if c is MultiMeshInstance3D and c.name == "SnagWakes" and c.multimesh.instance_count > 0:
+			# The quad sits downstream of the trunk; back up to the trunk itself.
+			var wake_t: Transform3D = c.multimesh.get_instance_transform(0)
+			snag = wake_t.origin - wake_t.basis.z * 0.5
+			var out := tr.toward_river(bank.x, bank.z)
+			snag_eye = snag - out * 26.0
+			snag_eye.y = tr.height_at(snag_eye.x, snag_eye.z)
+			break
+
+	# A beaver-cut stump on the bank, from a few paces off.
+	var beaver := bank
+	var beaver_eye := bank
+	for c in main.foliage.get_children():
+		if c is MultiMeshInstance3D and c.name == "BeaverStumps" and c.multimesh.instance_count > 0:
+			beaver = c.multimesh.get_instance_transform(0).origin
+			var away := (bank - beaver)
+			away.y = 0.0
+			# The camera sits a spring-arm behind the Leader, so stand well back.
+			beaver_eye = beaver + away.normalized() * 7.0
+			break
 	var args := OS.get_cmdline_user_args()
 	if not "--corps" in args:
 		for f in main.corps.values():
@@ -172,19 +343,36 @@ func _scenery_steps() -> Array:
 		["landing", start.x, start.z, _yaw_to(start, main.get_node("Fleet").get_child(0).global_position if main.has_node("Fleet") else start) , -6.0, 8.5, 0.0],
 		["keelboat", quay.x, quay.z, _yaw_to(quay, keel), -4.0, 9.5, 0.0],
 		["camp", camp_eye.x, camp_eye.z, _yaw_to(camp_eye, camp), -6.0, 9.0, 0.0],
+		["camp_close", camp.x + 5.0, camp.z + 7.0, _yaw_to(camp + Vector3(5, 0, 7), camp), -8.0, 9.5, 0.0],
 		["camp_night", camp_eye.x, camp_eye.z, _yaw_to(camp_eye, camp), -4.0, 22.0, 0.0],
 		["cottonwoods", grove.x, grove.z, -20.0, -2.0, 10.0, 0.0],
-		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 2.0, 17.5, 0.0],
+		["sunrise_grove", grove.x, grove.z, -90.0, 4.0, 6.4, 0.0],
+		["elk_herd", herd_eye.x, herd_eye.z, _yaw_to(herd_eye, herd), 0.0, 17.5, 0.0, 6.5],
 		["riverbank", bank.x, bank.z, bank_yaw, -10.0, 16.0, 0.0],
+		# First light on the water, when the river steams.
+		["river_mist", bank.x, bank.z, bank_yaw, -4.0, 6.3, 0.0],
+		["wader", wader_eye.x, wader_eye.z, _yaw_to(wader_eye, wader), -3.0, 10.5, 0.0],
+		["pelicans", pelican_eye.x, pelican_eye.z, _yaw_to(pelican_eye, pelican), -4.0, 9.0, 0.0],
+		["drift", drift_eye.x, drift_eye.z, _yaw_to(drift_eye, drift), -7.0, 12.0, 0.0],
+		["snag", snag_eye.x, snag_eye.z, _yaw_to(snag_eye, snag), -6.0, 11.0, 0.0],
+		["beaver", beaver_eye.x, beaver_eye.z, _yaw_to(beaver_eye, beaver), -28.0, 11.0, 0.0, 5.0],
 		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],
 		["hilltop_vista", ridge.x, ridge.z, -60.0, 2.0, 11.0, 0.0],
+		# Up the wooded draw the Corps used to get off the river onto the bluff.
+		["draw", draw_eye.x, draw_eye.z, _yaw_to(draw_eye, draw_at), -4.0, 10.0, 0.0],
 		["bluff_sunset_east", bluff.x, bluff.z, -90.0, -10.0, 19.2, 0.0],
 		["bluff_sunset_west", bluff.x, bluff.z, 100.0, 4.0, 19.2, 0.0],
 		["landmark", bluff.x, bluff.z, 0.0, -10.0, 17.0, 0.0],
+		# Inland from the bluff: the Oto village fires standing over the far prairie.
+		["village_smoke", bluff.x, bluff.z, 105.0, 1.0, 10.0, 0.0],
+		["swallows", bluff.x, bluff.z, _yaw_to(bluff, bluff + tr.toward_river(bluff.x, bluff.z) * 20.0), -18.0, 18.5, 0.0, 3.0],
 		["skyward", bluff.x, bluff.z, -60.0, 22.0, 11.0, 0.0],
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
+		["lightning", dogs.x, dogs.z, 20.0, 12.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
+		["night_sky", bluff.x, bluff.z, 20.0, 30.0, 1.5, 0.0, 2.6],
+		["moon", bluff.x, bluff.z, moon_yaw, moon_pitch, moon_hour, 0.0, 5.5],
 	]
 	for a in args:
 		if a.begins_with("--only="):
@@ -211,6 +399,19 @@ func _scenery_steps() -> Array:
 		main.sky.env.ssao_enabled = false
 	if "--no-ssil" in args:
 		main.sky.env.ssil_enabled = false
+	if "--fish" in args and main.has_node("RiverLife"):
+		# Every rise is a jump, and they come often enough that a still catches
+		# one in the air rather than waiting on the dice.
+		_fish_show = main.get_node("RiverLife") as RiverLife
+		_fish_show.jump_chance = 1.0
+	if "--map" in args:
+		main.map_screen.toggle()         # the sheet open, for a still of it
+	if "--glass" in args:
+		main.leader.glassing = true      # the spyglass up, for a still of the field
+	if "--rifle" in args:
+		main.leader.rifle_ready = true
+	if "--no-ssr" in args:
+		main.sky.env.ssr_enabled = false
 	if "--no-vfog" in args:
 		main.sky.env.volumetric_fog_enabled = false
 	if "--no-grass-shadow" in args:
@@ -221,6 +422,8 @@ func _scenery_steps() -> Array:
 	for v in views:
 		steps.append(["view"] + v)
 		steps.append(["wait", 8.0 if "--hold" in args else 2.5])
+		if v[0] == "lightning":
+			steps.append(["await_bolt", 25.0])  # shoot the instant one falls
 		steps.append(["shot", v[0]])
 	steps.append(["report"])
 	return steps
@@ -228,8 +431,15 @@ func _scenery_steps() -> Array:
 
 func _process(delta: float) -> void:
 	_t += delta
-	if _t > 2.0:
+	if _t > 2.0 and _skip_frames <= 0:
 		_frames.append(delta)
+		_frame_at.append(_t)
+	_skip_frames -= 1
+	if _fish_show != null:
+		_fish_t -= delta
+		if _fish_t <= 0.0:
+			_fish_t = 0.35
+			_fish_show.rise()
 	_watch_moments()
 	if _step >= _steps.size():
 		return
@@ -274,6 +484,22 @@ func _process(delta: float) -> void:
 			l._yaw = s[4]
 			l._pitch = s[5]
 			l.camera_rig.global_position = pos + Vector3(0, 1.65, 0)
+			# A view can ask for a higher eye than a man's; the Leader's own rig is
+			# pinned to his head, so those are shot on a free camera instead.
+			var eye_height: float = float(s[8]) if s.size() > 8 else 0.0
+			if eye_height > 2.0:
+				if _free_cam == null:
+					_free_cam = Camera3D.new()
+					_free_cam.fov = 62.0
+					_free_cam.far = 1600.0
+					main.add_child(_free_cam)
+				_free_cam.global_position = pos + Vector3(0, eye_height, 0)
+				_free_cam.rotation = Vector3(deg_to_rad(float(s[5])), deg_to_rad(float(s[4])), 0.0)
+				_free_cam.make_current()
+				main.sky.follow = _free_cam
+			else:
+				l.camera.make_current()
+				main.sky.follow = l.camera
 			l.trail.clear()
 			l.trail.append(pos)
 			main.state.minute_of_day = int(float(s[6]) * 60.0)
@@ -310,6 +536,26 @@ func _process(delta: float) -> void:
 			cam.make_current()
 			main.sky.follow = cam
 			_next()
+		"stores":
+			var inv: InventoryScreen = main.inventory
+			inv.open = true
+			inv.visible = true
+			inv._hold = str(s[1])
+			inv._build_holds()
+			inv._fill()
+			_next()
+		"council_take":
+			main.council_screen._take(str(s[1]))
+			_next()
+		"council_offer":
+			main.council_screen.council.offer(str(s[1]), int(s[2]))
+			main.council_screen._refresh()
+			_next()
+		"await_bolt":
+			_wait += delta
+			if main.sky._bolt_left > 0.01 or _wait > float(s[1]):
+				_wait = 0.0
+				_next()
 		"clear_detour":
 			_detour = ""
 			_next()
@@ -413,6 +659,10 @@ func _next() -> void:
 
 
 func _shot(name: String) -> void:
+	# Reading the viewport back and writing a PNG costs over a tenth of a second;
+	# that is the harness, not the game, so it must not land in the frame stats.
+	# The readback stalls the frame it is on and the one after it.
+	_skip_frames = 2
 	_shot_n += 1
 	var img := get_viewport().get_texture().get_image()
 	var path := "%s/%02d_%s.png" % [shots_dir, _shot_n, name]
@@ -439,6 +689,14 @@ func _report() -> void:
 	print("AUTOPILOT REPORT")
 	print("resolution %dx%d  avg %.0f fps  1%% low frame %.1f ms (%.0f fps)  over %.0fs" % [vp.x, vp.y, avg_fps, worst_ms, 1000.0 / maxf(worst_ms, 0.001), _t])
 	print("draw calls %d  primitives %d" % [RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME), RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)])
+	# Where the stutters were, so a hitch can be traced to what was spawning or
+	# coming into view at that second rather than guessed at.
+	var hitches: Array[String] = []
+	for i in _frames.size():
+		if _frames[i] > 0.025:
+			hitches.append("%.1fs:%.0fms" % [_frame_at[i], _frames[i] * 1000.0])
+	if not hitches.is_empty():
+		print("hitches (>25ms): %d  %s" % [hitches.size(), " ".join(hitches.slice(0, 40))])
 	for line in _log:
 		print("  " + line)
 	print("JOURNAL")

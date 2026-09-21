@@ -1,0 +1,3 @@
+# Performance floor: 60 fps at 1080p on a mid-range card, 30 on Steam Deck
+
+Every change is measured against a GTX 1660 / RTX 3050 class card at 1080p holding 60 fps, and a Steam Deck holding a playable 30 fps on its own settings tier — not against the development machine, which has far more headroom than either. Without a stated floor, showcase polish (ADR-0014) and the broad simulation (ADR-0010) would quietly spend all of that headroom, and it is the hardest thing to win back later. The Deck matters because the public demo goes out through Steam Next Fest, where a good share of players try it on one.

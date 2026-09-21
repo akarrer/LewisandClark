@@ -54,8 +54,15 @@ func build(terrain: Terrain, min_dist := 0.0, shadows := false, blades := 8, wid
 	pm.set_shader_parameter("river_clear", terrain.river_half_width() + 14.0)  # keep off the sandbars
 	pm.set_shader_parameter("max_dist", rows * spacing * 0.5 - 2.0)
 	pm.set_shader_parameter("min_dist", min_dist)
+	var town: Vector3 = terrain.points.get("prairie_dog_town", Vector3(-1000, 0, -1000))
+	pm.set_shader_parameter("town", Vector2(town.x, town.z))
 	var camp: Vector3 = terrain.points.get("camp", Vector3(-1000, 0, -1000))
 	pm.set_shader_parameter("camp", Vector2(camp.x, camp.z))
+	var edge: Vector3 = terrain.points.get("landing_edge", camp)
+	pm.set_shader_parameter("trace_a", Vector2(camp.x, camp.z))
+	pm.set_shader_parameter("trace_b", Vector2(edge.x, edge.z))
+	var bluff: Vector3 = terrain.points.get("council_bluff", edge)
+	pm.set_shader_parameter("trace_c", Vector2(bluff.x, bluff.z))
 	pm.set_shader_parameter("fade_out", r_is_last(min_dist))  # inner rings hand off with a hard edge
 	process_material = pm
 

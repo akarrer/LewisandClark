@@ -12,6 +12,26 @@ var _flash := 0.0
 var rain: GPUParticles3D
 var rain_mat: StandardMaterial3D
 var _wet := 0.0
+## What the sky is doing now, for the HUD and the Journal (see rules/weather.gd).
+var cloud_cover := 0.42
+var haze := 0.0
+var river_mist := 0.0
+var night_amount := 0.0
+## Set from the Day Clock's date (see moon_phase_for / meteors_for).
+## The weather this day was given (rules/weather.gd day_pattern).
+## The date, for where the sun and moon stand (set with the day's weather).
+var month_now := 8
+var day_now := 1
+var cover_today := 0.42
+var storm_today := false
+var storm_hour := 99.0
+var storm_seconds := 40.0
+var _storm_done := false
+var _bolt: MeshInstance3D
+var _bolt_left := 0.0
+var _eye := Vector3.ZERO
+var moon_phase := 0.6
+var meteor_rate := 0.02
 var follow: Node3D  # rain follows this (the camera)
 var _rng := RandomNumberGenerator.new()
 
@@ -97,6 +117,72 @@ func build() -> void:
 	_build_rain()
 
 
+func _strike() -> void:
+	## A bolt out of the cloud, away over the country: a jagged fall with a branch
+	## or two, bright for a moment. Rebuilt each time, so no two are the same.
+	if _bolt == null:
+		_bolt = MeshInstance3D.new()
+		_bolt.name = "Lightning"
+		_bolt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.albedo_color = Color(3.4, 3.2, 3.6)
+		m.disable_receive_shadows = true
+		_bolt.material_override = m
+		add_child(_bolt)
+	# Thrown out ahead of whoever is watching: a bolt behind your back is no bolt.
+	var bearing := _rng.randf() * TAU
+	if follow:
+		var forward := -follow.global_transform.basis.z
+		bearing = atan2(forward.x, forward.z) + _rng.randf_range(-0.7, 0.7)
+	var far := _rng.randf_range(300.0, 700.0)
+	var foot := Vector3(sin(bearing) * far, 0.0, cos(bearing) * far)
+	var head := foot + Vector3(_rng.randf_range(-60, 60), _rng.randf_range(260, 420), _rng.randf_range(-60, 60))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_eye = follow.global_position if follow else Vector3.ZERO
+	_fork(st, head, foot, _rng.randf_range(6.0, 11.0), 7, true)
+	_bolt.mesh = st.commit()
+	_bolt.position = Vector3(follow.global_position.x, 0.0, follow.global_position.z) if follow else Vector3.ZERO
+	_bolt.visible = true
+	_bolt_left = _rng.randf_range(0.08, 0.18)
+
+
+func _fork(st: SurfaceTool, from: Vector3, to: Vector3, width: float, steps: int, main_bolt: bool) -> void:
+	## Walk down in jagged steps, laying a ribbon as we go, and throw off a branch.
+	var previous := from
+	for i in range(1, steps + 1):
+		var t := float(i) / steps
+		var along := from.lerp(to, t)
+		var wander := 1.0 - t
+		var next := along + Vector3(_rng.randf_range(-40, 40), 0, _rng.randf_range(-40, 40)) * wander * 0.6
+		if i == steps:
+			next = to
+		# Lay the ribbon across the line of sight, so it reads as a bolt from here.
+		var to_eye := (_eye - previous).normalized()
+		var side := (next - previous).normalized().cross(to_eye).normalized() * width * (1.0 - t * 0.6)
+		for v in [previous - side, previous + side, next + side, previous - side, next + side, next - side]:
+			st.add_vertex(v)
+		if main_bolt and i == int(steps * 0.45):
+			var branch := next + Vector3(_rng.randf_range(-120, 120), -_rng.randf_range(60, 160), _rng.randf_range(-120, 120))
+			_fork(st, next, branch, width * 0.5, 3, false)
+		previous = next
+
+
+func set_day(pattern: Dictionary, month: int = -1, day: int = -1) -> void:
+	## Give the sky the weather this day was dealt, and the date it belongs to.
+	if month > 0:
+		month_now = month
+		day_now = day
+	cover_today = clampf(float(pattern.get("cover", 0.42)), 0.0, 1.0)
+	storm_today = bool(pattern.get("storm", false))
+	storm_hour = float(pattern.get("storm_hour", 99.0))
+	storm_seconds = float(pattern.get("storm_seconds", 40.0))
+	_storm_done = false
+
+
 func start_storm(seconds: float) -> void:
 	_storm_target = 1.0
 	_storm_hold = seconds
@@ -133,6 +219,88 @@ func _build_rain() -> void:
 	add_child(rain)
 
 
+## Where the Corps stood: Council Bluff, on the Missouri.
+const LATITUDE := 41.52
+const LONGITUDE := -95.92
+
+
+static func day_of_year(month: int, day: int) -> int:
+	const BEFORE := [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+	return BEFORE[clampi(month - 1, 0, 11)] + day
+
+
+static func solar_position(month: int, day: int, hour: float) -> Vector2:
+	## The sun's elevation and azimuth in degrees (azimuth 0 = north, 90 = east),
+	## by the usual declination-and-hour-angle reckoning. Good to a fraction of a
+	## degree, which is far closer than the eye can tell.
+	var n := float(day_of_year(month, day))
+	var decl := deg_to_rad(23.44 * sin(deg_to_rad(360.0 / 365.0 * (n + 284.0))))
+	# Local solar time: the sun is not obliging enough to keep clock time.
+	var b := deg_to_rad(360.0 / 365.0 * (n - 81.0))
+	var equation := 9.87 * sin(2.0 * b) - 7.53 * cos(b) - 1.5 * sin(b)  # minutes
+	var meridian := -90.0  # the centre of this longitude's zone
+	var solar_hour := hour + (4.0 * (LONGITUDE - meridian) + equation) / 60.0
+	var hour_angle := deg_to_rad(15.0 * (solar_hour - 12.0))
+	var lat := deg_to_rad(LATITUDE)
+	var sin_el := sin(lat) * sin(decl) + cos(lat) * cos(decl) * cos(hour_angle)
+	var elevation := asin(clampf(sin_el, -1.0, 1.0))
+	var cos_az := (sin(decl) - sin(elevation) * sin(lat)) / maxf(cos(elevation) * cos(lat), 0.0001)
+	var azimuth := acos(clampf(cos_az, -1.0, 1.0))
+	if hour_angle > 0.0:
+		azimuth = TAU - azimuth  # afternoon: west of south
+	return Vector2(rad_to_deg(elevation), rad_to_deg(azimuth))
+
+
+static func moon_position(month: int, day: int, hour: float, phase: float) -> Vector2:
+	## The moon's elevation and azimuth in degrees, taken as the sun's position
+	## ``phase`` of a day earlier. That ignores the five degrees its orbit is
+	## tipped to the sun's, which nobody standing on a sandbar would notice.
+	return solar_position(month, day, fposmod(hour - phase * 24.0, 24.0))
+
+
+static func moon_direction(position: Vector2) -> Vector3:
+	## A unit vector toward the moon, built the way the sun's light is aimed so
+	## the two agree.
+	return Basis.from_euler(Vector3(deg_to_rad(-position.x), deg_to_rad(180.0 - position.y), 0.0)).z
+
+
+static func day_length(month: int, day: int) -> float:
+	## Hours between sunrise and sunset, which is what a season feels like.
+	var n := float(day_of_year(month, day))
+	var decl := deg_to_rad(23.44 * sin(deg_to_rad(360.0 / 365.0 * (n + 284.0))))
+	var lat := deg_to_rad(LATITUDE)
+	var cos_h := -tan(lat) * tan(decl)
+	if cos_h <= -1.0:
+		return 24.0
+	if cos_h >= 1.0:
+		return 0.0
+	return 2.0 * rad_to_deg(acos(cos_h)) / 15.0
+
+
+static func julian_day(year: int, month: int, day: int) -> float:
+	## Julian Day at noon, by the standard civil-calendar formula.
+	var y := year
+	var m := month
+	if m <= 2:
+		y -= 1
+		m += 12
+	var a := int(floor(y / 100.0))
+	var b := 2 - a + int(floor(a / 4.0))
+	return floor(365.25 * (y + 4716)) + floor(30.6001 * (m + 1)) + day + b - 1524.5
+
+
+static func moon_phase_for(year: int, month: int, day: int) -> float:
+	## 0 and 1 new, 0.5 full. Counted from the new moon of 2000-01-06, which is
+	## as true for 1804 as for now: the Corps navigated by these.
+	return fposmod((julian_day(year, month, day) - 2451550.1) / 29.530588853, 1.0)
+
+
+static func meteors_for(month: int, day: int) -> float:
+	## Sporadics most nights; the Perseids swell around 12 August.
+	var perseid := exp(-pow(float(day) - 12.0, 2.0) / 60.0) if month == 8 else 0.0
+	return 0.02 + 0.5 * perseid
+
+
 static func palette(hour: float) -> Array:
 	## Interpolated [zenith, horizon, glow, light colour, light energy, ambient] for ``hour``.
 	var h := fposmod(hour, 24.0)
@@ -146,6 +314,10 @@ static func palette(hour: float) -> Array:
 
 
 func update(hour: float, delta: float) -> void:
+	# The afternoon storm, if this day was given one, breaks when its hour comes.
+	if storm_today and not _storm_done and hour >= storm_hour and hour < storm_hour + 3.0:
+		_storm_done = true
+		start_storm(storm_seconds)
 	# Storm envelope.
 	if _storm_hold > 0.0:
 		_storm_hold -= delta
@@ -159,13 +331,33 @@ func update(hour: float, delta: float) -> void:
 	_flash = max(0.0, _flash - delta * 3.0)
 	if storm > 0.7 and _rng.randf() < delta * 0.18:
 		_flash = 1.0
+		_strike()
+	_bolt_left = maxf(_bolt_left - delta, 0.0)
+	if _bolt:
+		_bolt.visible = _bolt_left > 0.0
 
-	# Sun path: rises ~5:45, sets ~19:30 in August. At night the light becomes the moon, high in the south-east.
+	# The sun's bearing is the almanac's: it rises north of east in August and
+	# south of east in December, so shadows fall differently by season. Its height
+	# keeps to the Day Clock's own arc, which the palette below is tuned to.
 	var day_t := clampf((hour - 5.75) / (19.5 - 5.75), -0.15, 1.15)
 	var elevation := sin(day_t * PI)
 	var is_day := elevation > 0.02
 	var pitch := -rad_to_deg(asin(clampf(elevation, -1.0, 1.0))) * 0.95
-	sun.rotation_degrees = Vector3(min(pitch, -1.5) if is_day else -40.0, 150.0 - day_t * 120.0 if is_day else 35.0, 0.0)
+	var bearing := solar_position(month_now, day_now, hour).y
+	# The moon runs the sun's own path, lagging it by its phase: with the sun at
+	# new, opposite it at full, so a full moon rises as the sun goes down. It
+	# used to be pinned in one place all night, which was the plainest thing
+	# wrong with the night sky.
+	var moon := moon_position(month_now, day_now, hour, moon_phase)
+	if is_day:
+		sun.rotation_degrees = Vector3(min(pitch, -1.5), 180.0 - bearing, 0.0)
+	elif moon.x > 2.0:
+		# Moonlight comes from the moon.
+		sun.rotation_degrees = Vector3(-maxf(moon.x, 10.0), 180.0 - moon.y, 0.0)
+	else:
+		# With the moon down, a token light from high in the north-west, so the
+		# night is dark rather than black.
+		sun.rotation_degrees = Vector3(-40.0, 35.0, 0.0)
 
 	var p := palette(hour)
 	var zenith: Color = p[0]
@@ -176,6 +368,9 @@ func update(hour: float, delta: float) -> void:
 	zenith = zenith.lerp(grey * 0.8 * (0.3 + 0.7 * p[5]), storm * 0.85)
 	horizon = horizon.lerp(grey * (0.3 + 0.7 * p[5]), storm * 0.85)
 	var night := 1.0 - smoothstep(0.36, 0.8, p[5])  # full night when ambient is at its floor
+	# The day's own cloud, thinning a little after dark, and full over in a storm.
+	# Worked out once here: the sky, the shadows and the HUD all read this.
+	cloud_cover = lerpf(lerpf(cover_today, cover_today * 0.7, night), 1.0, storm)
 
 	sun.light_color = light_col.lerp(Color(0.6, 0.65, 0.75), storm * 0.6)
 	sun.light_energy = p[4] * (1.0 - storm * 0.7) + _flash * 1.8
@@ -190,10 +385,13 @@ func update(hour: float, delta: float) -> void:
 	sky_mat.set_shader_parameter("cloud_darkness", storm)
 	sky_mat.set_shader_parameter("cloud_light", Color(1.0, 0.98, 0.95).lerp(glow, 0.35).lerp(Color(0.16, 0.18, 0.26), night))
 	sky_mat.set_shader_parameter("cloud_shadow", horizon.lerp(zenith, 0.5).darkened(0.25).lerp(Color(0.04, 0.05, 0.09), night))
-	sky_mat.set_shader_parameter("cloud_coverage", lerpf(lerpf(0.42, 0.3, night), 1.0, storm))
+	sky_mat.set_shader_parameter("cloud_coverage", cloud_cover)
 	sky_mat.set_shader_parameter("star_amount", night * (1.0 - storm))
-	sky_mat.set_shader_parameter("moon_amount", night * (1.0 - storm))
-	sky_mat.set_shader_parameter("moon_dir", sun.global_transform.basis.z)
+	# Drawn only while it is above the horizon, and faded in as it clears it.
+	sky_mat.set_shader_parameter("moon_amount", night * (1.0 - storm) * smoothstep(-2.0, 4.0, moon.x))
+	sky_mat.set_shader_parameter("moon_dir", moon_direction(moon))
+	sky_mat.set_shader_parameter("moon_phase", moon_phase)
+	sky_mat.set_shader_parameter("meteor_rate", meteor_rate * night * (1.0 - storm))
 
 	# Rain takes the colour of the sky behind it rather than glowing white.
 	var rc := horizon.lerp(Color(0.8, 0.84, 0.9), 0.35).lerp(Color.WHITE, _flash * 0.6)
@@ -201,7 +399,8 @@ func update(hour: float, delta: float) -> void:
 	# Sky colour for materials that fake reflections (the river's sheen); see [shader_globals].
 	# Cloud shadows on the land (cloud_shadow.gdshaderinc): gone at night, and under
 	# a full overcast the whole land is already in shade.
-	var coverage := lerpf(lerpf(0.42, 0.3, night), 1.0, storm)
+	var coverage := cloud_cover
+	night_amount = night
 	# Wind the plants lean into: a breathing prairie breeze, half a gale in a storm.
 	var gust := 1.0 + 0.35 * sin(Time.get_ticks_msec() / 1000.0 * 0.11) + storm * 2.6
 	RenderingServer.global_shader_parameter_set("night_amount", night)
@@ -221,7 +420,11 @@ func update(hour: float, delta: float) -> void:
 	env.fog_light_color = horizon
 	env.fog_density = 0.0006 + storm * 0.006
 	# Morning haze pooling in the bottomland.
-	var haze := clampf(1.0 - absf(hour - 6.8) / 2.2, 0.0, 1.0)
+	haze = clampf(1.0 - absf(hour - 6.8) / 2.2, 0.0, 1.0)
+	# Mist on the river itself: the water is warmer than the air over it at first
+	# light, so it steams. A wind tears it apart and rain never lets it form.
+	river_mist = haze * haze * (1.0 - storm) * (1.0 - smoothstep(1.4, 3.0, gust))
+	RenderingServer.global_shader_parameter_set("river_mist", river_mist)
 	env.fog_height = 3.0
 	env.fog_height_density = 0.04 * haze
 	# Air thick enough to show shafts at the low sun, clearing through the day.

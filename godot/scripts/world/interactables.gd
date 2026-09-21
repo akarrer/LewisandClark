@@ -29,13 +29,9 @@ static func landmark_marker(pos: Vector3, title: String) -> Interactable:
 	it.label = "Visit " + title
 	it.radius = 6.0
 	it.add_child(Props.cylinder(0.07, 7.0, Color(0.36, 0.26, 0.16), Vector3(0, 3.5, 0)))
-	var stripes := Node3D.new()
-	stripes.position = Vector3(0.95, 6.3, 0)
-	for i in 7:
-		var col := Color(0.72, 0.12, 0.12) if i % 2 == 0 else Color(0.93, 0.91, 0.86)
-		stripes.add_child(Props.box(Vector3(1.8, 0.14, 0.02), col, Vector3(0, -i * 0.14, 0)))
-	stripes.add_child(Props.box(Vector3(0.75, 0.56, 0.03), Color(0.12, 0.18, 0.42), Vector3(-0.52, -0.21, 0)))
-	it.add_child(stripes)
+	var colours := Props.flag(1.8, 1.05)
+	colours.position = Vector3(0.05, 6.1, 0)
+	it.add_child(colours)
 	var r := Props.ring(3.0, Color(1.0, 0.8, 0.35))
 	it.add_child(r)
 	return it
@@ -50,7 +46,11 @@ static func prairie_dog_town(pos: Vector3, terrain: Terrain) -> Node3D:
 		var off := Vector3(rng.randf_range(-14, 14), 0, rng.randf_range(-14, 14))
 		var p := pos + off
 		p.y = terrain.height_at(p.x, p.z)
-		town.add_child(Props.sphere(0.9, Color(0.56, 0.44, 0.30), p, Vector3(1.2, 0.35, 1.2)))
+		# A mound of thrown-out earth with the burrow mouth in the middle of it.
+		var size := rng.randf_range(0.75, 1.25)
+		town.add_child(Props.sphere(0.9 * size, Color(0.56, 0.44, 0.30), p, Vector3(1.2, 0.3, 1.2)))
+		var mouth := Props.sphere(0.2 * size, Color(0.13, 0.10, 0.08), p + Vector3(0, 0.24 * size, 0), Vector3(1.0, 0.45, 1.0))
+		town.add_child(mouth)
 		var dog := Node3D.new()
 		dog.name = "Dog%d" % i
 		dog.position = p + Vector3(0.15, 0.1, 0)

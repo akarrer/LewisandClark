@@ -92,6 +92,70 @@ static func puff_texture() -> GradientTexture2D:
 	return puff
 
 
+static func flag(width: float, height: float) -> Node3D:
+	## The fifteen-star colours, flying on the wind (see flag.gdshader). The node's
+	## own origin is the hoist, so it can be placed straight onto a staff.
+	var holder := Node3D.new()
+	holder.name = "Colours"
+	var mesh := PlaneMesh.new()
+	mesh.size = Vector2(width, height)
+	mesh.subdivide_width = 24
+	mesh.subdivide_depth = 6
+	mesh.orientation = PlaneMesh.FACE_Z
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.position = Vector3(width * 0.5, 0, 0)  # hoist at the holder's origin
+	var m := ShaderMaterial.new()
+	m.shader = load("res://scripts/world/flag.gdshader")
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	holder.add_child(mi)
+	return holder
+
+
+static func village_smoke() -> GPUParticles3D:
+	## A lodge fire seen from half a mile off: tall, slow, thinned by the distance.
+	## The Corps read the country this way — Clark had the Oto towns on his map
+	## days before he saw one, by the smokes standing over the prairie.
+	var p := GPUParticles3D.new()
+	p.amount = 42
+	p.lifetime = 16.0
+	p.preprocess = 16.0
+	p.visibility_aabb = AABB(Vector3(-40, 0, -40), Vector3(80, 220, 80))
+	var sp := ParticleProcessMaterial.new()
+	sp.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	sp.emission_sphere_radius = 1.0
+	sp.direction = Vector3(0.3, 1, 0.12)
+	sp.spread = 10.0
+	sp.initial_velocity_min = 5.5
+	sp.initial_velocity_max = 7.5
+	sp.gravity = Vector3(0.6, 0.2, 0.25)
+	sp.scale_min = 9.0
+	sp.scale_max = 15.0
+	var ramp := Gradient.new()
+	# Densest well up the column: the foot of it is behind the ridge anyway.
+	ramp.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	ramp.colors = PackedColorArray([Color(0.60, 0.59, 0.57, 0.14), Color(0.72, 0.71, 0.69, 0.48),
+			Color(0.84, 0.84, 0.83, 0.0)])
+	var tex := GradientTexture1D.new()
+	tex.gradient = ramp
+	sp.color_ramp = tex
+	p.process_material = sp
+	var quad := QuadMesh.new()
+	quad.size = Vector2(3.0, 3.0)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	m.disable_receive_shadows = true
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true       # otherwise the per-particle scale is thrown away
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = puff_texture()
+	quad.material = m
+	p.draw_pass_1 = quad
+	return p
+
+
 static func smoke_column() -> GPUParticles3D:
 	var p := GPUParticles3D.new()
 	p.amount = 90
@@ -123,8 +187,12 @@ static func smoke_column() -> GPUParticles3D:
 	var m := StandardMaterial3D.new()
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.vertex_color_use_as_albedo = true
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# BILLBOARD_ENABLED, not BILLBOARD_PARTICLES: the particles mode divides by the
+	# animation frame counts, which are zero here, and the quads come out invisible.
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL  # so it darkens at night
+	m.disable_receive_shadows = true
 	m.albedo_texture = puff_texture()
 	quad.material = m
 	p.draw_pass_1 = quad

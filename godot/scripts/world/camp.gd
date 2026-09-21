@@ -10,9 +10,28 @@ const WOOD := Color(0.48, 0.34, 0.20)
 const ROPE := Color(0.42, 0.35, 0.24)
 const IRON := Color(0.17, 0.16, 0.15)
 
+## Who is about the camp, and what they are doing (animation names are the
+## Universal Animation Library's). Applied in _ready, once they are in the tree.
+const CAMP_WORK := [
+	{"key": "camp_fire", "name": "Pvt. Bratton", "coat": Color(0.38, 0.34, 0.28), "hat": false,
+		"anim": "Fixing_Kneeling", "pos": Vector3(0.0, 0.0, 1.45), "face": Vector3.ZERO},
+	{"key": "camp_sit1", "name": "Pvt. Gibson", "coat": Color(0.33, 0.33, 0.36), "hat": true,
+		"anim": "Sitting_Talking", "pos": Vector3(-2.7, 0.0, 1.5), "face": Vector3(0, 0, 0.2)},
+	{"key": "camp_sit2", "name": "Pvt. Whitehouse", "coat": Color(0.44, 0.38, 0.30), "hat": true,
+		"anim": "Sitting_Idle", "pos": Vector3(2.7, 0.0, 1.5), "face": Vector3(0, 0, 0.2)},
+	{"key": "camp_rack", "name": "Pvt. Werner", "coat": Color(0.36, 0.30, 0.24), "hat": false,
+		"anim": "Idle_Talking", "pos": Vector3(4.0, 0.0, 3.4), "face": Vector3(5.2, 0, 2.4)},
+	{"key": "camp_watch", "name": "Pvt. Colter", "coat": Color(0.30, 0.34, 0.42), "hat": true,
+		"anim": "Idle", "pos": Vector3(6.4, 0.0, -3.4), "face": Vector3(14.0, 0, -12.0)},
+]
+
 var fire_light: OmniLight3D
+## Set from main each frame: 0 by day, 1 in the dark.
+var night := 0.0
+var _moths: GPUParticles3D
 var _flames: GPUParticles3D
 var _rng := RandomNumberGenerator.new()
+var _men: Array[Dictionary] = []
 
 
 static func pitch(terrain: Terrain) -> Camp:
@@ -36,12 +55,19 @@ func _build(terrain: Terrain, here: Vector3) -> void:
 		tent.position = Vector3(-4.5 + i * 9.0, 0, -5.0 - i * 1.2)
 		tent.rotation.y = deg_to_rad(_rng.randf_range(-14.0, 14.0)) + (0.25 if i == 0 else -0.25)
 		add_child(tent)
+	# Bedrolls laid out under the tents, two or three to a tent.
 	for i in 5:
-		var roll := Props.cylinder(0.22, 1.75, CANVAS.darkened(0.15), Vector3.ZERO)
-		roll.rotation_degrees = Vector3(0, _rng.randf_range(-20, 20), 90)
-		var a := -0.9 + i * 0.45
-		roll.position = Vector3(sin(a) * 3.4, 0.2, cos(a) * 3.4)
+		var roll := Props.cylinder(0.2, 1.7, CANVAS.darkened(0.15), Vector3.ZERO)
+		roll.rotation_degrees = Vector3(0, _rng.randf_range(-6, 6), 90)
+		var tent_x := -4.5 if i < 3 else 4.5
+		var slot := i if i < 3 else i - 3
+		roll.position = Vector3(tent_x + (slot - 1) * 0.62, 0.2, (-5.0 if i < 3 else -6.2) + _rng.randf_range(-0.2, 0.2))
 		add_child(roll)
+	# Two logs drawn up to the fire to sit on.
+	for side in [-1.0, 1.0]:
+		var bench := Props.cylinder(0.26, 2.6, WOOD.darkened(0.22), Vector3(side * 2.7, 0.26, 1.1))
+		bench.rotation_degrees = Vector3(0, 12.0 * side, 90)
+		add_child(bench)
 	# Cargo ashore: kegs and crates stacked clear of the tide line.
 	for i in 6:
 		var keg := Props.cylinder(0.32, 0.72, WOOD.darkened(0.1), Vector3.ZERO)
@@ -54,12 +80,27 @@ func _build(terrain: Terrain, here: Vector3) -> void:
 		var crate := Props.box(Vector3(0.8, 0.55, 0.6), WOOD.lightened(0.05), Vector3(-3.4 - (i % 2) * 0.9, 0.28 + (0.55 if i >= 2 else 0.0), -2.2))
 		crate.rotation_degrees.y = _rng.randf_range(-12, 12)
 		add_child(crate)
+	_post_men(terrain)
 	# A rack of drying meat, and the woodpile.
 	add_child(_rack())
 	for i in 9:
 		var log_ := Props.cylinder(0.09, _rng.randf_range(0.9, 1.3), WOOD.darkened(0.25), Vector3(-1.6 + (i % 3) * 0.2, 0.09 + floor(i / 3.0) * 0.18, 3.6 + (i % 3) * 0.05))
 		log_.rotation_degrees = Vector3(0, 90 + _rng.randf_range(-6, 6), 90)
 		add_child(log_)
+
+
+func _post_men(terrain: Terrain) -> void:
+	## The men not walking with the Leader: feeding the fire, sitting at it,
+	## working the rack, standing watch over the boats.
+	for w in CAMP_WORK:
+		var man := CorpsFigure.new()
+		man.name = str(w["key"])
+		man.setup(str(w["key"]), str(w["name"]), w["coat"], bool(w["hat"]))
+		man.position = w["pos"]
+		var face: Vector3 = w["face"]
+		man.rotation.y = atan2(face.x - man.position.x, face.z - man.position.z)
+		add_child(man)
+		_men.append({"node": man, "anim": str(w["anim"])})
 
 
 func _build_fire() -> void:
@@ -128,7 +169,7 @@ func _build_fire() -> void:
 	smoke.amount = 26
 	smoke.lifetime = 5.0
 	smoke.preprocess = 5.0
-	smoke.position = Vector3(0, 0.6, 0)
+	smoke.position = Vector3(0, 1.1, 0)
 	smoke.visibility_aabb = AABB(Vector3(-3, 0, -3), Vector3(6, 10, 6))
 	var sp := ParticleProcessMaterial.new()
 	sp.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
@@ -138,11 +179,11 @@ func _build_fire() -> void:
 	sp.initial_velocity_min = 0.7
 	sp.initial_velocity_max = 1.2
 	sp.gravity = Vector3(0.4, 0.25, 0.1)
-	sp.scale_min = 0.6
-	sp.scale_max = 1.8
+	sp.scale_min = 0.5
+	sp.scale_max = 1.3
 	var sramp := Gradient.new()
 	sramp.offsets = PackedFloat32Array([0.0, 0.25, 1.0])
-	sramp.colors = PackedColorArray([Color(0.45, 0.42, 0.40, 0.0), Color(0.5, 0.48, 0.46, 0.22), Color(0.6, 0.6, 0.6, 0.0)])
+	sramp.colors = PackedColorArray([Color(0.45, 0.42, 0.40, 0.0), Color(0.5, 0.48, 0.46, 0.16), Color(0.6, 0.6, 0.6, 0.0)])
 	var stex := GradientTexture1D.new()
 	stex.gradient = sramp
 	sp.color_ramp = stex
@@ -150,7 +191,9 @@ func _build_fire() -> void:
 	var squad := QuadMesh.new()
 	squad.size = Vector2(1.1, 1.1)
 	var sm := StandardMaterial3D.new()
-	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# Lit, not unshaded: smoke should be dark at night and glow by the fire.
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	sm.disable_receive_shadows = true
 	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	sm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	sm.vertex_color_use_as_albedo = true
@@ -158,6 +201,42 @@ func _build_fire() -> void:
 	squad.material = sm
 	smoke.draw_pass_1 = squad
 	add_child(smoke)
+
+	# Moths and midges, drawn to the fire once it is dark.
+	_moths = GPUParticles3D.new()
+	_moths.name = "Moths"
+	_moths.amount = 22
+	_moths.lifetime = 6.0
+	_moths.preprocess = 3.0
+	_moths.position = Vector3(0, 1.1, 0)
+	_moths.visibility_aabb = AABB(Vector3(-3, -1, -3), Vector3(6, 5, 6))
+	_moths.emitting = false
+	var mp := ParticleProcessMaterial.new()
+	mp.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	mp.emission_sphere_radius = 1.6
+	mp.direction = Vector3(0, 0.2, 0)
+	mp.spread = 180.0
+	mp.initial_velocity_min = 0.3
+	mp.initial_velocity_max = 0.9
+	mp.gravity = Vector3.ZERO
+	mp.damping_min = 0.4
+	mp.damping_max = 1.0
+	mp.turbulence_enabled = true
+	mp.turbulence_noise_strength = 2.4
+	mp.turbulence_noise_scale = 3.0
+	mp.scale_min = 0.5
+	mp.scale_max = 1.1
+	_moths.process_material = mp
+	var moth := QuadMesh.new()
+	moth.size = Vector2(0.05, 0.035)
+	var mm := StandardMaterial3D.new()
+	mm.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	mm.albedo_color = Color(0.72, 0.66, 0.52)
+	mm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mm.disable_receive_shadows = true
+	moth.material = mm
+	_moths.draw_pass_1 = moth
+	add_child(_moths)
 
 	fire_light = OmniLight3D.new()
 	fire_light.name = "FireLight"
@@ -169,10 +248,27 @@ func _build_fire() -> void:
 	add_child(fire_light)
 
 
+func _ready() -> void:
+	# Their animations can only start once they are in the tree, and each man
+	# starts at his own point in the cycle so they are not in time with each other.
+	for m in _men:
+		var man: CorpsFigure = m["node"]
+		var clip := str(m["anim"])
+		# Work clips are one-shots in the library; at camp they go round and round.
+		var a: Animation = man.anim.get_animation(clip)
+		if a:
+			a.loop_mode = Animation.LOOP_LINEAR
+		man.play(clip, 0.0)
+		if man.anim.has_animation(str(m["anim"])):
+			man.anim.seek(man.phase * man.anim.current_animation_length, true)
+			man.anim.speed_scale = randf_range(0.85, 1.1)
+
+
 func _process(_delta: float) -> void:
 	# The fire breathes: the light flickers with the flames.
 	var t := Time.get_ticks_msec() / 1000.0
 	fire_light.light_energy = 2.6 + sin(t * 7.3) * 0.5 + sin(t * 2.1) * 0.35
+	_moths.emitting = night > 0.4
 
 
 func _tent() -> Node3D:

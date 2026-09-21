@@ -28,8 +28,8 @@ and good plates become Discoveries in the Journal.
    worth drawing; Drouillard's Scout Ahead reveals which are nearby today.
 2. **Stalk.** Wind direction and your speed decide how close you get. Walking is quiet,
    jogging flushes. Tall grass hides you; crossing bare sand does not.
-3. **Sketch.** Hold the sketch key: the camera settles into a framed viewfinder (an
-   inked oval on paper, not a photo frame), time thins slightly, the Corps hush.
+3. **Sketch.** Raise the spyglass (`2`) and hold on the subject: the glass is the
+   sketching tool, and the rifle (`1`) is the hunting one. Time does not stop.
    Release to draw. Drawing takes a few seconds in which the animal may move — that is
    the tension, and it is honest: a sketch is not a snapshot.
 4. **Score the plate** (below), then it lands in the Journal with Lewis's own words
@@ -100,13 +100,13 @@ list into level design, and it rewards a player who reads.
 - Wildlife needs behaviour states worth drawing (we have graze / alert / flee; add
   call, drink, spar, nurse) and a few set-piece flocks.
 
-## Open questions for you
+## Decided (direction session, September 2026)
 
-1. **Scope in the Slice:** a handful of species done well (badger, prairie dogs, terns,
-   pelicans, pronghorn, elk, magpie), or the full Aug–Sep list?
-2. **Does the sketch pause play?** I lean no — the Corps keep walking and the moment can
-   be lost, which is more this game than a freeze-frame.
-3. **Is scoring visible?** Snap shows numbers. A period critique ("well drawn, but the
-   creature is small and far off") may suit us better, with the grade as the number.
-4. **Hunting and sketching in one button or two?** The rifle and the field book are
-   opposite intents; I would keep them separate and let a kill still yield a specimen.
+1. **Scope in the Slice:** the species actually recorded in August and September 1804,
+   not a hand-picked few.
+2. **The sketch does not pause play.** The Corps keep walking and the moment can be lost.
+3. **No numbers.** The grade word (Rough / Fair / Good / Fine) and a period critique in
+   the Journal are the whole of the score.
+4. **Two tools, two keys.** The spyglass sketches and the rifle hunts, so studying an
+   animal and shooting it for the pot are separate choices made with the hand. A kill
+   can still yield a specimen.

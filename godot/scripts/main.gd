@@ -14,6 +14,11 @@ var leader: Leader
 var corps := {}  # key -> CorpsFigure (leader included)
 var director: TrailMomentDirector
 var prairie_dogs: Node3D
+var stores: Stores
+var inventory: InventoryScreen
+var council_screen: CouncilScreen
+var map_screen: MapScreen
+var _emptied: Array[String] = []
 var smoke: GPUParticles3D
 
 var _clock := 0.0
@@ -40,8 +45,34 @@ func _ready() -> void:
 	sky.follow = leader.camera
 	for grass in GrassField.fields(terrain, leader.camera):
 		add_child(grass)
+	var dust := Dust.new()
+	dust.build(terrain, leader)
+	add_child(dust)
+	var hoppers := Hoppers.new()
+	hoppers.build(terrain, leader)
+	add_child(hoppers)
+	var river_life := RiverLife.new()
+	river_life.build(terrain, leader)
+	add_child(river_life)
+	var drift := RiverDrift.new()
+	drift.build(terrain, leader)
+	add_child(drift)
+	var river_surface := terrain.get_node_or_null("Missouri")
+	if river_surface is Water:
+		(river_surface as Water).follow = leader.camera
+
+	var mist := RiverMist.new()
+	mist.build(terrain)
+	mist.follow = leader.camera
+	add_child(mist)
+
+	var butterflies := Butterflies.new()
+	butterflies.build(terrain)
+	butterflies.follow = leader.camera
+	add_child(butterflies)
+
 	var motes := Motes.new()
-	motes.build()
+	motes.build(terrain)
 	motes.follow = leader.camera
 	add_child(motes)
 
@@ -100,8 +131,59 @@ func _place_world_features() -> void:
 	add_child(Boats.fleet(terrain))
 	add_child(Camp.pitch(terrain))
 
+	stores = Stores.load_manifest()
+	state.day_passed.connect(_feed_the_corps)
+	state.day_passed.connect(func(_d): sky.set_day(Weather.day_pattern(state.current_month, state.current_day),
+			state.current_month, state.current_day))
+	sky.set_day(Weather.day_pattern(state.current_month, state.current_day), state.current_month, state.current_day)
+	inventory = InventoryScreen.new()
+	inventory.build(stores)
+	add_child(inventory)
+	map_screen = MapScreen.new()
+	map_screen.build(terrain, leader)
+	add_child(map_screen)
+	council_screen = CouncilScreen.new()
+	council_screen.build()
+	council_screen.closed.connect(_council_closed)
+	add_child(council_screen)
+
+	# The council ground, a little below the flag on the bluff.
+	var ground: Vector3 = terrain.points["council_bluff"] + Vector3(6, 0, 10)
+	ground.y = terrain.height_at(ground.x, ground.z)
+	var council_place := Interactable.new()
+	council_place.name = "CouncilGround"
+	council_place.position = ground
+	council_place.label = "Hold the council with the Otoe and Missouria"
+	council_place.radius = 7.0
+	council_place.on_interact = func():
+		if council_screen.open:
+			return
+		var c := Council.open("council_bluff_1804", stores)
+		c.interpreter_present = corps.has("drouillard")
+		council_screen.begin(c)
+		leader.input_enabled = false
+		leader.look_enabled = false
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	add_child(council_place)
+
 	prairie_dogs = Interactable.prairie_dog_town(terrain.points["prairie_dog_town"], terrain)
 	add_child(prairie_dogs)
+
+	# The Oto and Missouria villages lie off west of the river: their fires stand
+	# in the sky at this distance, which is how the Corps knew where to send runners.
+	# The Oto and Missouria towns lie back off the river to the west, too far to
+	# walk to in the Slice. Their fires stand over the prairie, and the ridge west
+	# of the bluff hides the feet of the columns: this is how Clark had the towns
+	# on his map days before the Corps saw one.
+	var bluff_pt: Vector3 = terrain.points["council_bluff"]
+	for i in 3:
+		var far_smoke := Props.village_smoke()
+		far_smoke.name = "VillageSmoke%d" % i
+		var dist := 430.0 + i * 60.0
+		var vx := bluff_pt.x - 0.97 * dist + (i - 1) * 90.0
+		var vz := bluff_pt.z + 0.26 * dist + (i - 1) * 40.0
+		far_smoke.position = Vector3(vx, terrain.skirt_height(vx, vz) + 2.0, vz)
+		add_child(far_smoke)
 
 	smoke = Props.smoke_column()
 	smoke.name = "RidgeSmoke"
@@ -121,7 +203,12 @@ func _process(delta: float) -> void:
 		_clock -= whole
 		state.advance_minutes(whole)
 
-	sky.update(state.hour(), delta)
+	sky.moon_phase = SkyAndWeather.moon_phase_for(state.current_year, state.current_month, state.current_day)
+	sky.meteor_rate = SkyAndWeather.meteors_for(state.current_month, state.current_day)
+	# The Day Clock counts whole minutes, which is what the Journal and the
+	# rations want. The sky needs better than that: at two game-minutes a second
+	# the sun would step half a degree twice a second, and it reads as a stutter.
+	sky.update((state.minute_of_day + _clock) / 60.0, delta)
 	Interactable.animate_prairie_dogs(prairie_dogs, _time, _leader_near(terrain.points["prairie_dog_town"], 10.0) and leader.ground_speed() > 2.5)
 
 	var started := director.update(delta, leader.ground_speed() > 0.5, _moment_context())
@@ -135,7 +222,26 @@ func _process(delta: float) -> void:
 		prompt = "[%s]  %s" % [GameInput.hint("interact"), _nearby.label]
 	elif _moment.has("hint"):
 		prompt = _moment["hint"]
-	hud.update(state, delta, prompt)
+	# The map: whatever ground has been walked goes onto it as he walks it.
+	map_screen.note(leader.global_position)
+	map_screen.set_date("%s   ·   the ground as far as the Corps has come" % state.full_date_str())
+	var map_key := Input.is_action_just_pressed("toggle_map") 			or (map_screen.open and Input.is_action_just_pressed("menu"))
+	if map_key and not inventory.open and not council_screen.open:
+		map_screen.toggle()
+		# He stands still with the sheet open, as he would.
+		leader.input_enabled = not map_screen.open
+		leader.look_enabled = not map_screen.open
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if map_screen.open else Input.MOUSE_MODE_CAPTURED
+	if Input.is_action_just_pressed("inventory") and not map_screen.open:
+		inventory.toggle()
+		# The Leader stands still while the quartermaster looks over the stores.
+		leader.input_enabled = not inventory.open
+		leader.look_enabled = not inventory.open
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if inventory.open else Input.MOUSE_MODE_CAPTURED
+	if has_node("Camp"):
+		(get_node("Camp") as Camp).night = sky.night_amount
+	hud.update(state, delta, prompt, sky, stores)
+	hud.show_spyglass(leader.glass_amount)
 	if Input.is_action_just_pressed("interact") and _nearby:
 		_nearby.interact()
 	if Input.is_action_just_pressed("menu"):
@@ -285,6 +391,8 @@ func _spawn_elk(enc: Dictionary) -> void:
 		add_child(track)
 	herd.on_interact = func():
 		state.food = min(100, state.food + int(enc["food"]))
+		# An elk is some three hundred pounds of meat on the hoof.
+		stores.add("fresh_meat", float(enc["food"]) * 14.0)
 		state.add_journal(enc["text"])
 		herd.enabled = false
 		var tw := create_tween()
@@ -293,6 +401,38 @@ func _spawn_elk(enc: Dictionary) -> void:
 		if not _moment.is_empty():
 			_moment["done_action"] = true
 	add_child(herd)
+
+
+func _council_closed(standing: int, verdict: String, lines: Array) -> void:
+	leader.input_enabled = true
+	leader.look_enabled = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	for line in lines:
+		state.add_journal(str(line))
+	state.add_journal("Council with the Otoe and Missouria: %s" % verdict)
+	state.morale = clampi(state.morale + int(standing / 4.0), 0, 100)
+
+
+func _feed_the_corps(_day: int) -> void:
+	## A day's ration off the Stores, and what the weather has cost them.
+	var short := stores.short_ration(state.men)
+	var eaten := stores.ration(state.men, 1)
+	if short:
+		state.food = maxi(0, state.food - 7)
+		state.add_journal("The ration will not stretch to the whole party; the men go hungry.")
+	else:
+		state.food = mini(100, state.food + 1)
+	# Rain in an open boat gets into the flour and the meat turns in a day.
+	var damp := clampf(sky.storm * 0.6 + (0.25 if sky.haze > 0.7 else 0.0), 0.0, 1.0)
+	if damp > 0.05:
+		var lost := stores.spoil(damp * 0.35)
+		if float(lost.get("flour", 0.0)) > 20.0:
+			state.add_journal("Wet got into the flour; a quantity of it is spoiled.")
+	# Say when a staple is broached to the last of it.
+	for id in ["salt_pork", "corn_hominy", "flour", "whiskey"]:
+		if eaten.has(id) and stores.count(id) <= 0 and not _emptied.has(id):
+			_emptied.append(id)
+			state.add_journal("The last of the %s is gone." % str(stores.find(id).get("name", id)).to_lower())
 
 
 func _start_smoke(hook: Dictionary) -> void:
