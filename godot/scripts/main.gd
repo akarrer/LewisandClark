@@ -5,7 +5,9 @@ extends Node3D
 const GAME_MINUTES_PER_SECOND := 2.0  # 2 in-game hours per real minute
 
 var state := ExpeditionState.new()
-var terrain := Terrain.new()
+## Which Region is loaded. `--region=<id>` on the command line picks another,
+## which is how a Region is proved to cost data and not code (ADR-0014).
+var terrain := Terrain.new(Region.load_region(Region.wanted()))
 var foliage := Foliage.new()
 var sky := SkyAndWeather.new()
 var hud := Hud.new()
@@ -225,7 +227,10 @@ func _process(delta: float) -> void:
 	# rations want. The sky needs better than that: at two game-minutes a second
 	# the sun would step half a degree twice a second, and it reads as a stutter.
 	sky.update((state.minute_of_day + _clock) / 60.0, delta)
-	Interactable.animate_prairie_dogs(prairie_dogs, _time, _leader_near(terrain.points["prairie_dog_town"], 10.0) and leader.ground_speed() > 2.5)
+	# Only if this Region has a dog town; not every one will (see region.gd).
+	if prairie_dogs != null:
+		var scatter := _leader_near(prairie_dogs.position, 10.0) and leader.ground_speed() > 2.5
+		Interactable.animate_prairie_dogs(prairie_dogs, _time, scatter)
 
 	var started := director.update(delta, leader.ground_speed() > 0.5, _moment_context())
 	if started != "":
@@ -360,7 +365,12 @@ func _bark(speaker: String, secs: float) -> void:
 
 
 func _tick_discovery(disc: Dictionary, delta: float) -> void:
-	var town: Vector3 = terrain.points["prairie_dog_town"]
+	# The discovery is made at a named place; a Region without one cannot
+	# offer it.
+	var place := str(disc.get("place", "prairie_dog_town"))
+	if not terrain.points.has(place):
+		return
+	var town: Vector3 = terrain.points[place]
 	if _leader_near(town, float(disc["stay_radius"])):
 		_moment["hint"] = disc["prompt"]
 		if leader.ground_speed() < 0.5:

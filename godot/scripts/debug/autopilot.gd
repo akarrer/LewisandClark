@@ -127,10 +127,14 @@ func _scenery_steps() -> Array:
 		(main.get_node("Wildlife") as Wildlife).shy = false
 	var tr: Terrain = main.terrain
 	# Stand beside the flag, not on it, so the pole doesn't split the frame.
-	var bluff: Vector3 = tr.points["council_bluff"] + Vector3(0, 0, 8)
-	var dogs: Vector3 = tr.points["prairie_dog_town"]
-	var start: Vector3 = tr.points["start"]
-	var ridge: Vector3 = tr.points["smoke_ridge"]
+	# A Region names its own places (see region.gd), and only the Slice's first
+	# one has all of these. Anything missing falls back to the landing, so the
+	# harness still runs against a Region built to prove the data path.
+	var here: Vector3 = main.leader.global_position
+	var start: Vector3 = tr.points.get("start", here)
+	var bluff: Vector3 = tr.points.get("council_bluff", start) + Vector3(0, 0, 8)
+	var dogs: Vector3 = tr.points.get("prairie_dog_town", start)
+	var ridge: Vector3 = tr.points.get("smoke_ridge", start)
 	var steps: Array = [["wait", 2.0]]
 	# A spot among the cottonwoods ~60 m from the water, upriver of the start.
 	var grove := start
@@ -250,14 +254,14 @@ func _scenery_steps() -> Array:
 					break
 			if found2:
 				break
-	var approach: Vector3 = tr.points["bluff_approach"]
+	var approach: Vector3 = tr.points.get("bluff_approach", start)
 	# Stand in the ravine understory itself, looking up the draw.
 	var draw_eye := approach
 	var draw_at := approach
 	for c in main.foliage.get_children():
 		if c is MultiMeshInstance3D and c.get_meta("kind", "") == "understory" and c.multimesh.instance_count > 2:
 			draw_at = c.multimesh.get_instance_transform(0).origin
-			var up_slope: Vector3 = (Vector3(tr.points["council_bluff"]) - draw_at).normalized()
+			var up_slope: Vector3 = (Vector3(tr.points.get("council_bluff", start)) - draw_at).normalized()
 			draw_eye = draw_at - up_slope * 9.0
 			draw_eye.y = tr.height_at(draw_eye.x, draw_eye.z)
 			break

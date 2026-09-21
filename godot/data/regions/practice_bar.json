@@ -1,0 +1,66 @@
+{
+  "id": "practice_bar",
+  "name": "The bar below the bluff",
+  "note": "A throwaway Region, made to prove that one costs a data file and not code (ADR-0014). It stands on the same heightmap as Council Bluff because a second survey is a separate job, but it names its own places, holds no council, keeps no camp and moors no fleet, and puts the smokes of a different people on the other side of the river.",
+  "terrain": "res://data/terrain/council_bluff",
+  "points": [
+    {
+      "name": "start",
+      "note": "A landing further down the reach.",
+      "rule": "bank_stand",
+      "rect": [
+        300,
+        600,
+        160,
+        180
+      ],
+      "from_water": 60.0
+    },
+    {
+      "name": "lookout",
+      "note": "The highest ground hereabouts.",
+      "rule": "highest",
+      "rect": [
+        360,
+        440,
+        140,
+        150
+      ]
+    },
+    {
+      "name": "dry_upland",
+      "rule": "flat_upland",
+      "rect": [
+        520,
+        700,
+        150,
+        150
+      ],
+      "above_flood": 5.0
+    }
+  ],
+  "features": {
+    "landmark": {
+      "at": "lookout",
+      "name": "The lookout",
+      "journal": "A rise above the bottomland, from which the whole reach can be seen."
+    },
+    "prairie_dog_town": {
+      "at": "dry_upland"
+    },
+    "village_smokes": {
+      "from": "lookout",
+      "bearing": [
+        0.9,
+        -0.4
+      ],
+      "count": 2,
+      "first": 380.0,
+      "apart": 80.0,
+      "spread": [
+        60.0,
+        30.0
+      ]
+    }
+  }
+}

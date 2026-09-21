@@ -8,6 +8,10 @@ extends RefCounted
 ## bluff top nearest the river", "flat upland above the floodplain" -- so that
 ## rebaking a heightmap moves them to where they should now be rather than
 ## leaving them hanging in the air.
+##
+## Every Region must name "start", where the Leader comes ashore. The rest are
+## asked for by what the Region contains: a fleet needs "mooring_0".."mooring_2",
+## a camp needs "camp", and each feature names the place it stands at.
 
 const DIR := "res://data/regions/"
 
@@ -17,6 +21,16 @@ var terrain_path := ""
 var points: Array = []
 var moorings: Array = []
 var data := {}
+
+
+static func wanted() -> String:
+	## Which Region to open: `--region=<id>` on the command line, else the one
+	## the Slice starts in. This is how a new Region is proved to cost a data
+	## file and not code (ADR-0014).
+	for a in OS.get_cmdline_user_args():
+		if str(a).begins_with("--region="):
+			return str(a).split("=")[1]
+	return "council_bluff"
 
 
 static func load_region(region_id: String) -> Region:
