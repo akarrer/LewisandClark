@@ -13,9 +13,15 @@ extends RefCounted
 const DIR := "res://data/scenarios/"
 
 ## What a choice's ``when``, or a Skill Check modifier's, may ask.
-const CONDITIONS := ["present", "absent", "status", "flag", "not_flag", "item", "fit_at_least", "standing_at_least"]
+const CONDITIONS := ["present", "absent", "status", "sick_with", "flag", "not_flag", "all_flags", "no_flags",
+		"item", "fit_at_least", "standing_at_least"]
 ## What an outcome may do.
-const EFFECTS := ["journal", "standing", "hearten", "flag", "status", "take", "fatigue", "cue"]
+const EFFECTS := ["journal", "standing", "hearten", "flag", "status", "take", "give", "hides", "fatigue", "cue",
+		"physic", "excuse", "health"]
+## What a node may wait on before it plays: "arrival" (the cast is in and the
+## Leader has gone to them), "hour:<h>" (the Day Clock), "at:<place>" (the
+## Leader has walked there).
+const WAITS := ["arrival", "hour", "at"]
 
 var def := {}
 var id := ""
@@ -46,9 +52,12 @@ static func date_key(state: ExpeditionState) -> String:
 	return "%d-%02d-%02d" % [state.current_year, state.current_month, state.current_day]
 
 
-func due(state: ExpeditionState, region_id: String) -> bool:
-	## Its day and hour have come, in its Region, and it has not been played.
+func due(state: ExpeditionState, region_id: String, world: Dictionary = {}) -> bool:
+	## Its day and hour have come, in its Region, it has not been played, and
+	## whatever it ``requires`` of the Corps holds (Floyd still sick, say).
 	var w: Dictionary = def.get("when", {})
+	if w.has("requires") and not world.is_empty() and not met(w["requires"], world):
+		return false
 	if state.flags.has("scenario:" + id):
 		return false
 	if w.has("region") and str(w["region"]) != region_id:
@@ -56,6 +65,13 @@ func due(state: ExpeditionState, region_id: String) -> bool:
 	if w.has("date") and str(w["date"]) != date_key(state):
 		return false
 	return state.hour() >= float(w.get("after_hour", 0.0))
+
+
+func lapsed(state: ExpeditionState) -> bool:
+	## Its day is over. A dinner nobody came down to is not held the next
+	## morning, and it must not stand in the way of the next day's Scenarios.
+	var w: Dictionary = def.get("when", {})
+	return w.has("date") and str(w["date"]) != date_key(state)
 
 
 func begin(world: Dictionary) -> void:
@@ -158,12 +174,23 @@ func met(when: Dictionary, world: Dictionary) -> bool:
 			"status":
 				if corps.man(str(v[0])).get("status", "") != str(v[1]):
 					return false
+			"sick_with":
+				if not corps.has_condition(corps.man(str(v[0])), str(v[1])):
+					return false
 			"flag":
 				if not state.flags.has(str(v)):
 					return false
 			"not_flag":
 				if state.flags.has(str(v)):
 					return false
+			"all_flags":
+				for f in v:
+					if not state.flags.has(str(f)):
+						return false
+			"no_flags":
+				for f in v:
+					if state.flags.has(str(f)):
+						return false
 			"item":
 				if float(world["stores"].find(str(v[0])).get("qty", 0.0)) < float(v[1]):
 					return false
@@ -198,9 +225,23 @@ func apply(effects: Array, world: Dictionary) -> void:
 					corps.man(str(v[0]))["status"] = str(v[1])
 				"take":
 					world["stores"].take(str(v[0]), float(v[1]))
+				"give":
+					world["stores"].add(str(v[0]), float(v[1]))
+				"hides":
+					corps.hides += float(v)
 				"fatigue":
 					corps.tire(str(v[0]), float(v[1]))
 				"cue":
 					cues.append(str(v))
+				"physic":
+					# Lewis's own physic, out of the medicine chest (Corps.treat).
+					var said := corps.treat(str(v), world["stores"])
+					if said != "":
+						state.add_journal(said)
+				"excuse":
+					corps.excuse(str(v))
+				"health":
+					var m := corps.man(str(v[0]))
+					m["health"] = clampf(float(m["health"]) + float(v[1]), 0.0, 100.0)
 				_:
 					push_error("Scenario %s: unknown effect %s" % [id, k])

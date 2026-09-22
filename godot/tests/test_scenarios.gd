@@ -35,6 +35,9 @@ func test_every_scenario_is_a_sound_graph():
 			elif n.get("choices", []).is_empty():
 				t.check(false, "%s.%s: a node that is not an end needs choices" % [id, nid])
 			_check_effects(id, nid, n.get("effects", []))
+			var wait := str(n.get("wait", ""))
+			if wait != "":
+				t.check(wait.split(":")[0] in Scenario.WAITS, "%s.%s: unknown wait %s" % [id, nid, wait])
 			for c in n.get("choices", []):
 				var targets: Array = [c["pass"], c["fail"]] if c.has("check") else [c.get("next", "")]
 				for target in targets:
@@ -47,6 +50,8 @@ func test_every_scenario_is_a_sound_graph():
 						t.check(k in Scenario.CONDITIONS, "%s.%s: unknown check condition %s" % [id, nid, k])
 				for cost in c.get("cost", []):
 					t.check(not stores.find(str(cost[0])).is_empty(), "%s.%s: costs unknown item %s" % [id, nid, cost[0]])
+		for k in s.def.get("when", {}).get("requires", {}):
+			t.check(k in Scenario.CONDITIONS, "%s: unknown requirement %s" % [id, k])
 		t.check(ends > 0, "%s never ends" % id)
 
 
@@ -79,6 +84,91 @@ func test_every_scenario_is_staged_at_named_places():
 			t.check(not route.is_empty() and length < from.distance_to(meet) * 2.0 + 10.0,
 					"%s: from %s to the meeting is %d m on foot" % [id, key, length])
 		terrain.free()
+
+
+func test_every_wait_at_a_place_names_one():
+	for id in Scenario.all_ids():
+		var s := Scenario.load_scenario(id)
+		var region := str(s.def.get("when", {}).get("region", ""))
+		if region == "":
+			continue
+		var terrain := Terrain.new(Region.load_region(region))
+		terrain.define_points()
+		for nid in s.def["nodes"]:
+			var wait := str(s.def["nodes"][nid].get("wait", ""))
+			if wait.begins_with("at:"):
+				t.check(terrain.points.has(wait.substr(3)), "%s.%s waits at %s, no place in %s" % [id, nid, wait, region])
+		terrain.free()
+
+
+func _birthday(w: Dictionary, hunt_roll: float, fruit: bool) -> Scenario:
+	var s := Scenario.load_scenario("clark_birthday")
+	s.begin(w)
+	_pick(s, w, "Send the hunters", hunt_roll)
+	_pick(s, w, "Send Pryor" if fruit else ("That is dinner" if s.node_id == "good_hunt" else "Leave it"))
+	_pick(s, w, "Go down to the fire")
+	return s
+
+
+func test_the_birthday_dinner_is_what_the_day_brought():
+	var w := _world()
+	w["state"].current_day = 1
+	var meat := float(w["stores"].find("fresh_meat")["qty"])
+	var s := _birthday(w, 0.0, true)
+	t.check(float(w["stores"].find("fresh_meat")["qty"]) > meat + 400.0, "the hunters bring in the dinner")
+	var open := s.choices(w)
+	t.eq(open.size(), 1, "one table is laid")
+	t.check(str(open[0]["label"]).begins_with("A saddle of fat venison"), "and it is Clark's own")
+	var w2 := _world()
+	w2["state"].current_day = 1
+	var s2 := _birthday(w2, 0.99, false)
+	t.check(str(s2.choices(w2)[0]["label"]).begins_with("Salt pork, as any"), "a thin hunt and no fruit is pork")
+
+
+func test_the_hunt_odds_read_who_is_in_camp():
+	var w := _world()
+	w["state"].current_day = 1
+	var s := Scenario.load_scenario("clark_birthday")
+	s.begin(w)
+	var full := float(s.choices(w)[0]["chance"])
+	w["corps"].man("drouillard")["status"] = "away"
+	t.check(float(s.choices(w)[0]["chance"]) < full, "without Drouillard the chance falls")
+
+
+func test_the_sick_call_comes_only_while_floyd_is_sick():
+	var w := _world()
+	w["state"].minute_of_day = 10 * 60
+	var s := Scenario.load_scenario("floyd_sick_call")
+	t.check(s.due(w["state"], "council_bluff", w), "Floyd is sick on the second, so the sergeant's colic is due")
+	w["corps"].man("floyd")["conditions"] = []
+	t.check(not s.due(w["state"], "council_bluff", w), "a well Floyd gets no sick call")
+
+
+func test_physic_for_floyd_comes_out_of_the_chest():
+	var w := _world()
+	w["state"].minute_of_day = 10 * 60
+	var s := Scenario.load_scenario("floyd_sick_call")
+	var pills := float(w["stores"].find("rush_pills")["qty"])
+	s.begin(w)
+	_pick(s, w, "Dose him")
+	t.check(float(w["stores"].find("rush_pills")["qty"]) < pills, "the pills are taken from the chest")
+	t.check(s.done, "and the sick call is over")
+	var w2 := _world()
+	var s2 := Scenario.load_scenario("floyd_sick_call")
+	s2.begin(w2)
+	_pick(s2, w2, "Excuse him")
+	t.check(w2["corps"].excused.has("floyd"), "an excused sergeant is off duty today")
+
+
+func test_a_scenario_waiting_past_its_day_lapses():
+	var w := _world()
+	w["state"].current_day = 1
+	var s := Scenario.load_scenario("clark_birthday")
+	s.begin(w)
+	_pick(s, w, "No time")
+	t.check(not s.lapsed(w["state"]), "the dinner waits on the evening")
+	w["state"].current_day = 2
+	t.check(s.lapsed(w["state"]), "but not into the next day")
 
 
 func test_the_oto_come_at_sundown_on_the_second():

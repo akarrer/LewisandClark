@@ -278,8 +278,9 @@ func _process(delta: float) -> void:
 		Interactable.animate_prairie_dogs(prairie_dogs, _time, scatter)
 
 	_run_scenario()
-	# Trail Moments hold their tongues while a Scenario is being played.
-	var started := "" if scenario != null else director.update(delta, leader.ground_speed() > 0.5, _moment_context())
+	# Trail Moments hold their tongues while a Scenario is being played, not
+	# while one waits on the evening.
+	var started := "" if scenario != null and not _scenario_waiting else director.update(delta, leader.ground_speed() > 0.5, _moment_context())
 	if started != "":
 		_start_moment(started)
 	_run_moment(delta)
@@ -521,8 +522,12 @@ func _in_scene() -> bool:
 	## somewhere he has not gone.
 	if scenario == null:
 		return false
-	if not _scenario_waiting or stage == null:
+	if not _scenario_waiting:
 		return true
+	# Waiting on the hour or on the Leader to go somewhere, the day goes on as
+	# usual; waiting on a cast coming in, only when he is out there with them.
+	if stage == null or scenario.waits_for() != "arrival":
+		return false
 	return Vector2(leader.global_position.x - stage.meet.x, leader.global_position.z - stage.meet.z).length() < 80.0
 
 
@@ -535,7 +540,7 @@ func _run_scenario() -> void:
 	## waits on the world until the world has done it.
 	if scenario == null:
 		for s in scenarios:
-			if s.due(state, terrain.region.id):
+			if s.due(state, terrain.region.id, _world()):
 				_start_scenario(s)
 				break
 		return
@@ -543,6 +548,11 @@ func _run_scenario() -> void:
 		if stage != null:
 			stage.play_cues(scenario.cues)
 		scenario.cues.clear()
+	if _scenario_waiting and scenario.lapsed(state):
+		# Let it go; whoever it staged stays where they stand.
+		_scenario_waiting = false
+		scenario = null
+		return
 	if _scenario_waiting and _wait_met(scenario.waits_for()):
 		_scenario_waiting = false
 		_speak_node()
@@ -563,14 +573,22 @@ func _wait_met(wait: String) -> bool:
 			return true
 		"arrival":
 			return stage != null and stage.arrived() and stage.leader_close()
+	if wait.begins_with("hour:"):
+		return state.hour() >= float(wait.substr(5))
+	if wait.begins_with("at:"):
+		var p: Vector3 = terrain.points.get(wait.substr(3), leader.global_position)
+		return Vector2(leader.global_position.x - p.x, leader.global_position.z - p.z).length() < 15.0
 	return false
 
 
 func _advance_scenario() -> void:
 	if not _wait_met(scenario.waits_for()):
 		_scenario_waiting = true
+		var hint := str(scenario.node().get("hint", ""))
 		if scenario.waits_for() == "arrival":
-			hud.toast("%s." % str(scenario.def.get("stage", {}).get("prompt", "Go and meet them")))
+			hint = str(scenario.def.get("stage", {}).get("prompt", "Go and meet them"))
+		if hint != "":
+			hud.toast("%s." % hint)
 		return
 	_speak_node()
 

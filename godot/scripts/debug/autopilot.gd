@@ -75,8 +75,23 @@ func begin(p_main) -> void:
 			var from: Vector3 = main.terrain.points.get(str(sc.def.get("stage", {}).get("from", "start")), l.global_position)
 			l._yaw = rad_to_deg(atan2(-(from.x - l.global_position.x), -(from.z - l.global_position.z)))
 			l._pitch = -4.0
-			_steps = [["wait", 2.2], ["shot", "their_guns"], ["wait", 16.0], ["walk_to", meet, 7.0], ["wait", 3.0],
-					["shot", "they_come_in"], ["wait", 30.0], ["shot", "the_evening"], ["report"]]
+			if sc.def.has("stage"):
+				_steps = [["wait", 2.2], ["shot", "their_guns"], ["wait", 16.0], ["walk_to", meet, 7.0], ["wait", 3.0],
+						["shot", "they_come_in"], ["wait", 30.0], ["shot", "the_evening"], ["report"]]
+				return
+			# Unstaged: play the morning, wind on to whatever hour a node waits
+			# for, walk to whatever place one waits at, and photograph each.
+			_steps = [["wait", 2.5], ["shot", "morning"], ["wait", 12.0]]
+			for nid in sc.def["nodes"]:
+				var wait := str(sc.def["nodes"][nid].get("wait", ""))
+				if wait.begins_with("hour:"):
+					_steps.append(["set_hour", float(wait.substr(5)) - 0.05])
+					_steps.append(["wait", 5.0])
+				elif wait.begins_with("at:"):
+					_steps.append(["walk_to", wait.substr(3), 6.0])
+					_steps.append(["wait", 7.0])
+					_steps.append(["shot", nid])
+			_steps.append_array([["wait", 20.0], ["shot", "the_end"], ["report"]])
 			return
 	if "--morning-report" in OS.get_cmdline_user_args():
 		# The sergeants' report, after however many --days the Corps has lived.
@@ -482,6 +497,9 @@ func _process(delta: float) -> void:
 				_next()
 		"shot":
 			_shot(s[1])
+			_next()
+		"set_hour":
+			main.state.minute_of_day = int(float(s[1]) * 60.0)
 			_next()
 		"walk_to":
 			var p: Vector3 = _point(s[1])
