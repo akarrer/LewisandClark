@@ -14,6 +14,8 @@ var current_region := "sioux_country"
 ## The party at Council Bluff: the permanent Corps and the engages who took the
 ## keelboat back from the Mandan. They all eat.
 var men := 45
+## Corps Strength, as the Corps last counted it (scripts/rules/corps.gd).
+var fit := 45
 var food := 80
 var morale := 80
 var landmarks_visited: Array[String] = []

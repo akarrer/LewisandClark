@@ -115,7 +115,7 @@ func update(state: ExpeditionState, delta: float, prompt_text: String, sky: SkyA
 		stores: Stores = null) -> void:
 	place.text = "Sioux Country"
 	when.text = "%s  ·  %s  ·  %s" % [state.full_date_str(), state.clock_str(), state.season()]
-	supplies.text = "Food %d   Morale %d   Discoveries %d" % [state.food, state.morale, state.discoveries.size()]
+	supplies.text = "Fit %d of %d   Morale %d   Discoveries %d" % [state.fit, state.men, state.morale, state.discoveries.size()]
 	if stores:
 		var days := stores.days_of_provisions(state.men)
 		supplies.text += "   Provisions %s" % ("%d days" % days if days > 0 else "none")
