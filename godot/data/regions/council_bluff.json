@@ -3,13 +3,17 @@
   "name": "Council Bluff",
   "note": "The reach the Corps reached on 30 July 1804, where the council with the Otoe and Missouria was held on 3 August. See docs/adr/0014-showcase-region-first.md: a Region is a heightmap plus this file.",
   "terrain": "res://data/terrain/council_bluff",
-
   "points": [
     {
       "name": "council_bluff",
       "note": "The level bluff top closest to the river below it.",
       "rule": "bluff_top",
-      "rect": [360, 440, 140, 150],
+      "rect": [
+        360,
+        440,
+        140,
+        150
+      ],
       "above_flood": 9.0,
       "level": 0.93
     },
@@ -19,14 +23,25 @@
       "rule": "level_with",
       "of": "council_bluff",
       "rect_of": "council_bluff",
-      "rect_offset": [-170, 40],
-      "rect_size": [120, 140]
+      "rect_offset": [
+        -170,
+        40
+      ],
+      "rect_size": [
+        120,
+        140
+      ]
     },
     {
       "name": "start",
       "note": "The landing, on the bottomland south of the bluff.",
       "rule": "bank_stand",
-      "rect": [520, 780, 70, 70],
+      "rect": [
+        520,
+        780,
+        70,
+        70
+      ],
       "from_water": 75.0
     },
     {
@@ -47,14 +62,24 @@
     {
       "name": "prairie_dog_town",
       "rule": "flat_upland",
-      "rect": [300, 600, 150, 170],
+      "rect": [
+        300,
+        600,
+        150,
+        170
+      ],
       "above_flood": 6.0
     },
     {
       "name": "smoke_ridge",
       "note": "The highest hill in the western uplands.",
       "rule": "highest",
-      "rect": [40, 380, 260, 440]
+      "rect": [
+        40,
+        380,
+        260,
+        440
+      ]
     },
     {
       "name": "mooring_0",
@@ -84,7 +109,6 @@
       "draught": 0.6
     }
   ],
-
   "features": {
     "landmark": {
       "at": "council_bluff",
@@ -94,25 +118,37 @@
     "council": {
       "id": "council_bluff_1804",
       "at": "council_bluff",
-      "offset": [6, 10],
+      "offset": [
+        6,
+        10
+      ],
       "radius": 7.0,
       "label": "Hold the council with the Otoe and Missouria"
     },
-    "prairie_dog_town": { "at": "prairie_dog_town" },
+    "prairie_dog_town": {
+      "at": "prairie_dog_town"
+    },
     "fleet": true,
     "camp": true,
-    "ridge_smoke": { "at": "smoke_ridge" },
+    "ridge_smoke": {
+      "at": "smoke_ridge"
+    },
     "village_smokes": {
       "note": "The Oto and Missouria towns lie back off the river to the west, too far to walk to in the Slice. The ridge west of the bluff hides the feet of the columns, which is how Clark had the towns on his map days before the Corps saw one.",
       "from": "council_bluff",
-      "bearing": [-0.97, 0.26],
+      "bearing": [
+        -0.97,
+        0.26
+      ],
       "count": 3,
       "first": 430.0,
       "apart": 60.0,
-      "spread": [90.0, 40.0]
+      "spread": [
+        90.0,
+        40.0
+      ]
     }
   },
-
   "foliage": {
     "note": "Loess bluffs over the Missouri bottom in August: cottonwood groves on the river, bur oak in the ravines, the upland prairie cured to straw. Tries are random points thrown at the map; each stand's own rules in foliage.gd decide which of them take.",
     "seed": 42,
@@ -302,5 +338,50 @@
         "low": true
       }
     ]
+  },
+  "wildlife": {
+    "note": "Game seen at a distance around Council Bluff, early August 1804. Clark noted elk and deer here; bison were not seen until 23 August, further upriver. A great egret was shot here on 2 August; the pelican raft is the flock Lewis measured on 8 August a little above. Cliff swallows nest in the loess under the bluff; vultures ride the thermal off its face.",
+    "seed": 1804,
+    "herds": [
+      {
+        "kind": "elk",
+        "groups": 4,
+        "size": [
+          5,
+          9
+        ]
+      },
+      {
+        "kind": "deer",
+        "groups": 5,
+        "size": [
+          2,
+          3
+        ]
+      }
+    ],
+    "flocks": {
+      "count": 3
+    },
+    "waders": {
+      "count": 5
+    },
+    "pelicans": {
+      "on_bar": 13,
+      "afloat": 3
+    },
+    "swallows": {
+      "at": "council_bluff",
+      "count": 9
+    },
+    "soarers": {
+      "over": "council_bluff",
+      "vultures": 2,
+      "hawks": 1
+    },
+    "river": {
+      "fish_rise_every": 1.8,
+      "drift_logs": 6
+    }
   }
 }
