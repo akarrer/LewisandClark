@@ -17,7 +17,7 @@ const CONDITIONS := ["present", "absent", "status", "sick_with", "flag", "not_fl
 		"item", "fit_at_least", "standing_at_least"]
 ## What an outcome may do.
 const EFFECTS := ["journal", "standing", "hearten", "flag", "status", "take", "give", "hides", "fatigue", "cue",
-		"physic", "excuse", "health"]
+		"physic", "excuse", "health", "council_close"]
 ## What a node may wait on before it plays: "arrival" (the cast is in and the
 ## Leader has gone to them), "hour:<h>" (the Day Clock), "at:<place>" (the
 ## Leader has walked there).
@@ -29,6 +29,9 @@ var node_id := ""
 var done := false
 ## Stage cues raised by effects since the stage last looked ("salute", ...).
 var cues: Array[String] = []
+## A Scenario that holds a council (``"council": "<id>"``) plays its steps
+## through the Council rules, which keep the odds, the presents and standing.
+var council: Council
 
 
 static func all_ids() -> Array[String]:
@@ -76,6 +79,11 @@ func lapsed(state: ExpeditionState) -> bool:
 
 func begin(world: Dictionary) -> void:
 	world["state"].flags["scenario:" + id] = true
+	if def.has("council"):
+		council = Council.open(str(def["council"]), world["stores"])
+		# What the evening before left them thinking.
+		council.standing = int(world["state"].standing.get(str(def.get("nation", "")), 0))
+		council.interpreter_present = world["corps"].man(council.interpreter.to_lower()).get("status", "") == "present"
 	_enter(str(def["start"]), world)
 
 
@@ -105,7 +113,9 @@ func choices(world: Dictionary) -> Array[Dictionary]:
 		var why_not := _unpaid(c, world)
 		var entry := {"index": i, "label": str(c["label"]), "note": str(c.get("note", "")),
 				"available": why_not == "", "why_not": why_not, "chance": -1.0, "reasons": []}
-		if c.has("check"):
+		if c.has("council"):
+			_council_entry(c["council"], entry)
+		elif c.has("check"):
 			var o := odds(c["check"], world)
 			entry["chance"] = o["chance"]
 			entry["reasons"] = o["reasons"]
@@ -133,13 +143,50 @@ func choose(index: int, world: Dictionary, roll: float) -> Dictionary:
 		world["stores"].take(str(cost[0]), float(cost[1]))
 	var passed := true
 	var next := str(c.get("next", ""))
-	if c.has("check"):
+	if c.has("council"):
+		passed = _council_step(c["council"], world, roll)
+	elif c.has("check"):
 		passed = roll < float(odds(c["check"], world)["chance"])
 		next = str(c["pass"] if passed else c["fail"])
 	apply(c.get("effects", []), world)
-	var reply: Array = c.get("reply", [])
+	# What is said after depends on how it went: a speech that came out crooked
+	# is not answered with thanks.
+	var reply: Array = c.get("reply", []).duplicate()
+	reply.append_array(c.get("reply_pass" if passed else "reply_fail", []))
 	_enter(next, world)
 	return {"passed": passed, "reply": reply, "next": next}
+
+
+func _council_entry(spec: Dictionary, entry: Dictionary) -> void:
+	## A council step's chance, with what the chiefs asked for laid out if this
+	## choice gives it. Refusing a step has no chance to show.
+	if bool(spec.get("refuse", false)):
+		return
+	var step_id := str(spec["step"])
+	council.clear_offer()
+	if str(spec.get("offer", "")) == "asked":
+		var why := council.offer_asked(step_id)
+		if why != "":
+			entry["available"] = false
+			entry["why_not"] = why
+	entry["chance"] = council.odds(step_id)
+	entry["reasons"] = council.breakdown(step_id)
+	council.clear_offer()
+
+
+func _council_step(spec: Dictionary, world: Dictionary, roll: float) -> bool:
+	var step_id := str(spec["step"])
+	var result: Dictionary
+	if bool(spec.get("refuse", false)):
+		result = council.refuse(step_id)
+	else:
+		council.clear_offer()
+		if str(spec.get("offer", "")) == "asked":
+			council.offer_asked(step_id)
+		result = council.resolve(step_id, roll)
+	if str(result.get("text", "")) != "":
+		world["state"].add_journal(str(result["text"]))
+	return bool(result.get("passed", false))
 
 
 func _enter(next: String, world: Dictionary) -> void:
@@ -243,5 +290,11 @@ func apply(effects: Array, world: Dictionary) -> void:
 				"health":
 					var m := corps.man(str(v[0]))
 					m["health"] = clampf(float(m["health"]) + float(v[1]), 0.0, 100.0)
+				"council_close":
+					# How the Nation parts from the Corps: carried on to the next
+					# meeting, felt in camp, and set down in the Journal.
+					state.standing[str(def.get("nation", ""))] = council.standing
+					corps.hearten(council.standing / 4.0)
+					state.add_journal("Council with the %s: %s" % [council.nation, council.verdict()])
 				_:
 					push_error("Scenario %s: unknown effect %s" % [id, k])

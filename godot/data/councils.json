@@ -1,74 +1,132 @@
 {
-  "_note": "Councils held with the Nations. The first is the real one: 3 August 1804 at Council Bluff, with the Otoe and Missouria. Six chiefs were made under the American government that day; the great chief Little Thief was away on the buffalo hunt, and the captains sent his medal and a copy of the speech after him. Every chief closed by asking for a little powder and a drop of milk. Sources in docs/design/councils.md.",
-  "councils": [
+ "_note": "Councils held with the Nations. The first is the real one: 3 August 1804 at Council Bluff, with the Otoe and Missouria. Six chiefs were made under the American government that day; the great chief Little Thief was away on the buffalo hunt, and the captains sent his medal and a copy of the speech after him. Every chief closed by asking for a little powder and a drop of milk. Sources in docs/design/councils.md.",
+ "councils": [
+  {
+   "id": "council_bluff_1804",
+   "nation": "Otoe and Missouria",
+   "place": "council_awning",
+   "date": "August 3, 1804",
+   "opening": "After breakfast, on a foggy morning, the chiefs and their men are collected under an awning of the keelboat's mainsail at the camp. Six are to be made chiefs under the American government. The great chief, Little Thief, is away on the hunt.",
+   "interpreter": "Drouillard",
+   "seats": [
     {
-      "id": "council_bluff_1804",
-      "nation": "Otoe and Missouria",
-      "place": "council_bluff",
-      "date": "August 3, 1804",
-      "opening": "Six chiefs and their warriors come up from the camp below the bluff under an awning of the boat's sail. The great chief, Little Thief, is away on the buffalo hunt. They wait to hear what the captains have come to say.",
-      "interpreter": "Drouillard",
-      "seats": [
-        {"name": "Little Thief", "people": "Otoe", "rank": "great", "present": false, "wants": "medals", "note": "Away on the hunt. His medal and a copy of the speech must be sent after him, or the slight will be remembered."},
-        {"name": "Big Horse", "people": "Otoe", "rank": "second", "present": true, "wants": "medals"},
-        {"name": "Hospitality", "people": "Missouria", "rank": "second", "present": true, "wants": "medals"},
-        {"name": "White Horse", "people": "Otoe", "rank": "third", "present": true, "wants": "medals"},
-        {"name": "Black Cat's man", "people": "Missouria", "rank": "third", "present": true, "wants": "cloth"},
-        {"name": "Two principal men", "people": "Otoe and Missouria", "rank": "third", "present": true, "wants": "paint"}
-      ],
-      "steps": [
-        {
-          "id": "speech",
-          "name": "Make the speech",
-          "text": "Tell them of the change that has taken place in the government of this country, of the wishes of our government to cultivate friendship and good understanding, and give them some directions as to their conduct.",
-          "base": 0.45,
-          "needs_interpreter": true,
-          "on_pass": "They hear it out and answer that they are glad their new fathers have come, and will follow the counsel given them.",
-          "on_fail": "The words go through two tongues and come out crooked. They listen, but their faces do not change.",
-          "standing": 12
-        },
-        {
-          "id": "medals",
-          "name": "Present the medals and commissions",
-          "text": "Make chiefs under the American government: a medal of the first grade for the great chief, of the second for the second chiefs, of the third for the rest, with commissions, a flag, and clothing.",
-          "base": 0.5,
-          "wants": {"medals": 5, "flags": 1},
-          "on_pass": "They take the medals and hang them about their necks, and the flag is carried to the front of the lodge.",
-          "on_fail": "There are not medals enough to go round, and the men who get none stand apart.",
-          "standing": 20
-        },
-        {
-          "id": "air_gun",
-          "name": "Fire the air gun",
-          "text": "Lewis's repeating rifle throws a ball without powder or report. He has fired it at every gathering since the Ohio.",
-          "base": 0.8,
-          "on_pass": "The gun is fired again and again without loading, and they are astonished at it.",
-          "on_fail": "The piece is fired and remarked upon, but they have seen the traders' wonders before.",
-          "standing": 8
-        },
-        {
-          "id": "the_ask",
-          "name": "Answer their ask: a little powder and a drop of milk",
-          "text": "Every one of them concludes by asking for powder and for whiskey. Giving it wins the day; it also arms and drinks away what the Corps must live on.",
-          "base": 0.75,
-          "wants": {"powder": 1, "whiskey": 2},
-          "on_pass": "A canister of powder and fifty balls are given, and a dram all round. They part well satisfied.",
-          "on_fail": "They are told there is none to spare. They say nothing, and remember it.",
-          "standing": 14,
-          "refuse_standing": -10
-        },
-        {
-          "id": "send_after",
-          "name": "Send the great chief his medal",
-          "text": "Little Thief is on the hunt. Send his medal, a flag and a copy of the speech after him by the men returning to their village.",
-          "base": 0.7,
-          "wants": {"medals": 1, "flags": 1, "tobacco": 6},
-          "on_pass": "The presents and the speech go with them to find the great chief on the plains.",
-          "on_fail": "Nothing is sent, and the great chief will hear of the council from other mouths.",
-          "standing": 10,
-          "refuse_standing": -12
-        }
-      ]
+     "name": "Little Thief",
+     "native": "We-ar-ruge-nor",
+     "people": "Otoe",
+     "rank": "great",
+     "present": false,
+     "wants": "medals",
+     "note": "Away on the hunt. His medal and a copy of the speech must be sent after him, or the slight will be remembered."
+    },
+    {
+     "name": "Big Horse",
+     "native": "Shingotongo",
+     "people": "Otoe",
+     "rank": "second",
+     "present": true,
+     "wants": "medals"
+    },
+    {
+     "name": "Hospitality",
+     "native": "We-the-a",
+     "people": "Missouria",
+     "rank": "second",
+     "present": true,
+     "wants": "medals"
+    },
+    {
+     "name": "Wau-pe-ur",
+     "people": "Missouria",
+     "rank": "third",
+     "present": true,
+     "wants": "medals"
+    },
+    {
+     "name": "Au-ho-ning-ga",
+     "people": "Missouria",
+     "rank": "third",
+     "present": true,
+     "wants": "medals"
+    },
+    {
+     "name": "Ba-za-con-ja",
+     "people": "Otoe",
+     "rank": "third",
+     "present": true,
+     "wants": "medals"
+    },
+    {
+     "name": "Au-ho-ne-ga",
+     "people": "Otoe",
+     "rank": "third",
+     "present": true,
+     "wants": "medals"
     }
-  ]
+   ],
+   "steps": [
+    {
+     "id": "speech",
+     "name": "Make the speech",
+     "text": "Tell them of the change that has taken place in the government of this country, of the wishes of our government to cultivate friendship and good understanding, and give them some directions as to their conduct.",
+     "base": 0.45,
+     "needs_interpreter": true,
+     "on_pass": "They hear it out and answer that they are glad their new fathers have come, and will follow the counsel given them.",
+     "on_fail": "The words go through two tongues and come out crooked. They listen, but their faces do not change.",
+     "standing": 12
+    },
+    {
+     "id": "medals",
+     "name": "Present the medals and commissions",
+     "text": "Make chiefs under the American government: a medal of the first grade for the great chief, of the second for the second chiefs, of the third for the rest, with commissions, a flag, and clothing.",
+     "base": 0.5,
+     "wants": {
+      "medals": 6,
+      "flags": 1
+     },
+     "on_pass": "They take the medals and hang them about their necks, and the flag is carried to the front of the lodge.",
+     "on_fail": "There are not medals enough to go round, and the men who get none stand apart.",
+     "standing": 20
+    },
+    {
+     "id": "air_gun",
+     "name": "Fire the air gun",
+     "text": "Lewis's repeating rifle throws a ball without powder or report. He has fired it at every gathering since the Ohio.",
+     "base": 0.8,
+     "on_pass": "The gun is fired again and again without loading, and they are astonished at it.",
+     "on_fail": "The piece is fired and remarked upon, but they have seen the traders' wonders before.",
+     "standing": 8
+    },
+    {
+     "id": "the_ask",
+     "name": "Answer their ask: a little powder and a drop of milk",
+     "text": "Every one of them concludes by asking for powder and for whiskey. Giving it wins the day; it also arms and drinks away what the Corps must live on.",
+     "base": 0.75,
+     "wants": {
+      "powder": 1,
+      "whiskey": 2
+     },
+     "on_pass": "A canister of powder and fifty balls are given, and a dram all round. They part well satisfied.",
+     "on_fail": "They are told there is none to spare. They say nothing, and remember it.",
+     "standing": 14,
+     "refuse_standing": -10
+    },
+    {
+     "id": "send_after",
+     "name": "Send the great chief his medal",
+     "text": "Little Thief is on the hunt. Send his medal, a flag and a copy of the speech after him by the men returning to their village.",
+     "base": 0.7,
+     "wants": {
+      "medals": 1,
+      "flags": 1,
+      "tobacco": 6
+     },
+     "on_pass": "The presents and the speech go with them to find the great chief on the plains.",
+     "on_fail": "Nothing is sent, and the great chief will hear of the council from other mouths.",
+     "standing": 10,
+     "refuse_standing": -12
+    }
+   ],
+   "_seats_note": "Names as Clark wrote them on 3 August 1804 (lewisandclarkjournals.unl.edu/item/lc.jrn.1804-08-03): Big Horse and Hospitality made second chiefs; four principal men given third-grade medals; Little Thief's medal sent after him. Spellings are Clark's, pending the cultural review (ADR-0004)."
+  }
+ ]
 }

@@ -76,8 +76,8 @@ func begin(p_main) -> void:
 			l._yaw = rad_to_deg(atan2(-(from.x - l.global_position.x), -(from.z - l.global_position.z)))
 			l._pitch = -4.0
 			if sc.def.has("stage"):
-				_steps = [["wait", 2.2], ["shot", "their_guns"], ["wait", 16.0], ["walk_to", meet, 7.0], ["wait", 3.0],
-						["shot", "they_come_in"], ["wait", 30.0], ["shot", "the_evening"], ["report"]]
+				_steps = [["wait", 2.2], ["shot", "opening"], ["wait", 16.0], ["walk_to", meet, 7.0], ["wait", 3.0],
+						["shot", "gathered"], ["wait", 30.0], ["shot", "later"], ["wait", 30.0], ["shot", "last"], ["report"]]
 				return
 			# Unstaged: play the morning, wind on to whatever hour a node waits
 			# for, walk to whatever place one waits at, and photograph each.
@@ -98,30 +98,6 @@ func begin(p_main) -> void:
 		main.hud.visible = false
 		main._open_report()
 		_steps = [["wait", 1.0], ["shot", "morning_report"], ["report"]]
-		return
-	if "--council" in OS.get_cmdline_user_args():
-		main.hud.visible = false
-		var c := Council.open("council_bluff_1804", main.stores)
-		main.council_screen.begin(c)
-		_steps = [["wait", 1.0], ["shot", "council_open"]]
-		_steps.append(["council_offer", "medals", 5])
-		_steps.append(["council_offer", "flags", 1])
-		_steps.append(["wait", 0.3])
-		_steps.append(["shot", "council_offered"])
-		for taken in ["speech", "medals", "air_gun"]:
-			_steps.append(["council_take", taken])
-			_steps.append(["wait", 0.3])
-		_steps.append(["shot", "council_part_way"])
-		_steps.append(["council_offer", "powder", 1])
-		_steps.append(["council_offer", "whiskey", 2])
-		_steps.append(["council_take", "the_ask"])
-		_steps.append(["council_offer", "medals", 1])
-		_steps.append(["council_offer", "flags", 1])
-		_steps.append(["council_offer", "tobacco", 6])
-		_steps.append(["council_take", "send_after"])
-		_steps.append(["wait", 0.4])
-		_steps.append(["shot", "council_verdict"])
-		_steps.append(["report"])
 		return
 	if "--march" in OS.get_cmdline_user_args():
 		_steps = _march_steps()
@@ -591,13 +567,6 @@ func _process(delta: float) -> void:
 			inv._hold = str(s[1])
 			inv._build_holds()
 			inv._fill()
-			_next()
-		"council_take":
-			main.council_screen._take(str(s[1]))
-			_next()
-		"council_offer":
-			main.council_screen.council.offer(str(s[1]), int(s[2]))
-			main.council_screen._refresh()
 			_next()
 		"await_bolt":
 			_wait += delta

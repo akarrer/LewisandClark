@@ -126,6 +126,21 @@
         30
       ],
       "from_water": 80.0
+    },
+    {
+      "name": "council_awning",
+      "note": "Where the council sat on 3 August 1804: under an awning of the keelboat's mainsail, at the camp on the bottom, not up on the bluff.",
+      "rule": "bank_stand",
+      "rect_of": "camp",
+      "rect_offset": [
+        -20,
+        -30
+      ],
+      "rect_size": [
+        30,
+        24
+      ],
+      "from_water": 88.0
     }
   ],
   "features": {
@@ -135,15 +150,10 @@
       "journal": "Council Bluff — a high bluff above the river where the Corps will hold its first council with the Otoe and Missouria."
     },
     "council": {
-      "id": "council_bluff_1804",
-      "at": "council_bluff",
-      "offset": [
-        6,
-        10
-      ],
-      "radius": 7.0,
-      "label": "Hold the council with the Otoe and Missouria",
-      "nation": "oto_missouria"
+      "at": "council_awning",
+      "nation": "oto_missouria",
+      "scenario": "council_bluff_1804",
+      "note": "The sail awning the council met under. The council itself is the Scenario data/scenarios/council_bluff_1804.json."
     },
     "fleet": true,
     "camp": true,

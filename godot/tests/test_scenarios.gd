@@ -247,3 +247,80 @@ func test_the_council_remembers_the_evening():
 	_pick(s, w, "Tell them")
 	_pick(s, w, "Nothing tonight")
 	t.check(int(w["state"].standing["oto_missouria"]) < 0, "a cold evening leaves a cold standing for the council")
+
+
+func _council_world() -> Dictionary:
+	var w := _world()
+	w["state"].current_day = 3
+	w["state"].minute_of_day = 9 * 60
+	return w
+
+
+func test_the_council_opens_where_the_evening_left_it():
+	var w := _council_world()
+	w["state"].standing["oto_missouria"] = 10
+	var s := Scenario.load_scenario("council_bluff_1804")
+	t.check(s.due(w["state"], "council_bluff", w), "due on the morning of the third")
+	s.begin(w)
+	t.eq(s.council.standing, 10, "the council starts at last night's standing")
+	t.check(s.council.interpreter_present, "with Drouillard to interpret")
+
+
+func test_the_historical_council():
+	var w := _council_world()
+	var medals: int = w["stores"].count("medals")
+	var powder: int = w["stores"].count("powder")
+	var s := Scenario.load_scenario("council_bluff_1804")
+	s.begin(w)
+	_pick(s, w, "Parade the Corps")
+	_pick(s, w, "Begin")
+	_pick(s, w, "Make the speech")
+	var chiefs: Dictionary = s.choices(w)[0]
+	t.check(chiefs["reasons"].any(func(r): return str(r[0]).contains("asked for is laid out")), "laying out what they asked counts, and shows")
+	_pick(s, w, "Make the chiefs")
+	t.eq(w["stores"].count("medals"), medals - 6, "six medals for six chiefs")
+	_pick(s, w, "Fire the air gun")
+	_pick(s, w, "A canister of powder")
+	t.check(w["stores"].count("powder") < powder, "the powder they asked for is given")
+	_pick(s, w, "Send his medal")
+	t.check(int(w["state"].standing["oto_missouria"]) >= 45, "and they part well satisfied: %s" % w["state"].standing["oto_missouria"])
+	_pick(s, w, "Strike the awning")
+	t.check(s.done, "then the Corps sets out")
+
+
+func test_refusing_their_ask_is_remembered_in_the_world():
+	var w := _council_world()
+	var s := Scenario.load_scenario("council_bluff_1804")
+	s.begin(w)
+	_pick(s, w, "Receive them")
+	_pick(s, w, "Begin")
+	_pick(s, w, "Make the speech", 0.99)
+	_pick(s, w, "Keep the medals")
+	_pick(s, w, "Leave it")
+	_pick(s, w, "Tell them there is none")
+	_pick(s, w, "Send nothing")
+	t.check(int(w["state"].standing["oto_missouria"]) < 0, "a council that gives nothing leaves them slighted")
+
+
+func test_medals_the_stores_do_not_hold_cannot_be_given():
+	var w := _council_world()
+	w["stores"].take("medals", float(w["stores"].count("medals") - 2))
+	var s := Scenario.load_scenario("council_bluff_1804")
+	s.begin(w)
+	_pick(s, w, "Parade")
+	_pick(s, w, "Begin")
+	_pick(s, w, "Make the speech")
+	var chiefs: Dictionary = s.choices(w)[0]
+	t.check(not chiefs["available"], "two medals will not make six chiefs")
+	t.check(str(chiefs["why_not"]).contains("medal"), "and it says so")
+
+
+func test_what_is_said_after_follows_the_roll():
+	var w := _council_world()
+	var s := Scenario.load_scenario("council_bluff_1804")
+	s.begin(w)
+	_pick(s, w, "Parade")
+	_pick(s, w, "Begin")
+	var crooked := _pick(s, w, "Make the speech", 0.999)
+	t.check(not crooked["passed"], "a roll at the top fails")
+	t.check(not crooked["reply"].any(func(l): return str(l["text"]).contains("glad")), "and nobody gives thanks for it")

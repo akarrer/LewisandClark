@@ -41,7 +41,6 @@ var _day_high := 0.0
 ## The sergeants report at first light; the HUD says so once a morning.
 var _report_due := true
 var inventory: InventoryScreen
-var council_screen: CouncilScreen
 var map_screen: MapScreen
 var _emptied: Array[String] = []
 var smoke: GPUParticles3D
@@ -179,10 +178,6 @@ func _place_world_features() -> void:
 	map_screen = MapScreen.new()
 	map_screen.build(terrain, leader)
 	add_child(map_screen)
-	council_screen = CouncilScreen.new()
-	council_screen.build()
-	council_screen.closed.connect(_council_closed)
-	add_child(council_screen)
 	for id in Scenario.all_ids():
 		scenarios.append(Scenario.load_scenario(id))
 	_scenario_rng.randomize()
@@ -195,30 +190,13 @@ func _place_world_features() -> void:
 	morning_report.closed.connect(_report_closed)
 	add_child(morning_report)
 
-	# The council ground, a little below the flag on the bluff.
+	# The mainsail stretched on poles at the camp, where the council sits
+	# (data/scenarios/council_bluff_1804.json).
 	var meet := region.feature("council")
 	if not meet.is_empty():
-		var off: Array = meet.get("offset", [0, 0])
-		var anchor: Vector3 = terrain.points[str(meet["at"])]
-		var ground := terrain.on_ground(anchor.x + float(off[0]), anchor.z + float(off[1]))
-		var council_place := Interactable.new()
-		council_place.name = "CouncilGround"
-		council_place.position = ground
-		council_place.label = str(meet["label"])
-		council_place.radius = float(meet.get("radius", 7.0))
-		var council_id := str(meet["id"])
-		council_place.on_interact = func():
-			if council_screen.open:
-				return
-			var c := Council.open(council_id, stores)
-			c.interpreter_present = corps.has("drouillard")
-			# What the evening before left them thinking (oto_arrival).
-			c.standing = int(state.standing.get(str(meet.get("nation", "")), 0))
-			council_screen.begin(c)
-			leader.input_enabled = false
-			leader.look_enabled = false
-			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		add_child(council_place)
+		var awning := Props.awning(terrain.points[str(meet["at"])], terrain)
+		awning.name = "CouncilAwning"
+		add_child(awning)
 
 	var town := region.feature("prairie_dog_town")
 	if not town.is_empty():
@@ -295,13 +273,13 @@ func _process(delta: float) -> void:
 	map_screen.note(leader.global_position)
 	map_screen.set_date("%s   ·   the ground as far as the Corps has come" % state.full_date_str())
 	var map_key := Input.is_action_just_pressed("toggle_map") 			or (map_screen.open and Input.is_action_just_pressed("menu"))
-	if map_key and not inventory.open and not council_screen.open:
+	if map_key and not inventory.open and not scenario_prompt.choosing:
 		map_screen.toggle()
 		# He stands still with the sheet open, as he would.
 		leader.input_enabled = not map_screen.open
 		leader.look_enabled = not map_screen.open
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if map_screen.open else Input.MOUSE_MODE_CAPTURED
-	if Input.is_action_just_pressed("morning_report") and not map_screen.open and not inventory.open 			and not council_screen.open:
+	if Input.is_action_just_pressed("morning_report") and not map_screen.open and not inventory.open 			and not scenario_prompt.choosing:
 		if morning_report.open:
 			morning_report.close()
 		else:
@@ -483,20 +461,6 @@ func _spawn_elk(enc: Dictionary) -> void:
 	add_child(herd)
 
 
-func _council_closed(standing: int, verdict: String, lines: Array) -> void:
-	leader.input_enabled = true
-	leader.look_enabled = true
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	for line in lines:
-		state.add_journal(str(line))
-	state.add_journal("Council with the Otoe and Missouria: %s" % verdict)
-	the_corps.hearten(standing / 4.0)
-	var nation := str(terrain.region.feature("council").get("nation", ""))
-	if nation != "":
-		state.standing[nation] = standing
-	_count_the_corps()
-
-
 func _feed_the_corps(_day: int) -> void:
 	## The day just lived, resolved at the midnight that ends it: every man's
 	## work, sickness and supper, what the rain got into, and history's own dates
@@ -562,8 +526,16 @@ func _start_scenario(s: Scenario) -> void:
 	scenario = s
 	s.begin(_world())
 	if s.def.has("stage"):
-		stage = ScenarioStage.stage(s, terrain, leader)
-		add_child(stage)
+		# The same people, walked on to the next place, if they are still here:
+		# the chiefs who came in last night go up to the council from their fire.
+		var spec: Dictionary = s.def["stage"]
+		var again := "Stage_" + str(spec.get("reuse", ""))
+		if spec.has("reuse") and has_node(again):
+			stage = get_node(again) as ScenarioStage
+			stage.move_to(terrain.points[str(spec["to"])], float(spec.get("radius", 12.0)))
+		else:
+			stage = ScenarioStage.stage(s, terrain, leader)
+			add_child(stage)
 	_advance_scenario()
 
 

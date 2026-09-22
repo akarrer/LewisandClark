@@ -50,6 +50,23 @@ static func stage(scenario: Scenario, p_terrain: Terrain, p_leader: Node3D) -> S
 	return s
 
 
+func move_to(point: Vector3, p_radius: float) -> void:
+	## Walk the same people on to a new place: from their fire to the council.
+	meet = point
+	radius = p_radius
+	var n := 0
+	for w in cast:
+		var route := terrain.find_route(w.global_position, point)
+		w.route.clear()
+		for p in route:
+			w.route.append(p)
+		# Seated in a half-ring facing the captains under the sail.
+		var ring := Vector3.FORWARD.rotated(Vector3.UP, PI * 0.5 + n * (PI / maxf(1.0, cast.size() - 1))) * (4.5 + 0.6 * (n % 2))
+		w.route.append(terrain.on_ground(point.x + ring.x, point.z + ring.z))
+		w.face_toward = point
+		n += 1
+
+
 func arrived() -> bool:
 	for w in cast:
 		if not w.arrived():
