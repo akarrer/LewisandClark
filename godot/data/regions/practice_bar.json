@@ -62,5 +62,103 @@
         30.0
       ]
     }
+  },
+  "foliage": {
+    "note": "Deliberately unlike Council Bluff, to prove growth comes from here: thin cottonwood, no beaver sign or willow thickets, more stone, and only sunflowers and goldenrod.",
+    "seed": 7,
+    "stands": {
+      "cottonwoods": {
+        "tries": 2000,
+        "variants": [
+          "twisted_tree_2",
+          "twisted_tree_4"
+        ],
+        "beneath": [
+          "bush_1",
+          "plant_1"
+        ]
+      },
+      "groves": {
+        "tries": 400,
+        "variants": [
+          "tree_2",
+          "tree_4"
+        ],
+        "snags": [
+          "dead_tree_1"
+        ],
+        "snag_share": 0.2
+      },
+      "driftwood": {
+        "tries": 1500,
+        "variants": [
+          "dead_tree_4"
+        ]
+      },
+      "far_country": {
+        "tries": 12000
+      },
+      "bushes": {
+        "tries": 800,
+        "variants": [
+          "bush_1"
+        ]
+      },
+      "rocks": {
+        "tries": 900,
+        "variants": [
+          "rock_medium_1",
+          "rock_medium_2",
+          "rock_medium_3"
+        ]
+      },
+      "grass_clumps": {
+        "tries": 20000,
+        "variants": [
+          "tall_grass_1",
+          "grass_wispy_2"
+        ]
+      }
+    },
+    "wildflowers": [
+      {
+        "kind": "sunflower",
+        "variants": [
+          "flower_group_2",
+          "flower_single_2"
+        ],
+        "seed": 21,
+        "freq": 0.025,
+        "threshold": 0.3,
+        "tries": 20000,
+        "smin": 0.45,
+        "smax": 0.8,
+        "stretch": [
+          1.0,
+          1.45,
+          1.0
+        ],
+        "low": true
+      },
+      {
+        "kind": "goldenrod",
+        "variants": [
+          "plant_1",
+          "plant_2"
+        ],
+        "seed": 22,
+        "freq": 0.03333333333333333,
+        "threshold": 0.3,
+        "tries": 20000,
+        "smin": 0.35,
+        "smax": 0.7,
+        "stretch": [
+          0.85,
+          1.7,
+          0.85
+        ],
+        "low": false
+      }
+    ]
   }
 }

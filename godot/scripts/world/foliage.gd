@@ -48,45 +48,71 @@ const PROFILES := {
 	"yarrow": {"sway": 0.09, "flutter": 0.25, "translucency": 0.3, "tint": Color(1.22, 1.20, 1.12), "variation": 0.10},
 }
 
-## The flowers of this reach in high summer, in stands of one kind rather than
-## mixed evenly through the grass — sunflowers down in the bottoms, purple
-## coneflower and blazing star on the dry upland, goldenrod coming on in the
-## draws, yarrow underfoot everywhere. Lewis pressed all of them that season.
-## ``low`` keeps a species to the bottomland; false keeps it to the upland.
-const WILDFLOWERS := [
-	{"kind": "sunflower", "variants": ["flower_group_2", "flower_single_2", "flower_petal_3"], "seed": 311,
-		"freq": 1.0 / 30.0, "threshold": 0.32, "tries": 26000, "smin": 0.45, "smax": 0.8,
-		"stretch": Vector3(1.0, 1.45, 1.0), "low": true},
-	{"kind": "coneflower", "variants": ["flower_petal_2", "flower_petal_4"], "seed": 512,
-		"freq": 1.0 / 22.0, "threshold": 0.36, "tries": 24000, "smin": 0.3, "smax": 0.55,
-		"stretch": Vector3(1.0, 1.2, 1.0), "low": false},
-	{"kind": "goldenrod", "variants": ["plant_1", "plant_2"], "seed": 733,
-		"freq": 1.0 / 34.0, "threshold": 0.34, "tries": 20000, "smin": 0.35, "smax": 0.7,
-		"stretch": Vector3(0.85, 1.7, 0.85), "low": false},
-	{"kind": "yarrow", "variants": ["flower_petal_1", "clover_1"], "seed": 947,
-		"freq": 1.0 / 18.0, "threshold": 0.28, "tries": 26000, "smin": 0.3, "smax": 0.5,
-		"stretch": Vector3(1.0, 1.0, 1.0), "low": true},
-]
+## Which stands grow, how thickly, and from which models is the Region's to say
+## (the "foliage" block of its data file, ADR-0014). What stays here is how each
+## kind of stand behaves -- cottonwoods crowd the water, groves keep to the draws
+## -- and how each kind looks in the wind. A stand the Region leaves out is not
+## grown. Stands are always grown in the order below, so a Region's file order
+## does not change what is scattered.
+
+## Every stand a Region may ask for, and the fields each one must give.
+const STANDS := {
+	"cottonwoods": ["tries", "variants", "beneath"],
+	"groves": ["tries", "variants", "snags", "snag_share"],
+	"driftwood": ["tries", "variants"],
+	"sandbar": ["thickets", "margin", "tufts", "stones"],
+	"far_country": ["tries"],
+	"beaver_sign": ["tries", "felled"],
+	"understory": ["tries"],
+	"bushes": ["tries", "variants"],
+	"rocks": ["tries", "variants"],
+	"grass_clumps": ["tries", "variants"],
+	"flowers": ["tries", "variants"],
+}
+const WILDFLOWER_FIELDS := ["kind", "variants", "seed", "freq", "threshold", "tries", "smin", "smax", "low"]
+
+## Kinds too small to be worth a shadow.
+const UNSHADOWED := ["grass", "flowers", "fungus"]
+
+var _stands := {}
+var _wildflowers: Array = []
+var _unshadowed: Array = UNSHADOWED.duplicate()
 
 
 func build(t: Terrain) -> void:
 	terrain = t
-	rng.seed = 42
+	var spec := t.region.foliage() if t.region != null else {}
+	_stands = spec.get("stands", {})
+	_wildflowers = spec.get("wildflowers", [])
+	rng.seed = int(spec.get("seed", 42))
 	_groves.seed = 77
 	_groves.frequency = 1.0 / 90.0
-	_scatter_cottonwoods()
-	_scatter_groves()
-	_scatter_driftwood()
-	_scatter_sandbar()
-	_scatter_far_country()
-	_scatter_beaver_sign()
-	_scatter_draw_understory()
-	_scatter("bush", ["bush_1", "bush_with_flowers_1"], 1400, 0.8, 1.2, _bush_ok, 260.0, 0.25)
-	# Loess country has few stones: an occasional weathered boulder, mostly in the draws.
-	_scatter("rock", ["rock_medium_1", "rock_medium_2", "rock_medium_3"], 220, 0.4, 1.0, _rock_ok, 320.0, 0.55)
+	if _stands.has("cottonwoods"):
+		_scatter_cottonwoods(_stands["cottonwoods"])
+	if _stands.has("groves"):
+		_scatter_groves(_stands["groves"])
+	if _stands.has("driftwood"):
+		_scatter_driftwood(_stands["driftwood"])
+	if _stands.has("sandbar"):
+		_scatter_sandbar(_stands["sandbar"])
+	if _stands.has("far_country"):
+		_scatter_far_country(_stands["far_country"])
+	if _stands.has("beaver_sign"):
+		_scatter_beaver_sign(_stands["beaver_sign"])
+	if _stands.has("understory"):
+		_scatter_draw_understory(_stands["understory"])
+	if _stands.has("bushes"):
+		var b: Dictionary = _stands["bushes"]
+		_scatter("bush", b["variants"], int(b["tries"]), 0.8, 1.2, _bush_ok, 260.0, 0.25)
+	if _stands.has("rocks"):
+		var r: Dictionary = _stands["rocks"]
+		_scatter("rock", r["variants"], int(r["tries"]), 0.4, 1.0, _rock_ok, 320.0, 0.55)
 	# The GPU grass field carries the prairie; these taller clumps and flowers are accents.
-	_scatter_grass_clumps()
-	_scatter("flowers", ["flower_group_1", "flower_single_1", "flower_group_2", "clover_1"], 5200, 0.35, 0.6, _flower_ok, 70.0)
+	if _stands.has("grass_clumps"):
+		_scatter_grass_clumps(_stands["grass_clumps"])
+	if _stands.has("flowers"):
+		var f: Dictionary = _stands["flowers"]
+		_scatter("flowers", f["variants"], int(f["tries"]), 0.35, 0.6, _flower_ok, 70.0)
 	_scatter_wildflowers()
 	_flush()
 
@@ -178,7 +204,7 @@ func _flush() -> void:
 			mmi.visibility_range_end = b["visibility"]
 			mmi.visibility_range_end_margin = 12.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		if str(key).begins_with("grass") or str(key).begins_with("flowers") 				or str(key).begins_with("yarrow") or str(key).begins_with("coneflower") 				or str(key).begins_with("sunflower") or str(key).begins_with("goldenrod") 				or str(key).begins_with("fungus"):
+		if b["kind"] in _unshadowed:
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
 	if OS.is_stdout_verbose():
@@ -239,11 +265,12 @@ func _rock_ok(p: Vector3) -> bool:
 	return _dist_to_river(p) > 8.0 and terrain.normal_at(p.x, p.z).y < 0.93 and not _near_point(p, 8.0)
 
 
-func _scatter_cottonwoods() -> void:
+func _scatter_cottonwoods(spec: Dictionary) -> void:
 	## Cottonwoods crowd the river in groves, with open meadow between them and
 	## brush and saplings underneath.
-	var variants := ["twisted_tree_1", "twisted_tree_2", "twisted_tree_3", "twisted_tree_4", "twisted_tree_5"]
-	for i in 5200:
+	var variants: Array = spec["variants"]
+	var beneath: Array = spec["beneath"]
+	for i in int(spec["tries"]):
 		var p := _random_point()
 		var d := _dist_to_river(p)
 		if d < 10.0 or d > 170.0 or _near_point(p, 16.0) or not terrain.walkable(p.x, p.z):
@@ -263,15 +290,17 @@ func _scatter_cottonwoods() -> void:
 			var off := Vector3(rng.randf_range(-7, 7), 0, rng.randf_range(-7, 7))
 			var q := Vector3(p.x + off.x, terrain.height_at(p.x + off.x, p.z + off.z), p.z + off.z)
 			if _dist_to_river(q) > 8.0:
-				var under: String = ["bush_1", "bush_with_flowers_1", "plant_1", "tree_5"][rng.randi() % 4]
+				var under: String = beneath[rng.randi() % beneath.size()]
 				var kind := "grove" if under == "tree_5" else "bush"
 				_add(kind, under, q - Vector3(0, 0.1, 0), rng.randf_range(0.5, 0.9), Vector3.UP, 220.0)
 
 
-func _scatter_groves() -> void:
+func _scatter_groves(spec: Dictionary) -> void:
 	## Groves of smaller trees (bur oak country) in the ravines of the uplands.
-	var variants := ["tree_1", "tree_2", "tree_3", "tree_4", "tree_5"]
-	for g in 900:
+	var variants: Array = spec["variants"]
+	var snags: Array = spec["snags"]
+	var snag_share := float(spec["snag_share"])
+	for g in int(spec["tries"]):
 		var p := _random_point()
 		if not _in_draw(p) or rng.randf() > 0.55:
 			continue
@@ -282,17 +311,17 @@ func _scatter_groves() -> void:
 			if _dist_to_river(p) < 12.0 or _near_point(p, 12.0) or not _in_draw(p):
 				continue
 			# The odd lightning-struck snag, not a burned forest.
-			var v: String = ["dead_tree_1", "dead_tree_3"][rng.randi() % 2] if rng.randf() < 0.08 else variants[rng.randi() % variants.size()]
+			var v: String = snags[rng.randi() % snags.size()] if rng.randf() < snag_share else variants[rng.randi() % variants.size()]
 			var stretch := Vector3(rng.randf_range(0.85, 1.2), rng.randf_range(0.85, 1.3), rng.randf_range(0.85, 1.2))
 			_add("grove", v, p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0, stretch, COARSE_CHUNK)
 
 
-func _scatter_driftwood() -> void:
+func _scatter_driftwood(spec: Dictionary) -> void:
 	## Bleached driftwood stranded on the sandbars, and snags - whole trees jammed
 	## in the riverbed, angled downstream - that made the Missouri so dangerous.
-	var variants := ["dead_tree_2", "dead_tree_4", "dead_tree_5"]
+	var variants: Array = spec["variants"]
 	var snags: Array[Vector3] = []
-	for i in 3000:
+	for i in int(spec["tries"]):
 		var p := _random_point()
 		var d := _dist_to_river(p)
 		if d > -2.0 and d < 12.0 and not _near_point(p, 30.0):
@@ -358,11 +387,11 @@ func _on_bar(p: Vector3, min_above: float) -> bool:
 	return p.y > Terrain.WATER_Y - 0.35 + min_above and _dist_to_river(p) < 22.0
 
 
-func _scatter_sandbar() -> void:
+func _scatter_sandbar(spec: Dictionary) -> void:
 	## Life on the bars: sandbar-willow thickets and cottonwood seedlings along
 	## the landward edge, wiry grass tufts, and pebbles in the wet margin.
 	# Bars are a small part of the map, so most random points miss them.
-	for i in 9000:
+	for i in int(spec["thickets"]):
 		var p := _random_point()
 		if not _on_bar(p, 0.45) or _near_point(p, 26.0) or _groves.get_noise_2d(p.x * 1.7, p.z * 1.7) < -0.2:
 			continue
@@ -389,9 +418,9 @@ func _scatter_sandbar() -> void:
 			var q2 := p + Vector3(rng.randf_range(-5, 5), 0, rng.randf_range(-5, 5))
 			q2.y = terrain.height_at(q2.x, q2.z)
 			_add("grove", "tree_5", q2 - Vector3(0, 0.1, 0), rng.randf_range(0.28, 0.45), Vector3.UP, 260.0, Vector3(0.8, 1.3, 0.8))
-	var tufts := ["grass_wispy_1", "grass_wispy_2", "tall_grass_1"]
-	var stones := ["pebble_round_1", "pebble_round_2", "pebble_round_3", "pebble_round_4", "rock_path_round_small_1", "rock_path_round_small_2"]
-	for i in 26000:
+	var tufts: Array = spec["tufts"]
+	var stones: Array = spec["stones"]
+	for i in int(spec["margin"]):
 		var p := _random_point()
 		if not _on_bar(p, 0.0):
 			continue
@@ -404,7 +433,7 @@ func _scatter_sandbar() -> void:
 			_add("rock", stones[rng.randi() % stones.size()], p - Vector3(0, 0.03, 0), rng.randf_range(0.35, 0.8), Vector3.UP, 55.0)
 
 
-func _scatter_draw_understory() -> void:
+func _scatter_draw_understory(spec: Dictionary) -> void:
 	## What grows in the ravines and nowhere else. The uplands here are open
 	## prairie and the bottoms are cottonwood, but the draws cutting the bluffs
 	## hold shade and damp, and the Corps used them to get up off the river.
@@ -412,7 +441,7 @@ func _scatter_draw_understory() -> void:
 	var shade := FastNoiseLite.new()
 	shade.seed = 6112
 	shade.frequency = 1.0 / 40.0
-	for i in 44000:
+	for i in int(spec["tries"]):
 		var p := _random_point()
 		if not _in_draw(p) or _near_point(p, 8.0):
 			continue
@@ -444,11 +473,11 @@ func _scatter_draw_understory() -> void:
 					p - Vector3(0, 0.02, 0), rng.randf_range(0.3, 0.55), n, 45.0, Vector3.ONE, COARSE_CHUNK)
 
 
-func _scatter_grass_clumps() -> void:
+func _scatter_grass_clumps(spec: Dictionary) -> void:
 	## Taller clumps standing out of the GPU grass field. Cured straw on the open
 	## upland, still green down in the bottom and in the damp draws.
-	var variants := ["tall_grass_1", "grass_wispy_1", "grass_wispy_2"]
-	for i in 30000:
+	var variants: Array = spec["variants"]
+	for i in int(spec["tries"]):
 		var p := _random_point()
 		if not _grass_ok(p):
 			continue
@@ -468,12 +497,15 @@ func _scatter_wildflowers() -> void:
 	## A stand of one species at a time, each keeping to the ground it likes, so the
 	## prairie reads as a patchwork of colour instead of a confetti of it.
 	var field := FastNoiseLite.new()
-	for spec in WILDFLOWERS:
+	for spec in _wildflowers:
+		_unshadowed.append(str(spec["kind"]))
 		field.seed = int(spec["seed"])
 		field.frequency = float(spec["freq"])
 		var placed := 0
 		var low: bool = spec["low"]
 		var variants: Array = spec["variants"]
+		var st: Array = spec.get("stretch", [1, 1, 1])
+		var stretch := Vector3(float(st[0]), float(st[1]), float(st[2]))
 		for i in int(spec["tries"]):
 			var p := _random_point()
 			if _dist_to_river(p) < 12.0 or terrain.normal_at(p.x, p.z).y < 0.86:
@@ -490,13 +522,13 @@ func _scatter_wildflowers() -> void:
 			# coarse enough that the batching costs a few dozen draw calls, not
 			# hundreds, since these are thin scatters.
 			_add(spec["kind"], variants[rng.randi() % variants.size()], p - Vector3(0, 0.04 * scale, 0),
-					scale, Vector3.UP, FLOWER_RANGE, spec["stretch"], COARSE_CHUNK)
+					scale, Vector3.UP, FLOWER_RANGE, stretch, COARSE_CHUNK)
 			placed += 1
 		if OS.is_stdout_verbose():
 			print("foliage: %s x%d" % [spec["kind"], placed])
 
 
-func _scatter_far_country() -> void:
+func _scatter_far_country(spec: Dictionary) -> void:
 	## Groves out in the country beyond the playable kilometre. Only ever a few
 	## pixels tall, so they are single blobs on a MultiMesh, unshadowed.
 	var mesh := _far_tree_mesh()
@@ -509,7 +541,7 @@ func _scatter_far_country() -> void:
 	var far := FastNoiseLite.new()
 	far.seed = 909
 	far.frequency = 1.0 / 260.0
-	for i in 26000:
+	for i in int(spec["tries"]):
 		var x := rng.randf_range(-1700.0, Terrain.SIZE + 1700.0)
 		var z := rng.randf_range(-1700.0, Terrain.SIZE + 1700.0)
 		var out := Vector2(x - clampf(x, 0.0, Terrain.SIZE), z - clampf(z, 0.0, Terrain.SIZE)).length()
@@ -576,15 +608,15 @@ static func _far_tree_mesh() -> ArrayMesh:
 	return mesh
 
 
-func _scatter_beaver_sign() -> void:
+func _scatter_beaver_sign(spec: Dictionary) -> void:
 	## Beaver work along the banks: stumps gnawed to a point, chips about the foot
 	## of them, and often the tree itself down and pointing at the water. The whole
 	## reason anyone in St Louis cared which way this river ran. Stumps and chips
 	## go on two MultiMeshes: there are hundreds of them and they are all the same.
-	var cut := ["dead_tree_2", "dead_tree_4", "dead_tree_5"]
+	var cut: Array = spec["felled"]
 	var stumps: Array[Transform3D] = []
 	var chips: Array[Transform3D] = []
-	for i in 4000:
+	for i in int(spec["tries"]):
 		var p := _random_point()
 		var d := _dist_to_river(p)
 		# In the willow and cottonwood fringe, within a beaver's haul of the water.
