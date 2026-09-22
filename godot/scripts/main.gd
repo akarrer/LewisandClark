@@ -16,6 +16,18 @@ var corps := {}  # key -> CorpsFigure (leader included)
 var director: TrailMomentDirector
 var prairie_dogs: Node3D
 var stores: Stores
+## Every man of the Corps, simulated (ADR-0010). ``corps`` above is the figures
+## walking the Region; this is the roll they are drawn from.
+var the_corps: Corps
+var morning_report: MorningReportScreen
+## The date being lived, as "1804-08-01": the Corps resolves a day at the
+## midnight that ends it, and needs to know which day that was.
+var _today := ""
+## The worst of the day's rain and the heat of it, for the Corps at midnight.
+var _day_storm := 0.0
+var _day_high := 0.0
+## The sergeants report at first light; the HUD says so once a morning.
+var _report_due := true
 var inventory: InventoryScreen
 var council_screen: CouncilScreen
 var map_screen: MapScreen
@@ -142,6 +154,9 @@ func _place_world_features() -> void:
 		add_child(Camp.pitch(terrain))
 
 	stores = Stores.load_manifest()
+	the_corps = Corps.load_corps()
+	_today = _date_key()
+	_count_the_corps()
 	state.day_passed.connect(_feed_the_corps)
 	state.day_passed.connect(func(_d): sky.set_day(Weather.day_pattern(state.current_month, state.current_day),
 			state.current_month, state.current_day))
@@ -156,6 +171,10 @@ func _place_world_features() -> void:
 	council_screen.build()
 	council_screen.closed.connect(_council_closed)
 	add_child(council_screen)
+	morning_report = MorningReportScreen.new()
+	morning_report.build()
+	morning_report.closed.connect(_report_closed)
+	add_child(morning_report)
 
 	# The council ground, a little below the flag on the bluff.
 	var meet := region.feature("council")
@@ -227,6 +246,11 @@ func _process(delta: float) -> void:
 	# rations want. The sky needs better than that: at two game-minutes a second
 	# the sun would step half a degree twice a second, and it reads as a stutter.
 	sky.update((state.minute_of_day + _clock) / 60.0, delta)
+	_day_storm = maxf(_day_storm, sky.storm)
+	_day_high = maxf(_day_high, Weather.temperature_f(state.current_month, state.current_day, state.hour(), sky.cloud_cover, sky.storm))
+	if _report_due and state.minute_of_day >= 6 * 60:
+		_report_due = false
+		hud.toast("The sergeants have made their report.   [%s]" % GameInput.hint("morning_report"))
 	# Only if this Region has a dog town; not every one will (see region.gd).
 	if prairie_dogs != null:
 		var scatter := _leader_near(prairie_dogs.position, 10.0) and leader.ground_speed() > 2.5
@@ -253,6 +277,11 @@ func _process(delta: float) -> void:
 		leader.input_enabled = not map_screen.open
 		leader.look_enabled = not map_screen.open
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if map_screen.open else Input.MOUSE_MODE_CAPTURED
+	if Input.is_action_just_pressed("morning_report") and not map_screen.open and not inventory.open 			and not council_screen.open:
+		if morning_report.open:
+			morning_report.close()
+		else:
+			_open_report()
 	if Input.is_action_just_pressed("inventory") and not map_screen.open:
 		inventory.toggle()
 		# The Leader stands still while the quartermaster looks over the stores.
@@ -419,6 +448,7 @@ func _spawn_elk(enc: Dictionary) -> void:
 		state.food = min(100, state.food + int(enc["food"]))
 		# An elk is some three hundred pounds of meat on the hoof.
 		stores.add("fresh_meat", float(enc["food"]) * 14.0)
+		the_corps.hides += 2.0
 		state.add_journal(enc["text"])
 		herd.enabled = false
 		var tw := create_tween()
@@ -436,29 +466,55 @@ func _council_closed(standing: int, verdict: String, lines: Array) -> void:
 	for line in lines:
 		state.add_journal(str(line))
 	state.add_journal("Council with the Otoe and Missouria: %s" % verdict)
-	state.morale = clampi(state.morale + int(standing / 4.0), 0, 100)
+	the_corps.hearten(standing / 4.0)
+	_count_the_corps()
 
 
 func _feed_the_corps(_day: int) -> void:
-	## A day's ration off the Stores, and what the weather has cost them.
-	var short := stores.short_ration(state.men)
-	var eaten := stores.ration(state.men, 1)
-	if short:
-		state.food = maxi(0, state.food - 7)
-		state.add_journal("The ration will not stretch to the whole party; the men go hungry.")
-	else:
-		state.food = mini(100, state.food + 1)
-	# Rain in an open boat gets into the flour and the meat turns in a day.
-	var damp := clampf(sky.storm * 0.6 + (0.25 if sky.haze > 0.7 else 0.0), 0.0, 1.0)
-	if damp > 0.05:
-		var lost := stores.spoil(damp * 0.35)
-		if float(lost.get("flour", 0.0)) > 20.0:
-			state.add_journal("Wet got into the flour; a quantity of it is spoiled.")
+	## The day just lived, resolved at the midnight that ends it: every man's
+	## work, sickness and supper, what the rain got into, and history's own dates
+	## (scripts/rules/corps.gd). In a Region the Corps is in camp; a Leg's days
+	## will pass with ``travel`` set.
+	var lines := the_corps.pass_day({"ended": _today, "travel": false, "storm": _day_storm, "hot_f": _day_high}, stores)
+	for line in lines:
+		state.add_journal(line)
+	_today = _date_key()
+	_day_storm = 0.0
+	_day_high = 0.0
+	_report_due = true
+	_count_the_corps()
 	# Say when a staple is broached to the last of it.
 	for id in ["salt_pork", "corn_hominy", "flour", "whiskey"]:
-		if eaten.has(id) and stores.count(id) <= 0 and not _emptied.has(id):
+		if stores.count(id) <= 0 and not _emptied.has(id):
 			_emptied.append(id)
 			state.add_journal("The last of the %s is gone." % str(stores.find(id).get("name", id)).to_lower())
+
+
+func _count_the_corps() -> void:
+	## What the HUD and the older systems read: mouths, fit men, spirits.
+	state.men = the_corps.eating()
+	state.fit = the_corps.fit_count()
+	state.morale = roundi(the_corps.mean_morale())
+
+
+func _date_key() -> String:
+	return "%d-%02d-%02d" % [state.current_year, state.current_month, state.current_day]
+
+
+func _open_report() -> void:
+	morning_report.begin(the_corps, stores, state.full_date_str())
+	leader.input_enabled = false
+	leader.look_enabled = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func _report_closed(lines: Array) -> void:
+	for line in lines:
+		state.add_journal(str(line))
+	_count_the_corps()
+	leader.input_enabled = true
+	leader.look_enabled = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 func _start_smoke(hook: Dictionary) -> void:

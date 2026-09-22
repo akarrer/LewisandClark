@@ -58,6 +58,12 @@ func begin(p_main) -> void:
 			_steps.append(["shot", "stores_" + hold])
 		_steps.append(["report"])
 		return
+	if "--morning-report" in OS.get_cmdline_user_args():
+		# The sergeants' report, after however many --days the Corps has lived.
+		main.hud.visible = false
+		main._open_report()
+		_steps = [["wait", 1.0], ["shot", "morning_report"], ["report"]]
+		return
 	if "--council" in OS.get_cmdline_user_args():
 		main.hud.visible = false
 		var c := Council.open("council_bluff_1804", main.stores)

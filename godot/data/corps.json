@@ -1,0 +1,698 @@
+{
+ "_note": "The Corps as the captains' Detachment Order of 26 May 1804 set it out (lewisandclarkjournals.unl.edu/item/lc.jrn.1804-05-26), at Council Bluff on 1 August 1804. Every man is simulated (ADR-0010); history's deaths are fixed (ADR-0012). See docs/design/corps.md.",
+ "seed": 1804,
+ "horses": 2,
+ "_horses_note": "Drouillard and Shields hunt ashore on two horses. Counted, not simulated, until the crossing (ADR-0010).",
+ "boats": {
+  "keelboat": 100,
+  "red_pirogue": 100,
+  "white_pirogue": 100
+ },
+ "hides": 6,
+ "messes": [
+  {
+   "id": "captains",
+   "name": "The captains",
+   "leader": "clark",
+   "commanded": false
+  },
+  {
+   "id": "floyd",
+   "name": "Sergeant Floyd's mess",
+   "leader": "floyd",
+   "commanded": true,
+   "boat": "keelboat"
+  },
+  {
+   "id": "ordway",
+   "name": "Sergeant Ordway's mess",
+   "leader": "ordway",
+   "commanded": true,
+   "boat": "keelboat"
+  },
+  {
+   "id": "pryor",
+   "name": "Sergeant Pryor's mess",
+   "leader": "pryor",
+   "commanded": true,
+   "boat": "keelboat"
+  },
+  {
+   "id": "warfington",
+   "name": "Corporal Warfington's mess",
+   "leader": "warfington",
+   "commanded": false,
+   "boat": "white_pirogue",
+   "note": "The soldiers of the return party. They keep the white pirogue and are not set duties with the Messes."
+  },
+  {
+   "id": "engages",
+   "name": "The engagés",
+   "leader": "deschamps",
+   "commanded": false,
+   "boat": "red_pirogue",
+   "note": "Hired French boatmen under their patroon. They work the red pirogue by contract."
+  }
+ ],
+ "men": [
+  {
+   "id": "lewis",
+   "name": "Meriwether Lewis",
+   "rank": "captain",
+   "mess": "captains",
+   "trades": [
+    "physic"
+   ],
+   "note": "Doctors the Corps out of the medicine chest, as Dr Rush taught him."
+  },
+  {
+   "id": "clark",
+   "name": "William Clark",
+   "rank": "captain",
+   "mess": "captains"
+  },
+  {
+   "id": "york",
+   "name": "York",
+   "rank": "enslaved",
+   "mess": "captains",
+   "trades": [
+    "hunter"
+   ],
+   "note": "Enslaved by Clark. Does the captains' camp work, and hunts and swims as well as any man in the Corps (ADR-0013)."
+  },
+  {
+   "id": "drouillard",
+   "name": "George Drouillard",
+   "rank": "interpreter",
+   "mess": "captains",
+   "trades": [
+    "hunter"
+   ],
+   "note": "Hired as interpreter and hunter; the best shot in the Corps. Hunts every day unless he is down.",
+   "standing_duty": "hunt"
+  },
+  {
+   "id": "floyd",
+   "name": "Charles Floyd",
+   "rank": "sergeant",
+   "mess": "floyd",
+   "note": "\"I am verry Sick and has been for Somtime\", he wrote on 31 July.",
+   "conditions": [
+    {
+     "id": "colic",
+     "days": 6
+    }
+   ]
+  },
+  {
+   "id": "mcneal",
+   "name": "Hugh McNeal",
+   "rank": "private",
+   "mess": "floyd"
+  },
+  {
+   "id": "gass",
+   "name": "Patrick Gass",
+   "rank": "private",
+   "mess": "floyd",
+   "trades": [
+    "carpenter"
+   ]
+  },
+  {
+   "id": "r_field",
+   "name": "Reubin Field",
+   "rank": "private",
+   "mess": "floyd",
+   "trades": [
+    "hunter"
+   ],
+   "short": "Reubin Field"
+  },
+  {
+   "id": "thompson",
+   "name": "John B. Thompson",
+   "rank": "private",
+   "mess": "floyd"
+  },
+  {
+   "id": "newman",
+   "name": "John Newman",
+   "rank": "private",
+   "mess": "floyd"
+  },
+  {
+   "id": "windsor",
+   "name": "Richard Windsor",
+   "rank": "private",
+   "mess": "floyd"
+  },
+  {
+   "id": "rivet",
+   "name": "François Rivet",
+   "rank": "engage",
+   "mess": "floyd",
+   "note": "A French boatman carried in Floyd's mess; danced on his head at the Mandan."
+  },
+  {
+   "id": "j_field",
+   "name": "Joseph Field",
+   "rank": "private",
+   "mess": "floyd",
+   "trades": [
+    "hunter"
+   ],
+   "short": "Joseph Field"
+  },
+  {
+   "id": "ordway",
+   "name": "John Ordway",
+   "rank": "sergeant",
+   "mess": "ordway",
+   "note": "The orderly sergeant: keeps the roster and the stores, and gives the captains their report."
+  },
+  {
+   "id": "bratton",
+   "name": "William Bratton",
+   "rank": "private",
+   "mess": "ordway",
+   "trades": [
+    "blacksmith",
+    "hunter"
+   ]
+  },
+  {
+   "id": "colter",
+   "name": "John Colter",
+   "rank": "private",
+   "mess": "ordway",
+   "trades": [
+    "hunter"
+   ]
+  },
+  {
+   "id": "reed",
+   "name": "Moses B. Reed",
+   "rank": "private",
+   "mess": "ordway"
+  },
+  {
+   "id": "willard",
+   "name": "Alexander Willard",
+   "rank": "private",
+   "mess": "ordway",
+   "trades": [
+    "blacksmith"
+   ]
+  },
+  {
+   "id": "werner",
+   "name": "William Werner",
+   "rank": "private",
+   "mess": "ordway"
+  },
+  {
+   "id": "goodrich",
+   "name": "Silas Goodrich",
+   "rank": "private",
+   "mess": "ordway",
+   "note": "The Corps' fisherman."
+  },
+  {
+   "id": "potts",
+   "name": "John Potts",
+   "rank": "private",
+   "mess": "ordway"
+  },
+  {
+   "id": "hall",
+   "name": "Hugh Hall",
+   "rank": "private",
+   "mess": "ordway"
+  },
+  {
+   "id": "pryor",
+   "name": "Nathaniel Pryor",
+   "rank": "sergeant",
+   "mess": "pryor"
+  },
+  {
+   "id": "gibson",
+   "name": "George Gibson",
+   "rank": "private",
+   "mess": "pryor",
+   "trades": [
+    "fiddler",
+    "hunter"
+   ]
+  },
+  {
+   "id": "shannon",
+   "name": "George Shannon",
+   "rank": "private",
+   "mess": "pryor",
+   "note": "The youngest of the Corps, about nineteen."
+  },
+  {
+   "id": "shields",
+   "name": "John Shields",
+   "rank": "private",
+   "mess": "pryor",
+   "trades": [
+    "blacksmith",
+    "hunter"
+   ],
+   "note": "Gunsmith and blacksmith; the captains thought him the most ingenious man they had."
+  },
+  {
+   "id": "collins",
+   "name": "John Collins",
+   "rank": "private",
+   "mess": "pryor",
+   "trades": [
+    "hunter"
+   ]
+  },
+  {
+   "id": "whitehouse",
+   "name": "Joseph Whitehouse",
+   "rank": "private",
+   "mess": "pryor",
+   "trades": [
+    "tailor"
+   ],
+   "note": "Mends the Corps' clothes and makes their leather ones."
+  },
+  {
+   "id": "wiser",
+   "name": "Peter Weiser",
+   "rank": "private",
+   "mess": "pryor"
+  },
+  {
+   "id": "cruzatte",
+   "name": "Pierre Cruzatte",
+   "rank": "private",
+   "mess": "pryor",
+   "trades": [
+    "boatman",
+    "fiddler"
+   ],
+   "note": "Bowman of the keelboat, one-eyed and near-sighted, and the Corps' fiddler."
+  },
+  {
+   "id": "labiche",
+   "name": "François Labiche",
+   "rank": "private",
+   "mess": "pryor",
+   "trades": [
+    "boatman"
+   ]
+  },
+  {
+   "id": "warfington",
+   "name": "Richard Warfington",
+   "rank": "corporal",
+   "mess": "warfington",
+   "note": "Commands the white pirogue and the soldiers who take the keelboat back down in spring."
+  },
+  {
+   "id": "frazer",
+   "name": "Robert Frazer",
+   "rank": "private",
+   "mess": "warfington"
+  },
+  {
+   "id": "boley",
+   "name": "John Boley",
+   "rank": "private",
+   "mess": "warfington"
+  },
+  {
+   "id": "dame",
+   "name": "John Dame",
+   "rank": "private",
+   "mess": "warfington"
+  },
+  {
+   "id": "tuttle",
+   "name": "Ebenezer Tuttle",
+   "rank": "private",
+   "mess": "warfington"
+  },
+  {
+   "id": "white",
+   "name": "Isaac White",
+   "rank": "private",
+   "mess": "warfington"
+  },
+  {
+   "id": "deschamps",
+   "name": "Jean-Baptiste Deschamps",
+   "rank": "patroon",
+   "mess": "engages",
+   "trades": [
+    "boatman"
+   ],
+   "note": "Patroon of the red pirogue and its hired French boatmen."
+  },
+  {
+   "id": "malboeuf",
+   "name": "Étienne Malboeuf",
+   "rank": "engage",
+   "mess": "engages",
+   "trades": [
+    "boatman"
+   ]
+  },
+  {
+   "id": "primeau",
+   "name": "Paul Primeau",
+   "rank": "engage",
+   "mess": "engages",
+   "trades": [
+    "boatman"
+   ]
+  },
+  {
+   "id": "hebert",
+   "name": "Charles Hébert",
+   "rank": "engage",
+   "mess": "engages",
+   "trades": [
+    "boatman"
+   ]
+  },
+  {
+   "id": "la_jeunesse",
+   "name": "Jean-Baptiste La Jeunesse",
+   "rank": "engage",
+   "mess": "engages",
+   "trades": [
+    "boatman"
+   ],
+   "short": "La Jeunesse"
+  },
+  {
+   "id": "pinaut",
+   "name": "Pierre Pinaut",
+   "rank": "engage",
+   "mess": "engages",
+   "trades": [
+    "boatman"
+   ]
+  },
+  {
+   "id": "roi",
+   "name": "Pierre Roi",
+   "rank": "engage",
+   "mess": "engages",
+   "trades": [
+    "boatman"
+   ]
+  },
+  {
+   "id": "collin",
+   "name": "Joseph Collin",
+   "rank": "engage",
+   "mess": "engages",
+   "trades": [
+    "boatman"
+   ]
+  },
+  {
+   "id": "la_liberte",
+   "name": "Joseph La Liberté",
+   "rank": "engage",
+   "mess": "engages",
+   "trades": [
+    "boatman"
+   ],
+   "note": "Sent to the Oto towns at the end of July to bring the chiefs to council; not yet back.",
+   "status": "away",
+   "due": "1804-08-03",
+   "short": "La Liberté"
+  }
+ ],
+ "conditions": {
+  "boils": {
+   "name": "Boils",
+   "report": "is troubled with boils",
+   "health_per_day": -1,
+   "days": [
+    4,
+    9
+   ],
+   "blocks_work": false,
+   "weight": 4,
+   "note": "The journals blame the muddy river water; nearly every man had them that summer."
+  },
+  "dysentery": {
+   "name": "The flux",
+   "report": "is down with the flux",
+   "health_per_day": -3,
+   "days": [
+    3,
+    7
+   ],
+   "blocks_work": true,
+   "weight": 2,
+   "treat": {
+    "item": "rush_pills",
+    "qty": 1,
+    "days_off": 1,
+    "health": -3,
+    "verb": "dosed with Rush's pills"
+   }
+  },
+  "fever": {
+   "name": "Fever",
+   "report": "has a fever on him",
+   "health_per_day": -2,
+   "days": [
+    4,
+    8
+   ],
+   "blocks_work": true,
+   "weight": 1,
+   "treat": {
+    "item": "peruvian_bark",
+    "qty": 0.25,
+    "days_off": 3,
+    "health": 0,
+    "verb": "given the bark"
+   }
+  },
+  "heatstroke": {
+   "name": "Overcome by heat",
+   "report": "was overcome by the heat",
+   "health_per_day": -2,
+   "days": [
+    1,
+    3
+   ],
+   "blocks_work": true,
+   "weight": 1,
+   "hot_only": true
+  },
+  "snakebite": {
+   "name": "Snakebit",
+   "report": "was bitten by a snake",
+   "health_per_day": -4,
+   "days": [
+    3,
+    6
+   ],
+   "blocks_work": true,
+   "weight": 0.2,
+   "ashore_only": true
+  },
+  "lame": {
+   "name": "Lame",
+   "report": "is lame",
+   "health_per_day": 0,
+   "days": [
+    3,
+    8
+   ],
+   "blocks_work": true,
+   "weight": 0
+  },
+  "exhausted": {
+   "name": "Exhausted",
+   "report": "is worn out",
+   "health_per_day": 0,
+   "days": [
+    2,
+    3
+   ],
+   "blocks_work": true,
+   "weight": 0
+  },
+  "starving": {
+   "name": "Starving",
+   "report": "is weak with hunger",
+   "health_per_day": -2,
+   "days": null,
+   "blocks_work": false,
+   "weight": 0
+  },
+  "colic": {
+   "name": "Colic",
+   "report": "is very sick with a colic",
+   "health_per_day": -2,
+   "days": [
+    5,
+    10
+   ],
+   "blocks_work": true,
+   "weight": 0,
+   "treat": {
+    "item": "rush_pills",
+    "qty": 1,
+    "days_off": 1,
+    "health": -3,
+    "verb": "dosed with Rush's pills"
+   }
+  },
+  "bilious_colic": {
+   "name": "Bilious colic",
+   "report": "is taken very bad with the bilious colic",
+   "health_per_day": -10,
+   "days": null,
+   "blocks_work": true,
+   "weight": 0,
+   "treat": {
+    "item": "rush_pills",
+    "qty": 1,
+    "days_off": 0,
+    "health": -3,
+    "verb": "dosed and bled"
+   },
+   "note": "Almost certainly a burst appendix. Nothing in 1804 could cure it (ADR-0012)."
+  }
+ },
+ "duties": {
+  "rest": {
+   "name": "Rest",
+   "hint": "Lie up in camp. Fatigue falls fast and the sick mend quicker.",
+   "fatigue": 0,
+   "footwear": 0,
+   "clothes": 0,
+   "sickness": 0.6,
+   "ashore": false,
+   "health": 2,
+   "recovery": 0.7
+  },
+  "hunt": {
+   "name": "Hunt",
+   "hint": "Out after game: meat and hides, at the cost of shoe leather.",
+   "fatigue": 12,
+   "footwear": -5,
+   "clothes": -2,
+   "sickness": 1.0,
+   "ashore": true,
+   "recovery": 0.3
+  },
+  "dry": {
+   "name": "Dry the stores",
+   "hint": "Air and dry whatever is wet before it spoils.",
+   "fatigue": 4,
+   "footwear": 0,
+   "clothes": 0,
+   "sickness": 0.8,
+   "ashore": false,
+   "recovery": 0.45
+  },
+  "mend": {
+   "name": "Make moccasins",
+   "hint": "Sew moccasins and mend clothes from the hides.",
+   "fatigue": 4,
+   "footwear": 30,
+   "clothes": 20,
+   "sickness": 0.8,
+   "ashore": false,
+   "recovery": 0.45
+  },
+  "repair": {
+   "name": "Work on the boats",
+   "hint": "Caulk, patch and refit the boats.",
+   "fatigue": 8,
+   "footwear": 0,
+   "clothes": -1,
+   "sickness": 0.8,
+   "ashore": false,
+   "recovery": 0.4
+  },
+  "crew": {
+   "name": "Work the boats",
+   "hint": "Row, pole and haul on the towline upriver.",
+   "fatigue": 20,
+   "footwear": -5,
+   "clothes": -3,
+   "sickness": 1.5,
+   "ashore": true,
+   "recovery": 0.3
+  }
+ },
+ "rules": {
+  "sickness_per_day": 0.012,
+  "hot_above_f": 88,
+  "hot_sickness": 1.3,
+  "short_ration_sickness": 1.5,
+  "lame_below_footwear": 25,
+  "lame_chance": 0.08,
+  "exhausted_above_fatigue": 85,
+  "regen_per_day": 2,
+  "excused_regen": 2,
+  "morale_base": 70,
+  "morale_drift": 0.2,
+  "morale_no_gill": -10,
+  "morale_short_ration": -20,
+  "morale_rest": 5,
+  "morale_fiddle": 5,
+  "morale_per_fatigue_over_50": -0.4,
+  "morale_death": -15,
+  "gill_gallons": 0.03125,
+  "hunt_success": 0.35,
+  "hunter_success": 0.6,
+  "elk_share": 0.3,
+  "deer_lb": 100,
+  "elk_lb": 220,
+  "wet_share_per_storm": 0.3,
+  "wet_spoil_per_day": 0.2,
+  "dry_men_needed": 6,
+  "leak_below_hull": 50,
+  "snag_chance": 0.04,
+  "snag_damage": [
+   8,
+   20
+  ],
+  "hull_wear_per_day": 1,
+  "repair_per_man": 3,
+  "repair_trade_mult": 2,
+  "hides_per_mend": 0.5,
+  "fit_health": 40,
+  "collapse_below_fit": 12,
+  "mutiny_morale": 15,
+  "mutiny_days": 5,
+  "meat_spoil_per_day": 0.5,
+  "hot_fatigue": 5,
+  "wet_journal_storm": 0.4
+ },
+ "history": [
+  {
+   "date": "1804-08-19",
+   "man": "floyd",
+   "condition": "bilious_colic",
+   "journal": "Sergeant Floyd is taken very bad all at once with a bilious colic. Every attention is paid him."
+  },
+  {
+   "date": "1804-08-20",
+   "man": "floyd",
+   "dies": true,
+   "journal": "Sergeant Charles Floyd died, with a great deal of composure. We buried him on the top of a bluff with the honors of war."
+  }
+ ]
+}
