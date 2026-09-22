@@ -58,6 +58,26 @@ func begin(p_main) -> void:
 			_steps.append(["shot", "stores_" + hold])
 		_steps.append(["report"])
 		return
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--scenario="):
+			# Jump to the Scenario's day and hour, let it choose for itself, walk out
+			# to meet its cast, and photograph the evening as it goes.
+			var sc := Scenario.load_scenario(a.substr(11))
+			var when: Dictionary = sc.def.get("when", {})
+			var ymd := str(when.get("date", "1804-08-01")).split("-")
+			main.state.current_month = int(ymd[1])
+			main.state.current_day = int(ymd[2])
+			main.state.minute_of_day = int(float(when.get("after_hour", 12.0)) * 60.0) - 1
+			main._today = main._date_key()
+			main.scenario_prompt.auto_choose = true
+			var meet := str(sc.def.get("stage", {}).get("to", "start"))
+			var l: Leader = main.leader
+			var from: Vector3 = main.terrain.points.get(str(sc.def.get("stage", {}).get("from", "start")), l.global_position)
+			l._yaw = rad_to_deg(atan2(-(from.x - l.global_position.x), -(from.z - l.global_position.z)))
+			l._pitch = -4.0
+			_steps = [["wait", 2.2], ["shot", "their_guns"], ["wait", 16.0], ["walk_to", meet, 7.0], ["wait", 3.0],
+					["shot", "they_come_in"], ["wait", 30.0], ["shot", "the_evening"], ["report"]]
+			return
 	if "--morning-report" in OS.get_cmdline_user_args():
 		# The sergeants' report, after however many --days the Corps has lived.
 		main.hud.visible = false
@@ -93,7 +113,7 @@ func begin(p_main) -> void:
 		return
 	_steps = [
 		["wait", 3.0], ["shot", "start"],
-		["walk_to", "prairie_dog_town", 6.0], ["wait", 7.5], ["shot", "prairie_dogs"],
+		["walk_to", "bluff_approach", 6.0], ["wait", 7.5], ["shot", "prairie_dogs"],
 		["walk_to", "bluff_approach", 20.0],
 		["walk_to", "council_bluff", 4.0], ["interact"], ["wait", 1.0], ["face_river"], ["wait", 1.2], ["shot", "council_bluff_overlook"],
 		["report"],
@@ -106,16 +126,16 @@ func _march_steps() -> Array:
 	main.director.cadence_max = 1e9
 	main.director._schedule()
 	main.hud.visible = false
-	var steps: Array = [["wait", 2.0], ["walk_for", "prairie_dog_town", 9.0], ["sidecam"]]
+	var steps: Array = [["wait", 2.0], ["walk_for", "bluff_approach", 9.0], ["sidecam"]]
 	var frames := 6
 	var every := 0.7
 	if "--stepoff" in OS.get_cmdline_user_args():
 		# From a halt: watch each man step off in his own time.
-		steps = [["walk_for", "prairie_dog_town", 6.0], ["wait", 4.0], ["sidecam", "prairie_dog_town"], ["shot", "halt"]]
+		steps = [["walk_for", "bluff_approach", 6.0], ["wait", 4.0], ["sidecam", "bluff_approach"], ["shot", "halt"]]
 		frames = 8
 		every = 0.35
 	for i in frames:
-		steps.append(["walk_for", "prairie_dog_town", every])
+		steps.append(["walk_for", "bluff_approach", every])
 		steps.append(["shot", "march"])
 	steps.append(["report"])
 	return steps
@@ -139,7 +159,7 @@ func _scenery_steps() -> Array:
 	var here: Vector3 = main.leader.global_position
 	var start: Vector3 = tr.points.get("start", here)
 	var bluff: Vector3 = tr.points.get("council_bluff", start) + Vector3(0, 0, 8)
-	var dogs: Vector3 = tr.points.get("prairie_dog_town", start)
+	var dogs: Vector3 = tr.points.get("bluff_approach", start)
 	var ridge: Vector3 = tr.points.get("smoke_ridge", start)
 	var steps: Array = [["wait", 2.0]]
 	# A spot among the cottonwoods ~60 m from the water, upriver of the start.

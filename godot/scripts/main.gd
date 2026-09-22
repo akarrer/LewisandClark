@@ -3,6 +3,10 @@ extends Node3D
 ## Builds the world, the Corps, and runs the Day Clock and Trail Moments.
 
 const GAME_MINUTES_PER_SECOND := 2.0  # 2 in-game hours per real minute
+## While a staged Scenario plays out around the Leader the Day Clock slows to
+## this share of itself: a few real minutes of talk at the fire should be half an
+## hour of evening, not five hours of it.
+const SCENE_TIME := 0.1
 
 var state := ExpeditionState.new()
 ## Which Region is loaded. `--region=<id>` on the command line picks another,
@@ -20,6 +24,14 @@ var stores: Stores
 ## walking the Region; this is the roll they are drawn from.
 var the_corps: Corps
 var morning_report: MorningReportScreen
+## Scenarios (ADR-0005) staged in the world: the one running, its stage, and
+## the prompt its choices come up on.
+var scenarios: Array[Scenario] = []
+var scenario: Scenario
+var stage: ScenarioStage
+var scenario_prompt: ScenarioPrompt
+var _scenario_waiting := false
+var _scenario_rng := RandomNumberGenerator.new()
 ## The date being lived, as "1804-08-01": the Corps resolves a day at the
 ## midnight that ends it, and needs to know which day that was.
 var _today := ""
@@ -171,6 +183,13 @@ func _place_world_features() -> void:
 	council_screen.build()
 	council_screen.closed.connect(_council_closed)
 	add_child(council_screen)
+	for id in Scenario.all_ids():
+		scenarios.append(Scenario.load_scenario(id))
+	_scenario_rng.randomize()
+	scenario_prompt = ScenarioPrompt.new()
+	scenario_prompt.build(hud)
+	scenario_prompt.chosen.connect(_scenario_chosen)
+	add_child(scenario_prompt)
 	morning_report = MorningReportScreen.new()
 	morning_report.build()
 	morning_report.closed.connect(_report_closed)
@@ -193,6 +212,8 @@ func _place_world_features() -> void:
 				return
 			var c := Council.open(council_id, stores)
 			c.interpreter_present = corps.has("drouillard")
+			# What the evening before left them thinking (oto_arrival).
+			c.standing = int(state.standing.get(str(meet.get("nation", "")), 0))
 			council_screen.begin(c)
 			leader.input_enabled = false
 			leader.look_enabled = false
@@ -234,7 +255,7 @@ func _place_world_features() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
-	_clock += delta * GAME_MINUTES_PER_SECOND
+	_clock += delta * GAME_MINUTES_PER_SECOND * (SCENE_TIME if _in_scene() else 1.0)
 	if _clock >= 1.0:
 		var whole := int(_clock)
 		_clock -= whole
@@ -256,7 +277,9 @@ func _process(delta: float) -> void:
 		var scatter := _leader_near(prairie_dogs.position, 10.0) and leader.ground_speed() > 2.5
 		Interactable.animate_prairie_dogs(prairie_dogs, _time, scatter)
 
-	var started := director.update(delta, leader.ground_speed() > 0.5, _moment_context())
+	_run_scenario()
+	# Trail Moments hold their tongues while a Scenario is being played.
+	var started := "" if scenario != null else director.update(delta, leader.ground_speed() > 0.5, _moment_context())
 	if started != "":
 		_start_moment(started)
 	_run_moment(delta)
@@ -467,6 +490,9 @@ func _council_closed(standing: int, verdict: String, lines: Array) -> void:
 		state.add_journal(str(line))
 	state.add_journal("Council with the Otoe and Missouria: %s" % verdict)
 	the_corps.hearten(standing / 4.0)
+	var nation := str(terrain.region.feature("council").get("nation", ""))
+	if nation != "":
+		state.standing[nation] = standing
 	_count_the_corps()
 
 
@@ -488,6 +514,83 @@ func _feed_the_corps(_day: int) -> void:
 		if stores.count(id) <= 0 and not _emptied.has(id):
 			_emptied.append(id)
 			state.add_journal("The last of the %s is gone." % str(stores.find(id).get("name", id)).to_lower())
+
+
+func _in_scene() -> bool:
+	## A Scenario is being played out where the Leader is, not waiting on him
+	## somewhere he has not gone.
+	if scenario == null:
+		return false
+	if not _scenario_waiting or stage == null:
+		return true
+	return Vector2(leader.global_position.x - stage.meet.x, leader.global_position.z - stage.meet.z).length() < 80.0
+
+
+func _world() -> Dictionary:
+	return {"state": state, "corps": the_corps, "stores": stores}
+
+
+func _run_scenario() -> void:
+	## Start whatever Scenario has come due; hold a running one at a node that
+	## waits on the world until the world has done it.
+	if scenario == null:
+		for s in scenarios:
+			if s.due(state, terrain.region.id):
+				_start_scenario(s)
+				break
+		return
+	if not scenario.cues.is_empty():
+		if stage != null:
+			stage.play_cues(scenario.cues)
+		scenario.cues.clear()
+	if _scenario_waiting and _wait_met(scenario.waits_for()):
+		_scenario_waiting = false
+		_speak_node()
+
+
+func _start_scenario(s: Scenario) -> void:
+	scenario = s
+	s.begin(_world())
+	if s.def.has("stage"):
+		stage = ScenarioStage.stage(s, terrain, leader)
+		add_child(stage)
+	_advance_scenario()
+
+
+func _wait_met(wait: String) -> bool:
+	match wait:
+		"":
+			return true
+		"arrival":
+			return stage != null and stage.arrived() and stage.leader_close()
+	return false
+
+
+func _advance_scenario() -> void:
+	if not _wait_met(scenario.waits_for()):
+		_scenario_waiting = true
+		if scenario.waits_for() == "arrival":
+			hud.toast("%s." % str(scenario.def.get("stage", {}).get("prompt", "Go and meet them")))
+		return
+	_speak_node()
+
+
+func _speak_node() -> void:
+	scenario_prompt.play(scenario.lines(), func():
+		if scenario.done:
+			scenario = null
+			return
+		leader.input_enabled = false
+		leader.look_enabled = false
+		scenario_prompt.show_choices(scenario.choices(_world())))
+
+
+func _scenario_chosen(index: int) -> void:
+	leader.input_enabled = true
+	leader.look_enabled = true
+	var result := scenario.choose(index, _world(), _scenario_rng.randf())
+	_count_the_corps()
+	scenario_prompt.play(result["reply"], _advance_scenario)
 
 
 func _count_the_corps() -> void:

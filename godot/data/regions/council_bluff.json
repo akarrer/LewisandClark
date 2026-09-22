@@ -60,17 +60,6 @@
       "toward_water": 5.0
     },
     {
-      "name": "prairie_dog_town",
-      "rule": "flat_upland",
-      "rect": [
-        300,
-        600,
-        150,
-        170
-      ],
-      "above_flood": 6.0
-    },
-    {
       "name": "smoke_ridge",
       "note": "The highest hill in the western uplands.",
       "rule": "highest",
@@ -107,6 +96,36 @@
       "along_bank": -42.0,
       "clearance": 4.5,
       "draught": 0.6
+    },
+    {
+      "name": "oto_meeting",
+      "note": "Where the Oto and Missouria come in on 2 August: the open bottom beside the camp, where the Corps can walk out to them.",
+      "rule": "bank_stand",
+      "rect_of": "camp",
+      "rect_offset": [
+        -35,
+        -5
+      ],
+      "rect_size": [
+        50,
+        50
+      ],
+      "from_water": 95.0
+    },
+    {
+      "name": "oto_approach",
+      "note": "Where they come in sight: up the bottom from the south, in plain view of the camp. West of the camp the loess bench stands thirteen metres over the bottom, so nobody walks in from that side.",
+      "rule": "bank_stand",
+      "rect_of": "camp",
+      "rect_offset": [
+        5,
+        55
+      ],
+      "rect_size": [
+        40,
+        30
+      ],
+      "from_water": 80.0
     }
   ],
   "features": {
@@ -123,10 +142,8 @@
         10
       ],
       "radius": 7.0,
-      "label": "Hold the council with the Otoe and Missouria"
-    },
-    "prairie_dog_town": {
-      "at": "prairie_dog_town"
+      "label": "Hold the council with the Otoe and Missouria",
+      "nation": "oto_missouria"
     },
     "fleet": true,
     "camp": true,
@@ -383,5 +400,6 @@
       "fish_rise_every": 1.8,
       "drift_logs": 6
     }
-  }
+  },
+  "_prairie_dogs": "The dog town was moved out: the Corps first met prairie dogs on 7 September 1804, far upriver (docs/research/species-of-the-expedition.md). It belongs to that Region."
 }

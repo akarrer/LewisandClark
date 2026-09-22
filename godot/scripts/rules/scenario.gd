@@ -1,0 +1,206 @@
+class_name Scenario
+extends RefCounted
+## A Scenario: a branching, choice-driven story moment, authored as a JSON node
+## graph (ADR-0005) in data/scenarios/<id>.json. This is only the logic -- what
+## is due, which choices stand open, the odds of a Skill Check and why, and what
+## each outcome does to the Corps, the Stores and the Expedition. Staging it in
+## the world is scripts/world/scenario_stage.gd; the prompt is
+## scripts/ui/scenario_prompt.gd. See docs/design/scenarios.md.
+##
+## ``world`` everywhere below is {"state": ExpeditionState, "corps": Corps,
+## "stores": Stores}.
+
+const DIR := "res://data/scenarios/"
+
+## What a choice's ``when``, or a Skill Check modifier's, may ask.
+const CONDITIONS := ["present", "absent", "status", "flag", "not_flag", "item", "fit_at_least", "standing_at_least"]
+## What an outcome may do.
+const EFFECTS := ["journal", "standing", "hearten", "flag", "status", "take", "fatigue", "cue"]
+
+var def := {}
+var id := ""
+var node_id := ""
+var done := false
+## Stage cues raised by effects since the stage last looked ("salute", ...).
+var cues: Array[String] = []
+
+
+static func all_ids() -> Array[String]:
+	var ids: Array[String] = []
+	for f in DirAccess.get_files_at(DIR):
+		if f.ends_with(".json"):
+			ids.append(f.get_basename())
+	return ids
+
+
+static func load_scenario(scenario_id: String) -> Scenario:
+	var s := Scenario.new()
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(DIR + scenario_id + ".json"))
+	assert(parsed is Dictionary, "no Scenario at " + DIR + scenario_id)
+	s.def = parsed
+	s.id = str(parsed.get("id", scenario_id))
+	return s
+
+
+static func date_key(state: ExpeditionState) -> String:
+	return "%d-%02d-%02d" % [state.current_year, state.current_month, state.current_day]
+
+
+func due(state: ExpeditionState, region_id: String) -> bool:
+	## Its day and hour have come, in its Region, and it has not been played.
+	var w: Dictionary = def.get("when", {})
+	if state.flags.has("scenario:" + id):
+		return false
+	if w.has("region") and str(w["region"]) != region_id:
+		return false
+	if w.has("date") and str(w["date"]) != date_key(state):
+		return false
+	return state.hour() >= float(w.get("after_hour", 0.0))
+
+
+func begin(world: Dictionary) -> void:
+	world["state"].flags["scenario:" + id] = true
+	_enter(str(def["start"]), world)
+
+
+func node() -> Dictionary:
+	return def["nodes"].get(node_id, {})
+
+
+func lines() -> Array:
+	return node().get("lines", [])
+
+
+func waits_for() -> String:
+	## A node may hold until something happens in the world ("arrival": the cast
+	## has come in and the Leader has gone to meet them). The stage says when.
+	return str(node().get("wait", ""))
+
+
+func choices(world: Dictionary) -> Array[Dictionary]:
+	## The choices open at this node, each with whether it can be paid for and
+	## the odds of its Skill Check, if it has one, with the reasons shown.
+	var out: Array[Dictionary] = []
+	var all: Array = node().get("choices", [])
+	for i in all.size():
+		var c: Dictionary = all[i]
+		if c.has("when") and not met(c["when"], world):
+			continue
+		var why_not := _unpaid(c, world)
+		var entry := {"index": i, "label": str(c["label"]), "note": str(c.get("note", "")),
+				"available": why_not == "", "why_not": why_not, "chance": -1.0, "reasons": []}
+		if c.has("check"):
+			var o := odds(c["check"], world)
+			entry["chance"] = o["chance"]
+			entry["reasons"] = o["reasons"]
+		out.append(entry)
+	return out
+
+
+func odds(check: Dictionary, world: Dictionary) -> Dictionary:
+	## A Skill Check's chance, shown before it is rolled, and what moved it.
+	var chance := float(check.get("base", 0.5))
+	var reasons: Array = []
+	for m in check.get("mods", []):
+		if met(m["when"], world):
+			chance += float(m["add"])
+			reasons.append([str(m.get("why", "")), float(m["add"])])
+	return {"chance": clampf(chance, 0.05, 0.95), "reasons": reasons}
+
+
+func choose(index: int, world: Dictionary, roll: float) -> Dictionary:
+	## Take a choice: pay for it, roll its Skill Check if it has one, apply what
+	## follows, and move on. Returns {"passed", "reply", "next"}.
+	var c: Dictionary = node()["choices"][index]
+	assert(_unpaid(c, world) == "", "choice %s cannot be paid for" % c["label"])
+	for cost in c.get("cost", []):
+		world["stores"].take(str(cost[0]), float(cost[1]))
+	var passed := true
+	var next := str(c.get("next", ""))
+	if c.has("check"):
+		passed = roll < float(odds(c["check"], world)["chance"])
+		next = str(c["pass"] if passed else c["fail"])
+	apply(c.get("effects", []), world)
+	var reply: Array = c.get("reply", [])
+	_enter(next, world)
+	return {"passed": passed, "reply": reply, "next": next}
+
+
+func _enter(next: String, world: Dictionary) -> void:
+	node_id = next
+	var n := node()
+	apply(n.get("effects", []), world)
+	if bool(n.get("end", false)):
+		done = true
+
+
+func _unpaid(c: Dictionary, world: Dictionary) -> String:
+	for cost in c.get("cost", []):
+		var have := float(world["stores"].find(str(cost[0])).get("qty", 0.0))
+		if have < float(cost[1]):
+			return "not enough %s" % str(world["stores"].find(str(cost[0])).get("name", cost[0])).to_lower()
+	return ""
+
+
+func met(when: Dictionary, world: Dictionary) -> bool:
+	## Every condition in ``when`` must hold.
+	var corps: Corps = world["corps"]
+	var state: ExpeditionState = world["state"]
+	for k in when:
+		var v = when[k]
+		match k:
+			"present":
+				if corps.man(str(v)).get("status", "") != "present":
+					return false
+			"absent":
+				if corps.man(str(v)).get("status", "") == "present":
+					return false
+			"status":
+				if corps.man(str(v[0])).get("status", "") != str(v[1]):
+					return false
+			"flag":
+				if not state.flags.has(str(v)):
+					return false
+			"not_flag":
+				if state.flags.has(str(v)):
+					return false
+			"item":
+				if float(world["stores"].find(str(v[0])).get("qty", 0.0)) < float(v[1]):
+					return false
+			"fit_at_least":
+				if corps.fit_count() < int(v):
+					return false
+			"standing_at_least":
+				if int(state.standing.get(str(v[0]), 0)) < int(v[1]):
+					return false
+			_:
+				push_error("Scenario %s: unknown condition %s" % [id, k])
+				return false
+	return true
+
+
+func apply(effects: Array, world: Dictionary) -> void:
+	var corps: Corps = world["corps"]
+	var state: ExpeditionState = world["state"]
+	for e in effects:
+		for k in e:
+			var v = e[k]
+			match k:
+				"journal":
+					state.add_journal(str(v))
+				"standing":
+					state.standing[str(v[0])] = int(state.standing.get(str(v[0]), 0)) + int(v[1])
+				"hearten":
+					corps.hearten(float(v))
+				"flag":
+					state.flags[str(v)] = true
+				"status":
+					corps.man(str(v[0]))["status"] = str(v[1])
+				"take":
+					world["stores"].take(str(v[0]), float(v[1]))
+				"fatigue":
+					corps.tire(str(v[0]), float(v[1]))
+				"cue":
+					cues.append(str(v))
+				_:
+					push_error("Scenario %s: unknown effect %s" % [id, k])

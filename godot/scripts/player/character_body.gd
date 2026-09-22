@@ -33,6 +33,8 @@ const OUTFITS := {
 	"clark": {"hair": Color(0.55, 0.26, 0.12), "facing": Color(0.30, 0.22, 0.14), "waistcoat": Color(0.70, 0.62, 0.48), "legs": Color(0.36, 0.27, 0.18), "skin": Color(0.84, 0.64, 0.52)},
 	"york": {"hair": Color(0.08, 0.06, 0.05), "facing": Color(0.22, 0.17, 0.13), "breeches": Color(0.34, 0.30, 0.24), "legs": Color(0.24, 0.18, 0.13), "skin": Color(0.30, 0.20, 0.15)},
 	"drouillard": {"hair": Color(0.07, 0.06, 0.05), "facing": Color(0.52, 0.40, 0.27), "waistcoat": null, "breeches": Color(0.50, 0.40, 0.27), "legs": Color(0.46, 0.36, 0.24), "skin": Color(0.62, 0.45, 0.33)},
+	# A French trader living among the Oto: a trade coat gone brown, leggings.
+	"trader": {"hair": Color(0.20, 0.14, 0.09), "coat": Color(0.36, 0.27, 0.18), "facing": Color(0.30, 0.22, 0.15), "waistcoat": null, "breeches": Color(0.46, 0.37, 0.25), "legs": Color(0.42, 0.33, 0.22), "skin": Color(0.78, 0.58, 0.45)},
 	"messenger": {"hair": Color(0.05, 0.05, 0.05), "facing": Color(0.62, 0.18, 0.14), "waistcoat": null, "stock": null, "breeches": Color(0.48, 0.38, 0.26), "legs": Color(0.44, 0.34, 0.23), "skin": Color(0.58, 0.40, 0.29)},
 }
 
