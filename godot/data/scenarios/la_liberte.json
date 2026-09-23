@@ -1,0 +1,120 @@
+{
+ "id": "la_liberte",
+ "title": "The man who has not come up",
+ "note": "Joseph La Liberté, an engagé, was sent from the camp below the bluff to the Oto towns to bring the chiefs in. He 'left the Town one Day before the Indians' and never came up. On 1 August a man was sent back down to the old camp to see whether he or the Indians had come; nobody had been there. On 3 August, after the council, some of the Indians agreed to look for him as they went home. Drouillard, Bratton, Labiche and Reubin Field were sent after him and Reed a few days later; he was taken on the 17th and got away again. Nothing here is fixed: a man may be found or not (ADR-0003 soft history; only deaths are fixed).",
+ "sources": [
+  "https://lewisandclarkjournals.unl.edu/item/lc.jrn.1804-08-03",
+  "https://lewisandclarkjournals.unl.edu/item/lc.jrn.1804-08-01"
+ ],
+ "when": {"region": "council_bluff", "date": "1804-08-03", "after_hour": 12.0,
+  "requires": {"absent": "la_liberte"}},
+ "nation": "oto_missouria",
+ "start": "muster",
+ "nodes": {
+  "muster": {
+   "lines": [
+    {"speaker": "Sgt. Ordway", "text": "La Liberté still isn't come up, Captain. That's five days now."},
+    {"speaker": "Clark", "text": "He left their town a day before the Indians did. He should have been here first."}
+   ],
+   "choices": [
+    {
+     "label": "Send Drouillard and Reubin Field out after him",
+     "note": "The two best men on a trail. They will be gone from camp, and Drouillard off the hunt.",
+     "when": {"present": "drouillard"},
+     "effects": [
+      {"status": ["drouillard", "away"]},
+      {"status": ["r_field", "away"]},
+      {"fatigue": ["floyd", 4]},
+      {"journal": "Drouillard and Reubin Field sent out after La Liberté."}
+     ],
+     "check": {
+      "base": 0.4,
+      "mods": [
+       {"when": {"present": "labiche"}, "add": 0.1, "why": "Labiche knows the Oto road"},
+       {"when": {"standing_at_least": ["oto_missouria", 20]}, "add": 0.15, "why": "the Oto will point the way"}
+      ]
+     },
+     "pass": "brought_in",
+     "fail": "no_sign"
+    },
+    {
+     "label": "Ask the Oto to look for him as they go home",
+     "note": "They pass the ground he would have crossed. It costs the Corps nothing but a favour asked.",
+     "when": {"standing_at_least": ["oto_missouria", 10]},
+     "effects": [
+      {"journal": "Some of the Indians promised to look for La Liberté as they went home."}
+     ],
+     "check": {
+      "base": 0.35,
+      "mods": [
+       {"when": {"standing_at_least": ["oto_missouria", 40]}, "add": 0.2, "why": "they part well satisfied with the Corps"}
+      ]
+     },
+     "pass": "brought_in",
+     "fail": "no_sign"
+    },
+    {
+     "label": "Let him go; the men cannot be spared",
+     "effects": [
+      {"status": ["la_liberte", "missing"]},
+      {"journal": "La Liberté is not come up, and we cannot spare men to hunt the plains for him."}
+     ],
+     "next": "gone"
+    }
+   ]
+  },
+  "brought_in": {
+   "wait": "hour:19",
+   "hint": "The search party is due back by dark",
+   "effects": [
+    {"status": ["drouillard", "present"]},
+    {"status": ["r_field", "present"]},
+    {"status": ["la_liberte", "present"]},
+    {"hearten": 2},
+    {"journal": "La Liberté brought in, with a story about a tired horse and the plains all looking alike."}
+   ],
+   "lines": [
+    {"speaker": "Sgt. Ordway", "text": "They have him, Captain. Footsore and full of excuses, but they have him."}
+   ],
+   "choices": [
+    {
+     "label": "Put him back to his oar and say no more",
+     "effects": [{"journal": "La Liberté put back to his oar."}],
+     "next": "gone"
+    },
+    {
+     "label": "Have the engagés hear what is said to him",
+     "note": "He is hired, not enlisted; a captain cannot flog him, but the others can be left in no doubt.",
+     "effects": [
+      {"hearten": -1},
+      {"flag": "la_liberte_rebuked"},
+      {"journal": "La Liberté rebuked before the engagés, who are hired men and not soldiers."}
+     ],
+     "next": "gone"
+    }
+   ]
+  },
+  "no_sign": {
+   "wait": "hour:19",
+   "hint": "The search party is due back by dark",
+   "effects": [
+    {"status": ["drouillard", "present"]},
+    {"status": ["r_field", "present"]},
+    {"status": ["la_liberte", "missing"]},
+    {"journal": "No sign of La Liberté. The plains are wide, and a man who does not wish to be found is not found in them."}
+   ],
+   "lines": [
+    {"speaker": "Sgt. Ordway", "text": "Nothing, Captain. Not a track we could swear to."}
+   ],
+   "choices": [
+    {"label": "Strike his name off the roll of the day", "next": "gone"}
+   ]
+  },
+  "gone": {
+   "end": true,
+   "lines": [
+    {"speaker": "Clark", "text": "We go on. The season will not wait on one engagé."}
+   ]
+  }
+ }
+}

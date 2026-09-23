@@ -174,7 +174,20 @@
         90.0,
         40.0
       ]
-    }
+    },
+    "discoveries": [
+      {
+        "id": "badger",
+        "at": "camp",
+        "offset": [
+          2,
+          -2
+        ],
+        "label": "Look over Joseph Field's badger",
+        "journal": "Joseph Field killed an animal called by the French brarow, and by the Pawnee cho car tooch. A singular animal, not common to any part of the United States: sixteen pounds, the eyes small, black and piercing, and one long sharp canine tooth on each side above. The skin is taken off and stuffed, to go back to St Louis.",
+        "note": "30 July 1804, at this camp. The first zoological specimen Lewis preserved on the expedition (lewisandclarkjournals.unl.edu/item/lc.jrn.1804-07-30)."
+      }
+    ]
   },
   "foliage": {
     "note": "Loess bluffs over the Missouri bottom in August: cottonwood groves on the river, bur oak in the ravines, the upland prairie cured to straw. Tries are random points thrown at the map; each stand's own rules in foliage.gd decide which of them take.",

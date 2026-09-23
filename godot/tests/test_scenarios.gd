@@ -324,3 +324,58 @@ func test_what_is_said_after_follows_the_roll():
 	var crooked := _pick(s, w, "Make the speech", 0.999)
 	t.check(not crooked["passed"], "a roll at the top fails")
 	t.check(not crooked["reply"].any(func(l): return str(l["text"]).contains("glad")), "and nobody gives thanks for it")
+
+
+func _search(w: Dictionary, roll: float) -> Scenario:
+	w["state"].current_day = 3
+	w["state"].minute_of_day = 13 * 60
+	w["corps"].man("la_liberte")["status"] = "missing"
+	var s := Scenario.load_scenario("la_liberte")
+	t.check(s.due(w["state"], "council_bluff", w), "a man still not come up is looked for")
+	s.begin(w)
+	_pick(s, w, "Send Drouillard", roll)
+	return s
+
+
+func test_a_search_party_is_gone_until_dark():
+	var w := _world()
+	var s := _search(w, 0.0)
+	t.eq(w["corps"].man("drouillard")["status"], "away", "the searchers are out of camp")
+	t.eq(w["corps"].man("la_liberte")["status"], "missing", "and nothing is known until they are back")
+	t.eq(s.waits_for(), "hour:19", "they are due by dark")
+	s.resume(w)
+	t.eq(w["corps"].man("drouillard")["status"], "present", "then they come in")
+	t.eq(w["corps"].man("la_liberte")["status"], "present", "with their man")
+
+
+func test_a_search_may_find_nothing():
+	var w := _world()
+	var s := _search(w, 0.99)
+	s.resume(w)
+	t.eq(s.node_id, "no_sign", "the plains are wide")
+	t.eq(w["corps"].man("la_liberte")["status"], "missing", "and he is still gone")
+	t.eq(w["corps"].man("drouillard")["status"], "present", "though the searchers come back")
+
+
+func test_the_oto_will_look_for_him_only_if_they_think_well_of_the_corps():
+	var w := _world()
+	w["state"].current_day = 3
+	w["state"].minute_of_day = 13 * 60
+	w["corps"].man("la_liberte")["status"] = "missing"
+	var s := Scenario.load_scenario("la_liberte")
+	s.begin(w)
+	t.check(not s.choices(w).any(func(c): return str(c["label"]).begins_with("Ask the Oto")), "a cold council, and no favours")
+	w["state"].standing["oto_missouria"] = 45
+	t.check(s.choices(w).any(func(c): return str(c["label"]).begins_with("Ask the Oto")), "a warm one, and they will look")
+
+
+func test_the_badger_is_a_discovery_of_this_region():
+	var r := Region.load_region("council_bluff")
+	var found: Array = r.data.get("features", {}).get("discoveries", [])
+	t.check(found.any(func(d): return d["id"] == "badger"), "Joseph Field's badger is written up at Council Bluff")
+	var terrain := Terrain.new(r)
+	terrain.define_points()
+	for d in found:
+		t.check(terrain.points.has(str(d["at"])), "a discovery at no named place: %s" % d["id"])
+		t.check(str(d.get("journal", "")).length() > 40, "%s has nothing for the Journal" % d["id"])
+	terrain.free()

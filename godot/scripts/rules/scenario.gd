@@ -192,9 +192,17 @@ func _council_step(spec: Dictionary, world: Dictionary, roll: float) -> bool:
 func _enter(next: String, world: Dictionary) -> void:
 	node_id = next
 	var n := node()
-	apply(n.get("effects", []), world)
+	# A node that waits on the world holds its effects until the wait is over:
+	# a search party sent out at noon does not come back at noon.
+	if waits_for() == "":
+		apply(n.get("effects", []), world)
 	if bool(n.get("end", false)):
 		done = true
+
+
+func resume(world: Dictionary) -> void:
+	## The world has done what this node waited for.
+	apply(node().get("effects", []), world)
 
 
 func _unpaid(c: Dictionary, world: Dictionary) -> String:

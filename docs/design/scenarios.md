@@ -27,6 +27,7 @@ Conditions: `present`, `absent`, `status`, `sick_with`, `flag`, `not_flag`, `all
 
 ## Built so far
 
+- **`la_liberte`** — 3 August, after the council, while the engagé sent to the Oto towns is still not come up. Send Drouillard and Reubin Field (they leave camp, and Drouillard off the hunt), or ask the Oto to look as they go home (open only if they think well enough of the Corps), or let him go. The party is out until dark: the node waits, and its effects hold until it does. He may be brought in or not — only deaths are fixed (ADR-0003).
 - **`clark_birthday`** — 1 August 1804, the morning the game opens: Clark's thirty-fourth birthday. Send the hunters (a Skill Check that reads who is in camp: Drouillard's traps, Joseph Field, Gibson, Shields), send Pryor's mess for fruit, or neither. At the fire that evening the table is what the day brought, up to Clark's own: a saddle of venison, an elk fleece, a beaver tail, and a dessert of cherries, plums, raspberries, currants and grapes. An extra gill for his health costs a gallon and a half of whiskey.
 - **`floyd_sick_call`** — 2 August, morning, only while Floyd is still sick with his colic ("I am verry Sick and has been for Somtime", 31 July). Rush's pills, the lancet, rest in the boat, or his word that he is mending. None of it changes 20 August (ADR-0012).
 - **`council_bluff_1804`** — 3 August, morning: parade the Corps or not; the chiefs walk up from last night's fire to the mainsail awning at the camp; the speech, the medals (six, in three grades), the air gun, their ask for powder and "a drop of milk", Little Thief's medal sent after him. Odds and presents are the Council rules; the Corps sets out at three.
@@ -34,7 +35,10 @@ Conditions: `present`, `absent`, `status`, `sick_with`, `flag`, `not_flag`, `all
 
 Verify any of them with `-- --autopilot --scenario=<id> --shots=<dir>`: it jumps to the date and hour, chooses for itself, winds the clock to any hour a node waits for, walks to any place one waits at (or out to meet a cast), and photographs each step.
 
-## Next on the list
+## Discoveries
 
-- **La Liberté** — a search party (Drouillard, Bratton, Labiche, Reubin Field), with what the sim knows of who can be spared.
-- **The badger** Joseph Field killed on 30 July, as a Discovery on the bluff.
+A Region's `features.discoveries` list puts a specimen in the world — a skin on a willow frame by the fire — which goes into the Journal and the Discovery count when the Leader looks it over. Council Bluff has the badger Joseph Field killed on 30 July, the first zoological specimen Lewis preserved.
+
+## The Region end to end
+
+`-- --autopilot --slice --shots=<dir>` plays 1 to 3 August with the prompt choosing for itself: the hunters and the birthday dinner, Floyd's sick call, the Oto coming in at dusk, the council under the sail, the search for La Liberté, and the badger written up. Seven screenshots, and the Day Clock is wound through two midnights so the Corps lives the days.

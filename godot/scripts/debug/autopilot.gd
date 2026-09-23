@@ -93,6 +93,23 @@ func begin(p_main) -> void:
 					_steps.append(["shot", nid])
 			_steps.append_array([["wait", 20.0], ["shot", "the_end"], ["report"]])
 			return
+	if "--slice" in OS.get_cmdline_user_args():
+		# The Region's whole content, 1 to 3 August, choosing for itself: the
+		# birthday, Floyd's sick call, the Oto coming in, the council, the search
+		# for La Liberté, and the badger written up.
+		main.scenario_prompt.auto_choose = true
+		_steps = [
+			["set_hour", 7.9], ["wait", 14.0], ["shot", "aug1_hunters"],
+			["set_hour", 18.4], ["wait", 4.0], ["walk_to", "camp", 5.0], ["wait", 14.0], ["shot", "aug1_dinner"],
+			["days", 1], ["set_hour", 8.9], ["wait", 12.0], ["shot", "aug2_sick_call"],
+			["set_hour", 18.5], ["wait", 6.0], ["walk_to", "oto_meeting", 6.0], ["wait", 30.0], ["shot", "aug2_oto"],
+			["days", 1], ["set_hour", 8.4], ["wait", 8.0], ["walk_to", "council_awning", 6.0], ["wait", 60.0],
+			["shot", "aug3_council"], ["wait", 75.0],
+			["set_hour", 11.9], ["wait", 20.0], ["set_hour", 18.9], ["wait", 16.0], ["shot", "aug3_search"],
+			["walk_to", "camp", 4.0], ["wait", 2.0], ["interact"], ["wait", 2.0], ["shot", "aug3_badger"],
+			["report"],
+		]
+		return
 	if "--morning-report" in OS.get_cmdline_user_args():
 		# The sergeants' report, after however many --days the Corps has lived.
 		main.hud.visible = false
@@ -476,6 +493,10 @@ func _process(delta: float) -> void:
 			_next()
 		"set_hour":
 			main.state.minute_of_day = int(float(s[1]) * 60.0)
+			_next()
+		"days":
+			# Whole days, through the Day Clock, so the Corps lives them.
+			main.state.advance_minutes(int(s[1]) * 24 * 60)
 			_next()
 		"walk_to":
 			var p: Vector3 = _point(s[1])

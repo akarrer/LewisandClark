@@ -198,6 +198,24 @@ func _place_world_features() -> void:
 		awning.name = "CouncilAwning"
 		add_child(awning)
 
+	# What the Corps has taken and is writing up: a skin on its frame by the fire.
+	# Which ones, and what the Journal says of them, is the Region's business.
+	for raw in region.data.get("features", {}).get("discoveries", []):
+		var spec: Dictionary = raw
+		var off: Array = spec.get("offset", [0, 0])
+		var anchor: Vector3 = terrain.points[str(spec["at"])]
+		var found := Interactable.specimen(terrain.on_ground(anchor.x + float(off[0]), anchor.z + float(off[1])),
+				str(spec["label"]))
+		var disc_id := str(spec["id"])
+		found.on_interact = func():
+			if state.add_discovery(disc_id, str(spec["journal"])):
+				found.enabled = false
+				found.label = ""
+				for c in found.get_children():
+					if c is Decal:
+						c.visible = false
+		add_child(found)
+
 	var town := region.feature("prairie_dog_town")
 	if not town.is_empty():
 		prairie_dogs = Interactable.prairie_dog_town(terrain.points[str(town["at"])], terrain)
@@ -519,6 +537,8 @@ func _run_scenario() -> void:
 		return
 	if _scenario_waiting and _wait_met(scenario.waits_for()):
 		_scenario_waiting = false
+		scenario.resume(_world())
+		_count_the_corps()
 		_speak_node()
 
 
