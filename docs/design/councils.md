@@ -1,7 +1,9 @@
 # Councils
 
-Draft, 2026-09-19. Data in `godot/data/councils.json`, rules in
-`godot/scripts/rules/council.gd`, screen in `godot/scripts/ui/council_screen.gd`.
+Draft, 2026-09-19; staged in the world 2026-09-21. Data in `godot/data/councils.json`,
+rules in `godot/scripts/rules/council.gd`, played as the Scenario
+`godot/data/scenarios/council_bluff_1804.json` (see [scenarios.md](scenarios.md)). The
+panel it began as is gone.
 Built on [ADR-0005](../adr/0005-scenarios-as-json-graphs.md) (Scenarios are data)
 and [ADR-0004](../adr/0004-no-combat-against-people.md) (no combat against people).
 
@@ -17,7 +19,9 @@ and costs standing. At the end, `verdict()` says how the Nation parts from the
 Corps, and that goes in the Journal.
 
 The rules are pure — `resolve(step, roll)` takes the roll from the caller — so the
-whole thing is testable without a scene, and the screen only draws.
+whole thing is testable without a scene. A Scenario plays the steps: each is a
+choice in the world, giving what the step asks for or passing it by, with the odds
+and `breakdown()`'s reasons shown beside it.
 
 ## The first council: 3 August 1804, Council Bluff
 
@@ -46,8 +50,9 @@ pattern:
 
 ## Still to do
 
-- Standing should persist **per Nation** and travel upriver ahead of the Corps, so a
-  slighted Nation is met by a colder one next time.
+- ~~Standing should persist per Nation~~ — done: `state.standing[nation]`, set by the
+  evening before (`oto_arrival`) and carried out of the council. Still to do: word of
+  it travelling upriver ahead of the Corps.
 - The **Teton Sioux stand-off** is the same machinery with the stakes reversed: they
   hold the river, and what is left in the hold decides how the meeting goes. It is
   **staged in the world** at Bad River, not in a panel — the Corps at the bank, the
@@ -56,7 +61,12 @@ pattern:
   becoming combat (ADR-0004).
 - Speech quality should depend on who is present (Drouillard interpreting, York,
   the captains' own Corps Skills), not only on whether an interpreter is there.
-- The chiefs should be **in the world** for the council rather than named in a panel.
+- ~~The chiefs should be in the world~~ — done: the men who came in on the evening of
+  2 August walk up from their fire to the sail awning at the camp, where the council
+  really sat (not on the bluff), and stand in a half-ring for it.
+- The seats now carry the names Clark gave on 3 August: Big Horse (Shingotongo) and
+  Hospitality made second chiefs; Wau-pe-ur, Au-ho-ning-ga, Ba-za-con-ja and
+  Au-ho-ne-ga given third-grade medals; Little Thief away on the hunt.
 
 ## Sources
 

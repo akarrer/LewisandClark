@@ -19,6 +19,10 @@ var fit := 45
 var food := 80
 var morale := 80
 var landmarks_visited: Array[String] = []
+## What has happened that later content may ask about ("scenario:<id>", ...).
+var flags := {}
+## Each Nation's regard for the Corps, carried from one meeting to the next.
+var standing := {}
 var discoveries: Array[String] = []
 var journal: Array[String] = []
 

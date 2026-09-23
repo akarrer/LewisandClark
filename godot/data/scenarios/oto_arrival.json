@@ -1,0 +1,341 @@
+{
+ "id": "oto_arrival",
+ "title": "Guns at sundown",
+ "note": "2 August 1804. At sunset some fourteen Oto and Missouria, six of them chiefs, came in to the camp below the bluff with a French trader living among them, Fairfong. They fired guns as they came in sight and the Corps answered with the swivel gun. The captains sent them roast meat, pork, flour and meal; they sent back watermelons. Clark had every man on his guard. La Liberté, sent to fetch them, was not with them. The council sat the next morning.",
+ "sources": [
+  "https://lewisandclarkjournals.unl.edu/item/lc.jrn.1804-08-02"
+ ],
+ "review": "Oto and Missouria presence, speech and dress are placeholders pending the paid cultural review (ADR-0004, ADR-0013). Their words here are only what Fairfong reports.",
+ "when": {
+  "region": "council_bluff",
+  "date": "1804-08-02",
+  "after_hour": 18.6
+ },
+ "nation": "oto_missouria",
+ "cast": [
+  {
+   "id": "fairfong",
+   "name": "Fairfong",
+   "outfit": "trader",
+   "hat": true,
+   "count": 1
+  },
+  {
+   "id": "oto",
+   "name": "Oto and Missouria",
+   "outfit": "messenger",
+   "hat": false,
+   "count": 13
+  }
+ ],
+ "stage": {
+  "from": "oto_approach",
+  "to": "oto_meeting",
+  "radius": 14.0,
+  "prompt": "Meet the Oto and Missouria"
+ },
+ "start": "guns",
+ "nodes": {
+  "guns": {
+   "effects": [
+    {
+     "cue": "their_guns"
+    }
+   ],
+   "lines": [
+    {
+     "speaker": "Clark",
+     "text": "Guns, down the bottom to the south. A good many of them."
+    },
+    {
+     "speaker": "Sgt. Ordway",
+     "text": "Men coming in off the prairie, Captain. There's one among them in a hat."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Answer them with the swivel gun",
+     "note": "A salute returned, as the custom of the river is.",
+     "effects": [
+      {
+       "cue": "salute"
+      },
+      {
+       "standing": [
+        "oto_missouria",
+        4
+       ]
+      },
+      {
+       "journal": "At sunset a party of the Otoes and Missouris came in sight, firing guns; we answered them with the cannon."
+      }
+     ],
+     "next": "coming_in"
+    },
+    {
+     "label": "Stand every man to his arms",
+     "note": "Clark's order that night, as a first step rather than a second.",
+     "effects": [
+      {
+       "flag": "oto_under_arms"
+      },
+      {
+       "standing": [
+        "oto_missouria",
+        -2
+       ]
+      },
+      {
+       "journal": "Guns fired on the prairie. Every man on his guard and ready for anything."
+      }
+     ],
+     "next": "coming_in"
+    }
+   ]
+  },
+  "coming_in": {
+   "wait": "arrival",
+   "lines": [
+    {
+     "speaker": "Fairfong",
+     "text": "Bonsoir, messieurs. I am Fairfong; I trade among the Oto. Six of their chiefs are come, and the Missouria with them."
+    },
+    {
+     "speaker": "Fairfong",
+     "text": "They have ridden since morning. They say they will hear your words tomorrow, when the sun is up."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Ask after La Liberté",
+     "when": {
+      "status": [
+       "la_liberte",
+       "away"
+      ]
+     },
+     "reply": [
+      {
+       "speaker": "Fairfong",
+       "text": "Your engagé? He came to the town, and he went again. They thought he was ahead of them."
+      }
+     ],
+     "effects": [
+      {
+       "status": [
+        "la_liberte",
+        "missing"
+       ]
+      },
+      {
+       "journal": "La Liberté is not with them. They say he left their town before they did. Tired his horse, perhaps, or lost himself in the plains."
+      }
+     ],
+     "next": "supper"
+    },
+    {
+     "label": "Tell them they are welcome, and the council sits tomorrow",
+     "next": "supper"
+    }
+   ]
+  },
+  "supper": {
+   "lines": [
+    {
+     "speaker": "Clark",
+     "text": "They'll want feeding. What do we send down to their fire?"
+    }
+   ],
+   "choices": [
+    {
+     "label": "Pork, flour and meal, and what meat there is",
+     "note": "What the captains sent.",
+     "cost": [
+      [
+       "salt_pork",
+       1
+      ],
+      [
+       "flour",
+       0.5
+      ],
+      [
+       "corn_hominy",
+       1
+      ]
+     ],
+     "effects": [
+      {
+       "take": [
+        "fresh_meat",
+        60
+       ]
+      }
+     ],
+     "check": {
+      "base": 0.75,
+      "mods": [
+       {
+        "when": {
+         "present": "drouillard"
+        },
+        "add": 0.1,
+        "why": "Drouillard speaks with his hands"
+       },
+       {
+        "when": {
+         "flag": "oto_under_arms"
+        },
+        "add": -0.15,
+        "why": "the men stood to arms at their coming"
+       }
+      ]
+     },
+     "pass": "melons",
+     "fail": "their_own_fire"
+    },
+    {
+     "label": "A few carrots of tobacco",
+     "cost": [
+      [
+       "tobacco",
+       2
+      ]
+     ],
+     "check": {
+      "base": 0.4,
+      "mods": [
+       {
+        "when": {
+         "present": "drouillard"
+        },
+        "add": 0.1,
+        "why": "Drouillard speaks with his hands"
+       },
+       {
+        "when": {
+         "flag": "oto_under_arms"
+        },
+        "add": -0.15,
+        "why": "the men stood to arms at their coming"
+       }
+      ]
+     },
+     "pass": "melons",
+     "fail": "their_own_fire"
+    },
+    {
+     "label": "Nothing tonight; business in the morning",
+     "effects": [
+      {
+       "standing": [
+        "oto_missouria",
+        -6
+       ]
+      }
+     ],
+     "next": "their_own_fire"
+    }
+   ]
+  },
+  "melons": {
+   "effects": [
+    {
+     "standing": [
+      "oto_missouria",
+      6
+     ]
+    },
+    {
+     "hearten": 4
+    },
+    {
+     "cue": "melons"
+    },
+    {
+     "journal": "We sent them roasted meat, pork, flour and meal; in return they sent us watermelons."
+    }
+   ],
+   "lines": [
+    {
+     "speaker": "Sgt. Ordway",
+     "text": "They've sent up watermelons, Captain. A good many of them."
+    },
+    {
+     "speaker": "York",
+     "text": "Ripe ones, too."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Set the guard for the night",
+     "next": "guard"
+    }
+   ]
+  },
+  "their_own_fire": {
+   "effects": [
+    {
+     "standing": [
+      "oto_missouria",
+      -3
+     ]
+    },
+    {
+     "journal": "The Indians made their own fire a little way off, and ate what they had brought."
+    }
+   ],
+   "lines": [
+    {
+     "speaker": "Fairfong",
+     "text": "They will eat what they carried. They will still come to your council."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Set the guard for the night",
+     "next": "guard"
+    }
+   ]
+  },
+  "guard": {
+   "lines": [
+    {
+     "speaker": "Clark",
+     "text": "Strangers at the next fire. A double guard, or the usual?"
+    }
+   ],
+   "choices": [
+    {
+     "label": "Double the guard",
+     "note": "Ordway's mess stands it, and will feel it tomorrow.",
+     "effects": [
+      {
+       "fatigue": [
+        "ordway",
+        18
+       ]
+      },
+      {
+       "journal": "A double guard mounted for the night."
+      }
+     ],
+     "next": "night"
+    },
+    {
+     "label": "The usual guard",
+     "next": "night"
+    }
+   ]
+  },
+  "night": {
+   "end": true,
+   "lines": [
+    {
+     "speaker": "Clark",
+     "text": "The council sits in the morning, under the awning."
+    }
+   ]
+  }
+ }
+}
