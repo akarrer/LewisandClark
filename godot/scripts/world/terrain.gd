@@ -15,6 +15,11 @@ const DATA := "res://data/terrain/council_bluff"
 var meta := {}
 var _heights := PackedFloat32Array()
 var _river := PackedFloat32Array()
+## Distance to the channel's centreline. The current runs along this, not along
+## the shore, or it would wheel round every island.
+var _flow := PackedFloat32Array()
+## Sand on a bar stands below this; the grassed bottom above it.
+const BAR_TOP := 0.75
 var _tint := FastNoiseLite.new()
 
 ## Named places other systems look up (Landmarks, Trail Moment spots, the start).
@@ -39,6 +44,8 @@ func load_data() -> void:
 	meta = JSON.parse_string(FileAccess.get_file_as_string(data_path + ".json"))
 	_heights = FileAccess.get_file_as_bytes(data_path + ".height").to_float32_array()
 	_river = FileAccess.get_file_as_bytes(data_path + ".river").to_float32_array()
+	_flow = FileAccess.get_file_as_bytes(data_path + ".flow").to_float32_array() \
+			if FileAccess.file_exists(data_path + ".flow") else _river
 	assert(_heights.size() == (RES + 1) * (RES + 1), "heightmap size mismatch")
 
 
@@ -94,7 +101,23 @@ func height_at(x: float, z: float) -> float:
 
 
 func river_distance(x: float, z: float) -> float:
+	## river_half_width() plus the distance from the waterline: less than the
+	## half width is water, and how much less is how far out into it.
 	return _grid(_river, x, z)
+
+
+func flow_distance(x: float, z: float) -> float:
+	return _grid(_flow, x, z)
+
+
+func flow_data() -> PackedFloat32Array:
+	return _flow
+
+
+func is_bar(x: float, z: float) -> bool:
+	## Bare sand: a bar or a beach, low beside the river, not the grassed bottom.
+	return height_at(x, z) < BAR_TOP and river_distance(x, z) - river_half_width() < 120.0 \
+			and river_distance(x, z) > river_half_width()
 
 
 func river_half_width() -> float:
@@ -115,8 +138,10 @@ func downriver(x: float, z: float) -> Vector3:
 	## Horizontal direction the water runs: along the channel, and southward.
 	## The same field water.gdshader takes the current from, so a wake on the
 	## surface and the streaks in it agree about which way is down.
-	var to_water := toward_river(x, z)
-	var along := Vector3(-to_water.z, 0.0, to_water.x)
+	var e := 6.0
+	var g := Vector3(flow_distance(x + e, z) - flow_distance(x - e, z), 0.0, flow_distance(x, z + e) - flow_distance(x, z - e))
+	var to_mid := -g.normalized() if g.length() > 0.0001 else Vector3.FORWARD
+	var along := Vector3(-to_mid.z, 0.0, to_mid.x)
 	return align_downstream(along)
 
 
@@ -257,10 +282,22 @@ func _color_at(x: float, z: float, h: float, n: Vector3) -> Color:
 	var c := grass
 	if d < 0.0:
 		c = Color(0.50, 0.43, 0.32, 0.0)  # riverbed: wet sand and silt, seen through the shallows
-	elif d < 10.0:
-		c = Color(0.72, 0.66, 0.52, 0.0)  # sandbar
-	elif d < 22.0:
-		c = Color(0.76, 0.68, 0.50, 0.0).lerp(grass, (d - 10.0) / 12.0)
+	elif d < 120.0 and h < BAR_TOP + 0.3:
+		# A bar, however wide: sand up to its crest, then a short fringe into the
+		# grassed bottom. Measured by height, not by distance from the water,
+		# since a point bar runs sixty metres and a cut bank none at all.
+		var sand := Color(0.72, 0.66, 0.52, 0.0)
+		c = sand.lerp(grass, clampf((h - BAR_TOP) / 0.2, 0.0, 1.0))
+	# Every bank has its margin: damp silt the last rise left, then the grass
+	# taking over a few metres back (where the blades start: see grass_field.gd).
+	if d >= 0.0 and d < 9.0 and c.a > 0.0:
+		var silt := Color(0.50, 0.44, 0.34, 0.0)
+		c = silt.lerp(c, clampf((d - 1.5) / 6.5, 0.0, 1.0))
+	# A bank the river is eating is bare: raw loess from the waterline up, with
+	# nothing given time to root in it.
+	if d > -2.0 and d < 10.0 and slope > 0.08:
+		var raw := Color(0.58, 0.47, 0.33, 0.0)
+		c = c.lerp(raw, clampf((slope - 0.08) / 0.12, 0.0, 1.0) * (1.0 - clampf((d - 6.0) / 4.0, 0.0, 1.0)))
 	# Only the steepest cuts show bare loess; the bluffs themselves are grassed.
 	if slope > 0.3:
 		var loess := Color(0.66, 0.52, 0.34, 0.0)

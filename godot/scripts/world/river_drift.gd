@@ -94,7 +94,7 @@ func _launch(d: Dictionary, here: Vector3) -> void:
 	# more bank.
 	var p := here
 	for i in 40:
-		if terrain.river_distance(p.x, p.z) < 5.0:
+		if terrain.river_distance(p.x, p.z) < terrain.river_half_width() - 15.0:
 			break
 		p += terrain.toward_river(p.x, p.z) * 6.0
 	# Then up the reach a step at a time rather than laid off in a straight line:

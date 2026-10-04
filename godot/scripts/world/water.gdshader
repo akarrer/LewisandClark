@@ -21,7 +21,8 @@ uniform vec3 mid_color : source_color = vec3(0.46, 0.355, 0.205);
 uniform vec3 shallow_color : source_color = vec3(0.70, 0.58, 0.365);
 uniform vec3 foam_color : source_color = vec3(0.76, 0.72, 0.64);
 uniform float flow_speed = 0.9;       // m/s the silt patterns travel downriver
-uniform sampler2D river_tex : filter_linear, repeat_disable;  // distance to the 1804 channel (m)
+uniform sampler2D river_tex : filter_linear, repeat_disable;  // river_half + distance from the waterline (m)
+uniform sampler2D flow_tex : filter_linear, repeat_disable;   // distance to the channel centreline (m)
 uniform float map_size = 1024.0;
 uniform float river_half = 55.0;      // metres from the channel centre to the bank
 uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
@@ -181,7 +182,7 @@ void vertex() {
 	float pix = max(max(dist * 0.0022, 0.002), UV.x * 1.6);
 	// Flat at the edges: the plane cuts the sloping bar there, and a swell only
 	// makes that intersection stagger across the mesh cells.
-	v_along = downriver(world.xz, river_tex, map_size);
+	v_along = downriver(world.xz, flow_tex, map_size);
 	float rv = texture(river_tex, world.xz / map_size).r;
 	float off_bank = smoothstep(river_half, river_half - 22.0, rv);
 	vec2 offset;

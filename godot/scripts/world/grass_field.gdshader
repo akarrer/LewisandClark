@@ -87,7 +87,12 @@ void process() {
 			* (fade_out ? 1.0 - smoothstep(max_dist * 0.7, max_dist, d) : step(d, max_dist))
 			* step(min_dist, d)
 			* smoothstep(camp_clear * 0.42, camp_clear, distance(p, camp))
-			* step(0.08, patch * 0.5 + hash(c + 3.3) * 0.5);
+			* step(0.08, patch * 0.5 + hash(c + 3.3) * 0.5)
+			// Not on the bars: a point bar runs far wider than river_clear, and
+			// it is sand because it is low. Keep in step with Terrain.BAR_TOP.
+			* max(smoothstep(0.75, 0.95, h), step(river_clear + 120.0, river))
+			// Nor on a cut bank's raw face (see Terrain._color_at).
+			* (1.0 - smoothstep(0.1, 0.2, slope) * (1.0 - smoothstep(river_clear - 4.0, river_clear + 4.0, river)));
 	// Thin patches are short, sparse grass rather than bare ground.
 	float s = keep * mix(0.6, 1.2, hash(c + 5.1)) * mix(0.8, 1.2, patch) * clump_scale;
 	// The path: bare down the middle, then grass beaten short either side of it,

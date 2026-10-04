@@ -273,7 +273,7 @@ func _scatter_cottonwoods(spec: Dictionary) -> void:
 	for i in int(spec["tries"]):
 		var p := _random_point()
 		var d := _dist_to_river(p)
-		if d < 10.0 or d > 170.0 or _near_point(p, 16.0) or not terrain.walkable(p.x, p.z):
+		if d < 10.0 or d > 170.0 or _near_point(p, 16.0) or not terrain.walkable(p.x, p.z) or terrain.is_bar(p.x, p.z):
 			continue
 		var grove := _groves.get_noise_2d(p.x, p.z)
 		var near_water := 1.0 - d / 170.0
@@ -290,7 +290,7 @@ func _scatter_cottonwoods(spec: Dictionary) -> void:
 			var q := Vector3(p.x + cos(ang) * r, 0.0, p.z + sin(ang) * r)
 			q.y = terrain.height_at(q.x, q.z)
 			var dq := _dist_to_river(q)
-			if dq < 10.0 or dq > 170.0 or _near_point(q, 16.0) or not terrain.walkable(q.x, q.z):
+			if dq < 10.0 or dq > 170.0 or _near_point(q, 16.0) or not terrain.walkable(q.x, q.z) or terrain.is_bar(q.x, q.z):
 				continue
 			_cottonwood(variants, q, 1.0 - dq / 170.0)
 		for u in rng.randi_range(0, 3):
@@ -401,7 +401,7 @@ func _wakes(snags: Array[Vector3]) -> void:
 func _on_bar(p: Vector3, min_above: float) -> bool:
 	## Dry sand: above the river surface by ``min_above`` m, in the channel or the
 	## bare margin beside it (not the grassed bottomland).
-	return p.y > Terrain.WATER_Y - 0.35 + min_above and _dist_to_river(p) < 22.0
+	return p.y > Terrain.WATER_Y - 0.35 + min_above and (_dist_to_river(p) < 6.0 or terrain.is_bar(p.x, p.z))
 
 
 func _scatter_sandbar(spec: Dictionary) -> void:

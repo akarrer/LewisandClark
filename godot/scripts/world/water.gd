@@ -32,7 +32,8 @@ static func build(terrain: Terrain) -> Water:
 	w.custom_aabb = AABB(Vector3(-FAR, -40.0, -FAR), Vector3(FAR * 2.0, 80.0, FAR * 2.0))
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://scripts/world/water.gdshader")
-	mat.set_shader_parameter("river_tex", GrassField._texture(terrain._river))  # the current follows the channel
+	mat.set_shader_parameter("river_tex", GrassField._texture(terrain._river))  # how far from the shore
+	mat.set_shader_parameter("flow_tex", GrassField._texture(terrain.flow_data()))  # the current follows the channel
 	mat.set_shader_parameter("map_size", Terrain.SIZE)
 	mat.set_shader_parameter("river_half", terrain.river_half_width())
 	w.material_override = mat

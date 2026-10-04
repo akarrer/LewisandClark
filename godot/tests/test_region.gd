@@ -53,11 +53,13 @@ func test_features_stand_at_named_places():
 
 
 func test_council_bluff_places_are_where_they_were():
-	# The refactor moved these searches from code into data; they must not move.
+	# The searches live in data; the places must not drift unnoticed. Re-anchored
+	# when the channel was reshaped (cut bank under the bluff, a beach at the
+	# landing): the landing came down the new shore 55 m, the bluff top 11 m.
 	var terrain := Terrain.new(Region.load_region("council_bluff"))
 	terrain.define_points()
-	t.check(terrain.points["council_bluff"].distance_to(Vector3(432, 12.8, 532)) < 1.0, "council bluff moved")
-	t.check(terrain.points["start"].distance_to(Vector3(524, 1.2, 780)) < 1.0, "landing moved")
+	t.check(terrain.points["council_bluff"].distance_to(Vector3(424, 12.1, 524)) < 1.0, "council bluff moved")
+	t.check(terrain.points["start"].distance_to(Vector3(548, 1.5, 832)) < 1.0, "landing moved")
 	terrain.free()
 
 
