@@ -55,18 +55,13 @@ float fbm(vec2 p) {
 	return v;
 }
 
-// The height the relief normal is bent by: tussocks on the prairie, wind and
-// current ripples on the sand. One function, so all three samples of it agree --
-// the ripple used to be added to the centre sample only, which cancelled its own
-// gradient and left the bars perfectly smooth.
+// The height the relief normal is bent by: tussocks on the prairie, soft
+// hummocks on the sand. One function, so all three samples of it agree.
 float relief_h(vec2 q, float sand) {
+	// The ripple marks on the sand are not in here: they are sharp enough that
+	// their slope is taken exactly (see fragment) rather than by differencing.
 	float h = fbm(q * 2.6);
-	if (sand > 0.01) {
-		float w = vnoise(q * 0.15) * 6.0;
-		float r = sin(q.x * 2.6 + q.y * 1.1 + w) * 0.5 + 0.5;
-		h = mix(h, mix(r, vnoise(q * 3.0), 0.35), sand * 0.85);
-	}
-	return h;
+	return mix(h, vnoise(q * 0.9), sand * 0.7);
 }
 
 // The grass patch field: 0 = thin tawny grass, 1 = thick green.
@@ -134,12 +129,35 @@ void fragment() {
 	// Sandbars: wind and current ripples, darkening to wet sand at the waterline
 	// (the river surface sits at y = -0.35).
 	float sand = (1.0 - prairie) * (1.0 - smoothstep(0.08, 0.2, slope));
-	float warp = vnoise(p * 0.15) * 6.0;
-	float ripple = sin(p.x * 2.6 + p.y * 1.1 + warp) * 0.5 + 0.5;
-	ripple = mix(ripple, vnoise(p * 3.0), 0.35);
-	vec3 sandy = c * (0.9 + ripple * 0.2);
+	// Ripple marks: the current builds them across its flow in trains that bend
+	// and fork, a long gentle back and a short steep face downstream, with the
+	// dark grains and silt lying in the troughs. A soft sine at two metres read
+	// as brush strokes; these are half a metre and sharp-crested, and they fade
+	// out by the width of a pixel before they can alias into a moire.
+	// One heading, bent by a slow warp. Turning the heading itself with the
+	// noise multiplies its turn by the distance from the origin, and five
+	// hundred metres out that made the phase change faster than a pixel.
+	vec2 r_dir = vec2(0.8, 0.6);
+	float r_ph = dot(p, r_dir) / 0.55 + vnoise(p * 0.03) * 12.0 + vnoise(p * 0.16) * 2.6 + fbm(p * 0.45) * 1.1;
+	float r_f = fract(r_ph);
+	float r_m = min(r_f / 0.72, (1.0 - r_f) / 0.28);
+	float r_h = r_m * r_m;                    // round troughs, sharp crests
+	float r_dh = r_f < 0.72 ? 2.0 * r_m / 0.72 : -2.0 * r_m / 0.28;
+	float r_fade = 1.0 - smoothstep(0.18, 0.45, fwidth(r_ph));
+	// In trains, not one sheet: the higher, drier bar has been blown smooth.
+	float r_mask = smoothstep(0.3, 0.6, vnoise(p * 0.06 + 7.0)) * (1.0 - smoothstep(0.8, 2.4, v_world.y) * 0.6);
+	float r_amt = r_fade * r_mask * sand;
+	vec2 ripple_slope = r_dir * (r_dh / 0.55) * 0.028 * r_amt;
+	float ripple = mix(0.5, r_h, r_amt);
+	// Missouri sand is grey-buff, not beach gold, and at noon a pale sheet of it
+	// was the brightest thing on the screen.
+	vec3 sandy = c * vec3(0.94, 0.93, 0.93) * (0.84 + ripple * 0.2);
 	float wet = 1.0 - smoothstep(-0.2, 0.9, v_world.y + (vnoise(p * 0.5) - 0.5) * 0.4);
 	sandy = mix(sandy, sandy * vec3(0.62, 0.60, 0.58), wet * 0.85);
+	// The swash: the last hand's breadth above the water is soaked through,
+	// darkest and glossy, with a ragged line where the lap last reached.
+	float swash = 1.0 - smoothstep(-0.36, -0.1, v_world.y + (vnoise(p * 1.7) - 0.5) * 0.12);
+	sandy = mix(sandy, sandy * vec3(0.55, 0.53, 0.52), swash * 0.8);
 	// A bar is not one sheet of clean sand. The river leaves silt in it, and the
 	// last fall of the water leaves damp patches that dry from the edges in.
 	float damp = smoothstep(0.42, 0.74, fbm(p * 0.09)) * (1.0 - smoothstep(0.6, 2.6, v_world.y));
@@ -194,6 +212,7 @@ void fragment() {
 	// One height field for all of it — ripples on sand, tussocks on prairie — and
 	// its gradient bends the normal, fading out by 25 m where it would only alias.
 	float relief = 1.0 - smoothstep(6.0, 25.0, dist);
+	vec3 bumped = v_normal - vec3(ripple_slope.x, 0.0, ripple_slope.y);
 	if (relief > 0.01) {
 		float e = 0.06;
 		vec2 dx = vec2(e, 0.0);
@@ -207,10 +226,10 @@ void fragment() {
 		float h0 = relief_h(p, sand);
 		float hx = relief_h(p + dx, sand);
 		float hz = relief_h(p + dz, sand);
-		vec3 bumped = normalize(v_normal + vec3(-(hx - h0), 0.0, -(hz - h0)) / e * scale * relief);
-		NORMAL = normalize((VIEW_MATRIX * vec4(bumped, 0.0)).xyz);
+		bumped += vec3(-(hx - h0), 0.0, -(hz - h0)) / e * scale * relief;
 	}
+	NORMAL = normalize((VIEW_MATRIX * vec4(normalize(bumped), 0.0)).xyz);
 	ALBEDO = c * cloud_light(v_world) * mix(1.0, 0.62, wetness);
-	ROUGHNESS = mix(0.95, 0.42, max(wetness, sand * wet * 0.55));
+	ROUGHNESS = mix(0.95, 0.42, max(wetness, sand * max(wet * 0.55, swash)));
 	SPECULAR = mix(0.2, 0.5, wetness);
 }

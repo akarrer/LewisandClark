@@ -178,8 +178,10 @@ func _place_world_features() -> void:
 	map_screen = MapScreen.new()
 	map_screen.build(terrain, leader)
 	add_child(map_screen)
-	for id in Scenario.all_ids():
-		scenarios.append(Scenario.load_scenario(id))
+	# Scenery stills want the Region empty of story: no prompt over the frame.
+	if not "--scenery" in OS.get_cmdline_user_args():
+		for id in Scenario.all_ids():
+			scenarios.append(Scenario.load_scenario(id))
 	_scenario_rng.randomize()
 	scenario_prompt = ScenarioPrompt.new()
 	scenario_prompt.build(hud)

@@ -19,7 +19,7 @@ render_mode cull_disabled;
 uniform vec3 deep_color : source_color = vec3(0.19, 0.155, 0.105);
 uniform vec3 mid_color : source_color = vec3(0.46, 0.355, 0.205);
 uniform vec3 shallow_color : source_color = vec3(0.70, 0.58, 0.365);
-uniform vec3 foam_color : source_color = vec3(0.84, 0.81, 0.74);
+uniform vec3 foam_color : source_color = vec3(0.76, 0.72, 0.64);
 uniform float flow_speed = 0.9;       // m/s the silt patterns travel downriver
 uniform sampler2D river_tex : filter_linear, repeat_disable;  // distance to the 1804 channel (m)
 uniform float map_size = 1024.0;
@@ -246,9 +246,13 @@ void fragment() {
 	float cap = smoothstep(0.34, 0.72, fold) * smoothstep(0.12, 0.45, gust);
 	cap *= smoothstep(0.35, 0.75, noise(w * 0.5 - along * TIME * 0.8));
 	// And the lapping edge, a broken pale line where the water thins over sand.
-	float lap = smoothstep(0.24, -0.02, d_soft)
-			* smoothstep(0.3, 0.75, noise(w * 1.1 + along * TIME * 0.5) * 0.7
-					+ 0.3 * (sin(TIME * 1.9 + t * 0.7) * 0.5 + 0.5));
+	// It comes and goes with the lap: a thin scum that runs up the bar, breaks
+	// into beads and is gone, not a white kerb painted down the shore. Muddy
+	// water makes muddy foam.
+	float surge = sin(TIME * 1.3 + t * 0.35 + noise(w * 0.2) * 4.0) * 0.5 + 0.5;
+	float lap = smoothstep(0.05 + surge * 0.14, -0.02, d_soft) * smoothstep(-0.06, 0.04, d_soft + surge * 0.1)
+			* smoothstep(0.45, 0.85, noise(w * 1.6 + along * TIME * 0.5) * 0.75 + 0.25 * surge);
+	lap *= 0.7;
 	// Foam where the water breaks against something standing in it -- a moored
 	// hull, a snag, a man wading. The depth buffer does not care which.
 	// Its break-up is at a third of a metre, which is a good deal finer than a

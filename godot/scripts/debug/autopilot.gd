@@ -414,7 +414,7 @@ func _scenery_steps() -> Array:
 	]
 	for a in args:
 		if a.begins_with("--only="):
-			views = views.filter(func(v): return v[0] == a.substr(7))
+			views = views.filter(func(v): return v[0] in a.substr(7).split(","))
 	if "--no-glow" in args:
 		main.sky.env.glow_enabled = false
 	if "--no-grass" in args:

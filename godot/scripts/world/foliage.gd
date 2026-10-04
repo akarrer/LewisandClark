@@ -33,7 +33,7 @@ const PROFILES := {
 		"cured": Color(1.46, 1.22, 0.86), "variation": 0.2},
 	"flowers": {"sway": 0.10, "flutter": 0.3, "translucency": 0.3, "tint": Color(1, 1, 1), "variation": 0.1},
 	"willow": {"sway": 0.18, "flutter": 1.3, "translucency": 0.45, "tint": Color(0.82, 0.95, 0.78), "variation": 0.12},
-	"driftwood": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1, 1, 1), "variation": 0.08, "bark_tint": Color(2.1, 2.0, 1.85)},
+	"driftwood": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1, 1, 1), "variation": 0.08, "bark_tint": Color(1.95, 2.15, 1.75)},  # sun-bleached silver; the bark texture runs purple
 	"rock": {},
 	# The wooded ravines that cut the loess bluffs: shaded, damper, and green well
 	# into August when the open prairie above them has gone to straw.

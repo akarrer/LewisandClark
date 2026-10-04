@@ -258,7 +258,7 @@ func _color_at(x: float, z: float, h: float, n: Vector3) -> Color:
 	if d < 0.0:
 		c = Color(0.50, 0.43, 0.32, 0.0)  # riverbed: wet sand and silt, seen through the shallows
 	elif d < 10.0:
-		c = Color(0.76, 0.68, 0.50, 0.0)  # sandbar
+		c = Color(0.72, 0.66, 0.52, 0.0)  # sandbar
 	elif d < 22.0:
 		c = Color(0.76, 0.68, 0.50, 0.0).lerp(grass, (d - 10.0) / 12.0)
 	# Only the steepest cuts show bare loess; the bluffs themselves are grassed.
