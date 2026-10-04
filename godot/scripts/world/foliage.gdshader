@@ -52,6 +52,8 @@ void vertex() {
 	v_local = VERTEX;
 }
 
+global uniform float night_amount;
+
 void fragment() {
 	vec4 tex = texture(albedo_tex, UV);
 	vec3 c = tex.rgb * tint.rgb * v_tint;
@@ -66,6 +68,11 @@ void fragment() {
 		float depth = mix(0.22, 0.42, 1.0 - smoothstep(0.0, 0.5, v_height));
 		c *= 1.0 - (1.0 - furrow) * depth - grain * 0.06;
 	}
+	// Moonlight, as on the grass: leaves green in the dark sat oddly beside a
+	// prairie gone grey. Dusk keeps its colour.
+	float moonlit = smoothstep(0.55, 1.0, night_amount);
+	float lum = dot(c, vec3(0.3, 0.59, 0.11));
+	c = mix(c, vec3(lum) * vec3(0.82, 0.9, 1.08), moonlit * 0.75);
 	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 	// Mip levels average leaf alpha toward the cut, so distant canopies would
 	// dissolve into bare branches; boost alpha as the mip level climbs.
@@ -74,5 +81,5 @@ void fragment() {
 	ALPHA_SCISSOR_THRESHOLD = alpha_cut;
 	ROUGHNESS = 0.85;
 	SPECULAR = 0.25;
-	BACKLIGHT = c * translucency;
+	BACKLIGHT = c * translucency * (1.0 - moonlit * 0.7);
 }

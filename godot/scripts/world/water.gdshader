@@ -144,13 +144,15 @@ vec2 chop_slope(vec2 base, vec2 along, float tt, float flow, float pix, float gu
 		// The chop fades a good deal earlier than the swell. It is short enough
 		// that it reaches the pixel limit while it is still the whole texture of
 		// the surface, and the shimmer that follows is worse than losing it.
-		amp *= 1.0 - smoothstep(lambda * 0.3, lambda * 1.3, pix);
+		// Gone before a wave is three pixels long: any later and the short ones
+		// weave a fine basket pattern over the reach seen from the bluff.
+		amp *= 1.0 - smoothstep(lambda * 0.12, lambda * 0.35, pix);
 		if (amp < 0.00002) {
 			continue;
 		}
 		vec2 dir = turn_by(along, (fi + 0.5) * GOLDEN);
 		float k = TAU_ / lambda;
-		float bend = noise(base * (0.9 / lambda) + fi * 17.3) * 1.6;
+		float bend = noise(turn_by(base, fi * GOLDEN + 0.4) * (0.9 / lambda) + fi * 17.3) * 1.3;  // turned, or the lattice prints a grid
 		float ph = k * dot(base, dir) - tt * (1.2 + flow * 0.6) * sqrt(k) + wander + bend;
 		slope += amp * k * cos(ph) * dir;
 	}
@@ -294,7 +296,7 @@ void fragment() {
 	// waves are already faded out there; what is left is the slope of the water
 	// turning through the highlight inside a single pixel.
 	float slope_aa = clamp(length(fwidth(wn)) * 2.4, 0.0, 0.55);
-	ROUGHNESS = clamp(mix(0.20, 0.52, smoothstep(30.0, 280.0, dist)) + foam * 0.45 + paw * 0.2 + slope_aa + (1.0 - smoothstep(0.0, 0.3, d_soft)) * 0.5, 0.05, 1.0);
+	ROUGHNESS = clamp(mix(0.30, 0.52, smoothstep(30.0, 280.0, dist)) + foam * 0.45 + paw * 0.2 + slope_aa + (1.0 - smoothstep(0.0, 0.3, d_soft)) * 0.5, 0.05, 1.0);
 	SPECULAR = 0.24;
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
 	// The silt does not stop at the far bank: let the reflection carry the
