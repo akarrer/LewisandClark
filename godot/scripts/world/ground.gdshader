@@ -162,9 +162,9 @@ void fragment() {
 	// A bar is not one sheet of clean sand. The river leaves silt in it, and the
 	// last fall of the water leaves damp patches that dry from the edges in.
 	float damp = smoothstep(0.42, 0.74, fbm(p * 0.09)) * (1.0 - smoothstep(0.6, 2.6, v_world.y));
-	sandy = mix(sandy, sandy * vec3(0.70, 0.67, 0.62), damp * 0.7);
+	sandy = mix(sandy, sandy * vec3(0.78, 0.76, 0.72), damp * 0.5);  // soft: strong, these read as smudges
 	float silt = smoothstep(0.52, 0.8, fbm(p * 0.35 + 19.0));
-	sandy = mix(sandy, sandy * vec3(0.78, 0.74, 0.66), silt * 0.45);
+	sandy = mix(sandy, sandy * vec3(0.84, 0.81, 0.75), silt * 0.4);
 	// Drift lines: dark bands of twigs and silt left where the river last stood.
 	float drift_line = smoothstep(0.06, 0.0, abs(fract(v_world.y * 1.3 + vnoise(p * 0.2) * 0.6) - 0.5) - 0.44);
 	sandy *= 1.0 - drift_line * 0.38 * smoothstep(0.2, 0.8, vnoise(p * 1.1));
@@ -200,7 +200,8 @@ void fragment() {
 	c = mix(c, mix(c, earth, 0.3) * 1.05, fringe * prairie * 0.7);
 	c = mix(c, earth, worn * prairie * 0.8);
 
-	c *= 1.0 + (n - 0.5) * mottle * 2.0;
+	// Less on the bars: at three metres it reads on clean sand as dirty smudges.
+	c *= 1.0 + (n - 0.5) * mottle * 2.0 * mix(1.0, 0.35, sand);
 	// Slight warm/cool drift over large areas.
 	float drift = vnoise(p * 0.012);
 	c *= mix(vec3(1.04, 1.0, 0.92), vec3(0.94, 1.02, 1.0), drift);
