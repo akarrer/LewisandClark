@@ -279,13 +279,20 @@ func _scatter_cottonwoods(spec: Dictionary) -> void:
 		var near_water := 1.0 - d / 170.0
 		if rng.randf() > near_water * smoothstep(-0.15, 0.35, grove) * 0.9:
 			continue
-		# Old giants on the banks, younger trees further back; each crown stretched
-		# and leaning its own way so the groves don't read as copies.
-		var size := lerpf(0.55, 1.0, pow(rng.randf(), 1.5)) * lerpf(0.85, 1.25, near_water)
-		var stretch := Vector3(rng.randf_range(0.85, 1.25), rng.randf_range(0.9, 1.45), 1.0)
-		stretch.z = stretch.x * rng.randf_range(0.85, 1.15)
-		var lean := Vector3(rng.randf_range(-0.12, 0.12), 1.0, rng.randf_range(-0.12, 0.12))
-		_add("cottonwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), size, lean, 0.0, stretch)
+		_cottonwood(variants, p, near_water)
+		# A grove, not a tree: cottonwoods seed in on the same bar in the same
+		# flood year, and their crowns run together. Placed one at a time they
+		# stood apart in an even scatter, and the far bank read as a line of
+		# lollipops on a lawn rather than as bottomland timber.
+		for k in rng.randi_range(1, 4):
+			var ang := rng.randf() * TAU
+			var r := rng.randf_range(5.0, 12.0)
+			var q := Vector3(p.x + cos(ang) * r, 0.0, p.z + sin(ang) * r)
+			q.y = terrain.height_at(q.x, q.z)
+			var dq := _dist_to_river(q)
+			if dq < 10.0 or dq > 170.0 or _near_point(q, 16.0) or not terrain.walkable(q.x, q.z):
+				continue
+			_cottonwood(variants, q, 1.0 - dq / 170.0)
 		for u in rng.randi_range(0, 3):
 			var off := Vector3(rng.randf_range(-7, 7), 0, rng.randf_range(-7, 7))
 			var q := Vector3(p.x + off.x, terrain.height_at(p.x + off.x, p.z + off.z), p.z + off.z)
@@ -293,6 +300,16 @@ func _scatter_cottonwoods(spec: Dictionary) -> void:
 				var under: String = beneath[rng.randi() % beneath.size()]
 				var kind := "grove" if under == "tree_5" else "bush"
 				_add(kind, under, q - Vector3(0, 0.1, 0), rng.randf_range(0.5, 0.9), Vector3.UP, 220.0)
+
+
+func _cottonwood(variants: Array, p: Vector3, near_water: float) -> void:
+	## Old giants on the banks, younger trees further back; each crown stretched
+	## and leaning its own way so the groves don't read as copies.
+	var size := lerpf(0.45, 1.1, pow(rng.randf(), 1.4)) * lerpf(0.85, 1.25, near_water)
+	var stretch := Vector3(rng.randf_range(0.85, 1.25), rng.randf_range(0.9, 1.45), 1.0)
+	stretch.z = stretch.x * rng.randf_range(0.85, 1.15)
+	var lean := Vector3(rng.randf_range(-0.12, 0.12), 1.0, rng.randf_range(-0.12, 0.12))
+	_add("cottonwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), size, lean, 0.0, stretch)
 
 
 func _scatter_groves(spec: Dictionary) -> void:
