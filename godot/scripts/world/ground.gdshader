@@ -20,6 +20,7 @@ uniform vec2 trace_c = vec2(-1000.0);
 // prairie is a footpath with the grass beaten out of it, not a cart road.
 uniform float trace_width = 0.62;
 global uniform float wetness;
+global uniform float night_amount;
 
 varying vec3 v_world;
 varying vec3 v_normal;
@@ -229,6 +230,10 @@ void fragment() {
 		bumped += vec3(-(hx - h0), 0.0, -(hz - h0)) / e * scale * relief;
 	}
 	NORMAL = normalize((VIEW_MATRIX * vec4(normalize(bumped), 0.0)).xyz);
+	// The same moonlight as the blades: the prairie under them goes grey with them.
+	float lum = dot(c, vec3(0.3, 0.59, 0.11));
+	float moonlit = smoothstep(0.55, 1.0, night_amount);  // dusk keeps its gold
+	c = mix(c, vec3(lum) * vec3(0.82, 0.9, 1.08), moonlit * 0.8 * prairie) * mix(1.0, 0.62, moonlit * prairie);
 	ALBEDO = c * cloud_light(v_world) * mix(1.0, 0.62, wetness);
 	ROUGHNESS = mix(0.95, 0.42, max(wetness, sand * max(wet * 0.55, swash * 0.6)));
 	SPECULAR = mix(0.2, 0.5, wetness);

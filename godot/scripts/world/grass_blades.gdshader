@@ -41,13 +41,20 @@ void vertex() {
 	v_t = t;
 }
 
+global uniform float night_amount;
+
 void fragment() {
 	vec3 c = mix(mix(root, v_col, 0.35), v_col, smoothstep(0.0, 0.5, v_t));
 	c = mix(c, v_col * 1.25 + vec3(0.05, 0.04, 0.0), smoothstep(0.75, 1.0, v_t));
+	// By moonlight the eye sees no colour, and the blades -- turned up to the
+	// sky, where the moon is -- stood out gold and brighter than the man.
+	float lum = dot(c, vec3(0.3, 0.59, 0.11));
+	float moonlit = smoothstep(0.55, 1.0, night_amount);  // dusk keeps its gold
+	c = mix(c, vec3(lum) * vec3(0.82, 0.9, 1.08), moonlit * 0.8) * mix(1.0, 0.62, moonlit);
 	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz) * mix(1.0, 0.78, wetness);
 	ROUGHNESS = mix(0.9, 0.55, wetness);
 	SPECULAR = 0.15;
-	BACKLIGHT = c * 0.4;
+	BACKLIGHT = c * 0.4 * (1.0 - moonlit * 0.7);
 	// Blades face up for soft, even lighting instead of flickering flat cards.
 	NORMAL = mix(NORMAL, (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz, 0.6);
 }
