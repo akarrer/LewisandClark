@@ -415,6 +415,12 @@ func _scenery_steps() -> Array:
 	for a in args:
 		if a.begins_with("--only="):
 			views = views.filter(func(v): return v[0] in a.substr(7).split(","))
+	for a in args:
+		if a.begins_with("--hide="):     # bisect what is drawing something
+			for n in a.substr(7).split(","):
+				for c in main.get_children():
+					if str(c.name).begins_with(n):
+						c.visible = false
 	if "--no-glow" in args:
 		main.sky.env.glow_enabled = false
 	if "--no-grass" in args:

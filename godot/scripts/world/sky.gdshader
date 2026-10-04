@@ -146,13 +146,29 @@ void sky() {
 			float fh = hash12(fc + 19.3);
 			float faint = step(0.955, fh) * smoothstep(0.09, 0.0, length(fract(fuv) - 0.5)) * mix(0.15, 0.5, hash12(fc + 2.2));
 			col += vec3(0.86, 0.9, 1.0) * faint * clear_sky;
-			// The Milky Way: a broad band about its own axis, curdled with dust.
-			vec3 axis = normalize(vec3(0.76, 0.16, -0.63));  // band arches near the zenith
-			float band = 1.0 - smoothstep(0.04, 0.34, abs(dot(dir, axis)));
-			float clouds_of_stars = fbm(vec2(atan(dir.x, dir.z) * 3.2, asin(up) * 4.0) + 4.0, 5);
-			float lanes = smoothstep(0.3, 0.8, clouds_of_stars);
-			col += vec3(0.62, 0.66, 0.82) * band * (0.03 + 0.045 * lanes) * clear_sky;
-			col += vec3(0.9, 0.92, 1.0) * band * faint * 2.5 * clear_sky;  // the band is thick with faint stars
+			// The Milky Way: a great circle about its own axis, arching near the
+			// zenith. Twenty degrees of soft glow, not forty of flat wash -- it read
+			// as a lit slab standing in the sky -- clotted into star clouds that run
+			// along it, split by the Great Rift through Cygnus and Aquila (overhead
+			// in an August evening), and brighter toward Sagittarius in the south.
+			vec3 axis = normalize(vec3(0.76, 0.16, -0.63));
+			vec3 bx = normalize(cross(axis, vec3(0.0, 1.0, 0.0)));
+			vec3 by = cross(axis, bx);
+			float across = dot(dir, axis);
+			vec2 ring = vec2(dot(dir, bx), dot(dir, by));   // around the band, no seam
+			float along = atan(ring.y, ring.x);
+			float band = exp(-pow(across / 0.15, 2.0));
+			// Polar: round the band is round the circle, across it is out from the
+			// centre, so the two never fold onto one direction in the noise and
+			// smear it into strands.
+			float clot = fbm(normalize(ring) * (7.0 + across * 7.0) + 4.0, 5);
+			float clouds_of_stars = smoothstep(0.35, 0.85, clot);
+			float rift_line = across - 0.02 * sin(along * 3.0 + 1.0);
+			float rift = 1.0 - 0.8 * exp(-pow(rift_line / 0.03, 2.0)) * smoothstep(-0.2, 0.7, sin(along + 0.6));
+			float toward_core = 0.55 + 0.45 * sin(along - 1.2);
+			float glow = band * rift * toward_core;
+			col += vec3(0.62, 0.66, 0.82) * glow * (0.022 + 0.032 * clouds_of_stars) * clear_sky;
+			col += vec3(0.9, 0.92, 1.0) * glow * (0.4 + clouds_of_stars) * faint * 2.5 * clear_sky;  // thick with faint stars
 		}
 
 		// Meteors: a streak every so often, out of the north-east in August.
@@ -165,15 +181,18 @@ void sky() {
 				// Radiant around Perseus, low in the north-east, drifting each night.
 				vec3 radiant = normalize(vec3(0.55 + 0.2 * hash12(vec2(slot, 3.3)), 0.55, -0.62));
 				vec3 tangent = normalize(cross(radiant, vec3(hash12(vec2(slot, 7.7)) - 0.5, 1.0, hash12(vec2(slot, 9.1)) - 0.5)));
-				float head = 0.08 + 0.5 * hash12(vec2(slot, 11.3));  // how far it has run
-				float trail = 0.05 + 0.07 * hash12(vec2(slot, 13.9));
-				float near_trail = 0.0;
-				for (int k = 0; k < 8; k++) {
-					float a = head - trail * float(k) / 7.0;
-					vec3 pt = normalize(radiant * cos(a) + tangent * sin(a));
-					float taper = 1.0 - float(k) / 7.0;  // brightest at the head
-					near_trail = max(near_trail, smoothstep(0.0025, 0.0, distance(dir, pt)) * taper);
-				}
+				// It runs while it burns, and the trail is one line along its great
+				// circle. Eight point samples along it drew a dotted line.
+				float run = smoothstep(0.0, 0.16, within);
+				float head = 0.08 + 0.5 * hash12(vec2(slot, 11.3)) + 0.1 * run;
+				float trail = (0.05 + 0.07 * hash12(vec2(slot, 13.9))) * (0.4 + 0.6 * run);
+				vec3 across_n = normalize(cross(radiant, tangent));
+				float a = atan(dot(dir, tangent), dot(dir, radiant));
+				float off = abs(dot(dir, across_n));
+				float along_t = clamp((head - a) / trail, 0.0, 1.0);   // 0 at the head
+				float inside = step(head - trail, a) * step(a, head + 0.002);
+				float width = mix(0.0016, 0.0005, along_t);
+				float near_trail = smoothstep(width * 2.0, 0.0, off) * pow(1.0 - along_t, 1.6) * inside;
 				col += vec3(1.0, 0.96, 0.85) * near_trail * fall * 2.2 * star_amount * (1.0 - cloud_coverage);
 			}
 		}
