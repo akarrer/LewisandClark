@@ -133,10 +133,14 @@ void swell(vec2 base, vec2 along, float tt, float pix, float amp_scale,
 vec2 chop_slope(vec2 base, vec2 along, float tt, float flow, float pix, float gust) {
 	vec2 slope = vec2(0.0);
 	float wander = noise(base * 0.028) * 6.0;
-	for (int i = 0; i < 6; i++) {
+	// Eight waves, not six, at wavelengths that are not halvings of one
+	// another, each crest bent by its own slow warp. Six plane waves in exact
+	// octaves interfere into a lattice, and a lattice on a river reads as a
+	// screen door laid over it.
+	for (int i = 0; i < 8; i++) {
 		float fi = float(i);
-		float lambda = 7.0 * pow(0.5, fi);
-		float amp = 0.05 * pow(0.58, fi) * gust;
+		float lambda = 7.0 * pow(0.6, fi) * (1.0 + 0.12 * sin(fi * 2.3));
+		float amp = 0.05 * pow(0.66, fi) * gust;
 		// The chop fades a good deal earlier than the swell. It is short enough
 		// that it reaches the pixel limit while it is still the whole texture of
 		// the surface, and the shimmer that follows is worse than losing it.
@@ -146,7 +150,8 @@ vec2 chop_slope(vec2 base, vec2 along, float tt, float flow, float pix, float gu
 		}
 		vec2 dir = turn_by(along, (fi + 0.5) * GOLDEN);
 		float k = TAU_ / lambda;
-		float ph = k * dot(base, dir) - tt * (1.2 + flow * 0.6) * sqrt(k) + wander;
+		float bend = noise(base * (0.9 / lambda) + fi * 17.3) * 1.6;
+		float ph = k * dot(base, dir) - tt * (1.2 + flow * 0.6) * sqrt(k) + wander + bend;
 		slope += amp * k * cos(ph) * dir;
 	}
 	return slope;
@@ -258,7 +263,12 @@ void fragment() {
 	// Its break-up is at a third of a metre, which is a good deal finer than a
 	// pixel covers past about twenty yards, so it is faded out over that range
 	// rather than left to alias into a cross-hatch over the whole shallows.
-	float contact = smoothstep(0.3, 0.0, depth)
+	// Only against something that stands up out of the bed. A bar shelves
+	// gently under the surface and a hull or snag drops away almost sheer, and
+	// without telling them apart this drew an unbroken foam line down every
+	// shore in the Region.
+	float sheer = length(fwidth(depth)) / max(length(fwidth(w)), 0.0001);
+	float contact = smoothstep(0.3, 0.0, depth) * smoothstep(0.5, 1.5, sheer)
 			* (0.55 + 0.45 * noise(w * 1.4 - along * TIME * 1.6))
 			* (1.0 - smoothstep(22.0, 65.0, dist));
 	// Foam is not a flat wash: it breaks into streaks that run with the water.
@@ -284,13 +294,16 @@ void fragment() {
 	// waves are already faded out there; what is left is the slope of the water
 	// turning through the highlight inside a single pixel.
 	float slope_aa = clamp(length(fwidth(wn)) * 2.4, 0.0, 0.55);
-	ROUGHNESS = clamp(mix(0.20, 0.52, smoothstep(30.0, 280.0, dist)) + foam * 0.45 + paw * 0.2 + slope_aa, 0.05, 1.0);
+	ROUGHNESS = clamp(mix(0.20, 0.52, smoothstep(30.0, 280.0, dist)) + foam * 0.45 + paw * 0.2 + slope_aa + (1.0 - smoothstep(0.0, 0.3, d_soft)) * 0.5, 0.05, 1.0);
 	SPECULAR = 0.24;
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
 	// The silt does not stop at the far bank: let the reflection carry the
 	// river's own colour into it, or the far reach turns into a sheet of sky.
 	vec3 sheen = mix(sky_horizon.rgb, sky_horizon.rgb * deep_color * 2.6, 0.5);
-	EMISSION = sheen * fres * mix(0.03, 0.30, smoothstep(5.0, 120.0, dist)) * (1.0 - foam);
+	// Not where the water is a film over the bar: the grazing sheen there drew
+	// one unbroken pale line down every shore.
+	float film = smoothstep(0.0, 0.3, d_soft);
+	EMISSION = sheen * fres * mix(0.03, 0.30, smoothstep(5.0, 120.0, dist)) * (1.0 - foam) * film;
 	// Light coming up through the back of a crest, which is most of what gives a
 	// swell its shape from a low angle.
 	float crest = clamp(h / max(SWELL_AMP, 0.001), 0.0, 1.0);

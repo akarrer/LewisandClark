@@ -44,7 +44,7 @@ func build(p_terrain: Terrain, p_watch: Node3D) -> void:
 		node.add_child(wake)
 		add_child(node)
 		var d := {"node": node, "phase": _rng.randf() * TAU, "roll": _rng.randf_range(-0.12, 0.12),
-				"speed": SPEED * _rng.randf_range(0.8, 1.25), "sink": _rng.randf_range(0.14, 0.28),
+				"speed": SPEED * _rng.randf_range(0.8, 1.25), "sink": _rng.randf_range(0.05, 0.13),  # ride high enough to show they are round
 				# Most lie along the current; some come down broadside, as they do.
 				"yaw": _rng.randf_range(-0.9, 0.9), "placed": false}
 		# Launched here rather than on the first frame, so that anything asking
@@ -133,8 +133,10 @@ static func _log_mesh(rng: RandomNumberGenerator) -> Mesh:
 	## root at the butt and a branch or two still on it, bleached by the water.
 	# Bleached only along the crown, where it has ridden out of the water; the
 	# rest of it is wet bark.
-	var pale := Color(0.58, 0.54, 0.46)
-	var bark := Color(0.26, 0.22, 0.17)
+	# Muted, and wet: a pale top over a sunk trunk was all that showed above the
+	# water, and at any distance it read as a sawn board floating flat.
+	var pale := Color(0.33, 0.30, 0.26)
+	var bark := Color(0.16, 0.13, 0.10)
 	var length := rng.randf_range(3.0, 6.2)
 	var radius := rng.randf_range(0.15, 0.24)
 	var st := SurfaceTool.new()

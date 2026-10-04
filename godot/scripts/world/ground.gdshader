@@ -230,6 +230,6 @@ void fragment() {
 	}
 	NORMAL = normalize((VIEW_MATRIX * vec4(normalize(bumped), 0.0)).xyz);
 	ALBEDO = c * cloud_light(v_world) * mix(1.0, 0.62, wetness);
-	ROUGHNESS = mix(0.95, 0.42, max(wetness, sand * max(wet * 0.55, swash)));
+	ROUGHNESS = mix(0.95, 0.42, max(wetness, sand * max(wet * 0.55, swash * 0.6)));
 	SPECULAR = mix(0.2, 0.5, wetness);
 }
