@@ -85,6 +85,16 @@ void sky() {
 			float base = smoothstep(0.3, 0.015, up) * 0.65;
 			vec3 cloud = mix(cloud_shadow, cloud_light, lit * (1.0 - base));
 			cloud = mix(cloud, glow_color * 1.15, halo * 1.4);
+			// Sunset from beneath. With the sun on the horizon it shines up under
+			// the deck, and the bases that were grey all day burn orange and rose,
+			// the thin ragged edges most of all -- and not only on the sun's side:
+			// the deck opposite catches it too, pinker and fainter. Left grey, they
+			// hang on a rose sky like smudges of soot.
+			float low_sun = smoothstep(0.3, 0.03, sun.y) * smoothstep(-0.13, -0.02, sun.y);
+			float facing = mu * 0.5 + 0.5;
+			vec3 under = mix(glow_color * vec3(1.0, 0.78, 0.86), glow_color * 1.35, facing * facing);
+			float ragged = 1.0 - smoothstep(0.35, 1.0, density);
+			cloud = mix(cloud, under, clamp(low_sun * (0.4 + base * 0.6 + ragged * 0.35), 0.0, 0.85));
 			cloud *= 1.0 - cloud_darkness * 0.65;
 
 			// Cirrus: fibrous streaks, stretched along the wind, high and faint.
