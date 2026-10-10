@@ -29,6 +29,13 @@ void vertex() {
 	mat3 m = mat3(MODEL_MATRIX);
 	float s2 = max(dot(m[0], m[0]), 0.0001);
 	VERTEX += transpose(m) * disp / s2;
+	// Pressed down when the camera backs into a clump. It rides a spring arm
+	// behind the Leader, and a blade a hand's breadth from the lens fills half
+	// the screen as a flat green slab. Done here and not with a discard, which
+	// would cost the whole prairie its early depth test.
+	vec3 eye = CAMERA_POSITION_WORLD - origin;
+	float near_lens = smoothstep(1.6, 0.6, length(eye.xz)) * smoothstep(-0.5, 0.6, eye.y);
+	VERTEX *= 1.0 - near_lens * 0.9;
 
 	float r = INSTANCE_CUSTOM.x;
 	float patch = INSTANCE_CUSTOM.z;

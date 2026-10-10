@@ -55,6 +55,14 @@ void vertex() {
 global uniform float night_amount;
 
 void fragment() {
+	// Thinned out right in front of the lens. The camera rides a spring arm
+	// behind the Leader and backs into whatever stands there; a blade or a leaf
+	// a hand's breadth away fills half the screen as a flat green slab. A
+	// screen-door dither, so it costs a discard and no sorting.
+	float lens = smoothstep(0.5, 1.4, -VERTEX.z);
+	if (lens < 1.0 && fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715)))) > lens) {
+		discard;
+	}
 	vec4 tex = texture(albedo_tex, UV);
 	vec3 c = tex.rgb * tint.rgb * v_tint;
 	c *= mix(base_shade, 1.08, smoothstep(0.0, 0.6, v_height));
