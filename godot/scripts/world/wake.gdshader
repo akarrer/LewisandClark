@@ -1,13 +1,15 @@
 shader_type spatial;
-render_mode cull_disabled, unshaded, blend_mix, depth_draw_never;
+render_mode cull_disabled, blend_mix, depth_draw_never;
+// Lit, not unshaded: an unshaded wake keeps its noon white into the dusk and
+// stands out on a darkening river like a strip of paper.
 // The wake off a snag standing in the current. The Corps called these sawyers
 // and planters and feared them more than anything else on the river: a whole
 // cottonwood driven into the bed, with the water piling against it and running
 // white away downstream. The quad lies on the water with its near edge at the
 // trunk and its length pointing down the channel.
 
-uniform vec3 foam : source_color = vec3(0.86, 0.84, 0.78);
-uniform float strength = 0.55;
+uniform vec3 foam : source_color = vec3(0.74, 0.69, 0.60);  // Missouri foam is muddy
+uniform float strength = 0.45;
 global uniform float wind_strength;
 
 float wk_hash(vec2 p) {
@@ -35,7 +37,12 @@ void fragment() {
 	float pile = exp(-(v / 0.1) * (v / 0.1)) * exp(-(u / 0.35) * (u / 0.35));
 	// Ripples running down the arms, quicker in a wind.
 	float run = wk_noise(vec2(u * 6.0, v * 5.0 - TIME * (1.4 + clamp(wind_strength, 0.0, 4.0) * 0.4)));
-	float a = (arms * (0.55 + 0.45 * run) + pile) * (1.0 - smoothstep(0.55, 1.0, v));
+	// The arms are not a ruled stroke but beads of scum strung along them, and
+	// they thin out as the wake spreads.
+	float beads = smoothstep(0.35, 0.75, wk_noise(vec2(u * 3.0, v * 14.0 - TIME * 2.0)));
+	float a = (arms * beads * (0.4 + 0.6 * run) * (1.0 - v * 0.6) + pile) * (1.0 - smoothstep(0.4, 1.0, v));
 	ALBEDO = foam;
+	ROUGHNESS = 0.9;
+	NORMAL = (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz;
 	ALPHA = clamp(a * strength, 0.0, 1.0);
 }

@@ -16,8 +16,8 @@ render_mode cull_disabled;
 // the wave pattern are regular, that aliasing comes out as long straight
 // interference bands ruled across the reach.
 
-uniform vec3 deep_color : source_color = vec3(0.19, 0.155, 0.105);
-uniform vec3 mid_color : source_color = vec3(0.46, 0.355, 0.205);
+uniform vec3 deep_color : source_color = vec3(0.27, 0.205, 0.13);
+uniform vec3 mid_color : source_color = vec3(0.50, 0.385, 0.225);
 uniform vec3 shallow_color : source_color = vec3(0.70, 0.58, 0.365);
 uniform vec3 foam_color : source_color = vec3(0.76, 0.72, 0.64);
 uniform float flow_speed = 0.9;       // m/s the silt patterns travel downriver
@@ -110,7 +110,11 @@ void swell(vec2 base, vec2 along, float tt, float pix, float amp_scale,
 	for (int i = 0; i < SWELLS; i++) {
 		float fi = float(i);
 		float lambda = SWELL_LAMBDA * pow(0.58, fi);
-		float amp = SWELL_AMP * pow(0.6, fi) * amp_scale;
+		// In groups, not an even train: two plane waves of one height everywhere
+		// interfere into a diamond lattice that reads, from the bluff, as a
+		// quilted sheet rather than as water.
+		float group = 0.35 + 1.3 * noise(base * 0.011 + fi * 5.1 - along * tt * 0.04);
+		float amp = SWELL_AMP * pow(0.6, fi) * amp_scale * group;
 		amp *= 1.0 - smoothstep(lambda * 0.7, lambda * 2.6, pix);
 		if (amp < 0.0002) {
 			continue;
@@ -148,16 +152,56 @@ vec2 chop_slope(vec2 base, vec2 along, float tt, float flow, float pix, float gu
 		// Gone before a wave is three pixels long: any later and the short ones
 		// weave a fine basket pattern over the reach seen from the bluff.
 		amp *= 1.0 - smoothstep(lambda * 0.12, lambda * 0.35, pix);
+		// And thinned well before that from height: looking down from the bluff
+		// the pixel is small but a whole field of crests is in view at once, and
+		// any two trains still left cross-hatch it like a woven mat.
+		amp *= 1.0 - 0.7 * smoothstep(lambda * 0.03, lambda * 0.12, pix);
 		if (amp < 0.00002) {
 			continue;
 		}
 		vec2 dir = turn_by(along, (fi + 0.5) * GOLDEN);
 		float k = TAU_ / lambda;
-		float bend = noise(turn_by(base, fi * GOLDEN + 0.4) * (0.9 / lambda) + fi * 17.3) * 1.3;  // turned, or the lattice prints a grid
+		float bend = noise(turn_by(base, fi * GOLDEN + 0.4) * (0.9 / lambda) + fi * 17.3) * 3.2;  // turned, or the lattice prints a grid
 		float ph = k * dot(base, dir) - tt * (1.2 + flow * 0.6) * sqrt(k) + wander + bend;
 		slope += amp * k * cos(ph) * dir;
 	}
 	return slope;
+}
+
+
+// A line of something the current carries -- scum on a seam, the edge of a
+// boil -- drawn ``width`` metres wide but never thinner than a pixel and a
+// half. Where a pixel is wider than the line, it is spread out and dimmed by
+// the same ratio, so a seam fades into the reach instead of breaking into
+// dashes the way a hairline does past a hundred yards.
+float soft_line(float d, float width, float pix) {
+	float wd = max(width, pix * 1.5);
+	return (1.0 - smoothstep(0.0, wd, abs(d))) * sqrt(width / wd);
+}
+
+
+// Boils: water welling up off the bed in the channel, a smooth pale disk that
+// spreads, rings itself with a dark edge, and is gone, while the next one
+// rises somewhere else. One cell in a drifting grid, each with its own time.
+// ``rim`` is the ring, ``slick`` the glassy middle.
+void boils(vec2 p, float tt, float pix, out float slick, out float rim) {
+	slick = 0.0;
+	rim = 0.0;
+	const float CELL = 11.0;
+	vec2 g = floor(p / CELL);
+	for (int j = -1; j <= 1; j++) {
+		for (int i = -1; i <= 1; i++) {
+			vec2 c = g + vec2(float(i), float(j));
+			float h = hash(c);
+			vec2 at = (c + 0.2 + 0.6 * vec2(h, hash(c + 7.1))) * CELL;
+			float life = fract(tt / (9.0 + 6.0 * h) + h * 13.7);
+			float r = (0.6 + 4.2 * sqrt(life)) * (0.6 + 0.6 * hash(c + 3.3));
+			float d = length(p - at) - r;
+			float fade = smoothstep(0.0, 0.1, life) * (1.0 - smoothstep(0.55, 1.0, life));
+			slick = max(slick, (1.0 - smoothstep(-r * 0.6, 0.0, d)) * fade);
+			rim = max(rim, soft_line(d, 0.35, pix) * fade);
+		}
+	}
 }
 
 
@@ -189,7 +233,9 @@ void vertex() {
 	float h;
 	vec2 slope;
 	float fold;
-	swell(world.xz, vec2(0.0, 1.0), TIME, pix, 0.35 + 0.9 * blow(), offset, h, slope, fold);
+	// The same downriver as the fragment uses, or the lit swell and the
+	// displaced one run at an angle to each other.
+	swell(world.xz, normalize(v_along + vec2(0.0, 0.0001)), TIME, pix, 0.35 + 0.9 * blow(), offset, h, slope, fold);
 	VERTEX.xz += offset * off_bank;
 	VERTEX.y += h * off_bank;
 }
@@ -229,6 +275,31 @@ void fragment() {
 	float boil = fbm(w * 0.05 - along * TIME * flow_speed * 0.04);
 	c *= 1.0 + (band - 0.5) * 0.26 + (streak - 0.5) * 0.18 + (boil - 0.5) * 0.16;
 
+	// The current, drawn off the channel rather than off the compass: ``fc`` is
+	// the distance from the channel's middle, so lines of it follow the bends.
+	float pix0 = max(length(fwidth(w)), 0.002);
+	float fc = texture(flow_tex, w / map_size).r;
+	float run = s - TIME * flow_speed;               // downriver, moving with it
+	// Seams: where two threads of the current meet, the scum and the drift
+	// they carry collect in a line, and the water along it lies glassy. They
+	// wander across the channel and break up along it.
+	float q = fc + (noise(vec2(fc * 0.03, run * 0.008)) - 0.5) * 18.0;
+	float lane = abs(fract(q / 26.0 + 0.3) - 0.5) * 26.0;
+	float seam = soft_line(lane, 1.1, pix0)
+			* smoothstep(0.35, 0.65, noise(vec2(q * 0.05, run * 0.035)))
+			* smoothstep(river_half * 0.95, river_half * 0.55, fc);
+	float glass = soft_line(lane, 3.5, pix0) * 0.6;
+	// Boils, in the deep middle where the current is quickest.
+	float slick;
+	float rim;
+	boils(w - along * TIME * flow_speed, TIME, pix0, slick, rim);
+	float channel = smoothstep(river_half * 0.6, river_half * 0.2, fc) * smoothstep(0.8, 2.0, d_soft);
+	slick *= channel;
+	rim *= channel;
+	// A boil brings up cooler, siltier water: paler and lighter in the middle.
+	c = mix(c, mid_color * 1.15, slick * 0.45);
+	c *= 1.0 - rim * 0.3;
+
 	// Cat's paws: patches where a gust ruffles the surface, darker and duller,
 	// drifting downwind. They are what makes a wide river read as water.
 	float gust = blow();
@@ -243,7 +314,7 @@ void fragment() {
 	vec2 slope;
 	float fold;
 	swell(w, along, TIME, pix, 0.35 + 0.9 * gust, offset, h, slope, fold);
-	float ruffle = 0.5 + 1.3 * gust + paw * 1.2;
+	float ruffle = (0.5 + 1.3 * gust + paw * 1.2) * (1.0 - (glass + slick) * 0.55);
 	slope += chop_slope(w, along, TIME, flow_speed, pix, ruffle);
 	vec3 wn = normalize(vec3(-slope.x, 1.0 - fold, -slope.y));
 	NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
@@ -284,7 +355,7 @@ void fragment() {
 	// past that a pixel covers several of them and they alias into a hatch.
 	float drift = noise((w - along * TIME * flow_speed * 1.25) * 5.5);
 	float fleck = smoothstep(0.93, 1.0, drift) * (1.0 - smoothstep(12.0, 42.0, dist));
-	foam = clamp(foam + fleck * 0.22, 0.0, 1.0);
+	foam = clamp(foam + fleck * 0.22 + seam * 0.55, 0.0, 1.0);
 	c = mix(c, foam_color, smoothstep(0.05, 0.75, foam) * 0.92);
 
 	// Not a mirror: silty water scatters, and a tight lobe on a rippled surface
@@ -297,7 +368,8 @@ void fragment() {
 	// waves are already faded out there; what is left is the slope of the water
 	// turning through the highlight inside a single pixel.
 	float slope_aa = clamp(length(fwidth(wn)) * 2.4, 0.0, 0.55);
-	ROUGHNESS = clamp(mix(0.30, 0.52, smoothstep(30.0, 280.0, dist)) + foam * 0.45 + paw * 0.2 + slope_aa + (1.0 - smoothstep(0.0, 0.3, d_soft)) * 0.5, 0.05, 1.0);
+	ROUGHNESS = clamp(mix(0.30, 0.52, smoothstep(30.0, 280.0, dist)) + foam * 0.45 + paw * 0.2 + slope_aa + (1.0 - smoothstep(0.0, 0.3, d_soft)) * 0.5
+			- (glass + slick * 0.5) * 0.18, 0.05, 1.0);
 	SPECULAR = 0.24;
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
 	// The silt does not stop at the far bank: let the reflection carry the
