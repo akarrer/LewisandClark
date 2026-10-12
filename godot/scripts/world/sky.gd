@@ -375,6 +375,13 @@ func update(hour: float, delta: float) -> void:
 	sun.light_color = light_col.lerp(Color(0.6, 0.65, 0.75), storm * 0.6)
 	sun.light_energy = p[4] * (1.0 - storm * 0.7) + _flash * 1.8
 	sun.shadow_opacity = 1.0 - storm * 0.6
+	# The highlight the night light lays on the river is the moon's road, and it
+	# should be as bright as the moon: a sliver of a crescent laid a white slab
+	# down the reach as broad as a full one's. With the moon down the light is
+	# only a token fill, which has no business glinting off anything.
+	var illum := 0.5 - 0.5 * cos(TAU * moon_phase)
+	var moon_spec := illum * 0.7 if moon.x > 2.0 else 0.0
+	sun.light_specular = lerpf(1.0, moon_spec, night)
 
 	sky_mat.set_shader_parameter("zenith_color", zenith)
 	sky_mat.set_shader_parameter("horizon_color", horizon.lerp(Color.WHITE, _flash * 0.5))
@@ -390,6 +397,10 @@ func update(hour: float, delta: float) -> void:
 	# Drawn only while it is above the horizon, and faded in as it clears it.
 	sky_mat.set_shader_parameter("moon_amount", night * (1.0 - storm) * smoothstep(-2.0, 4.0, moon.x))
 	sky_mat.set_shader_parameter("moon_dir", moon_direction(moon))
+	# For the river's moon road: how bright the moon is (its phase, whether it is
+	# up, whether it is night at all) and where it stands.
+	RenderingServer.global_shader_parameter_set("moon_dir", moon_direction(moon))
+	RenderingServer.global_shader_parameter_set("moon_light", night * (1.0 - storm) * smoothstep(-2.0, 4.0, moon.x) * illum)
 	sky_mat.set_shader_parameter("moon_phase", moon_phase)
 	sky_mat.set_shader_parameter("meteor_rate", meteor_rate * night * (1.0 - storm))
 

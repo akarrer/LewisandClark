@@ -8,6 +8,10 @@ render_mode cull_disabled, unshaded, blend_mix, depth_draw_never;
 uniform float fade = 1.0;
 uniform vec3 tint : source_color = vec3(0.68, 0.72, 0.70);
 uniform vec3 shade : source_color = vec3(0.16, 0.13, 0.09);
+// Unshaded, so the ring takes its light from the sky it catches; a fixed tint
+// stayed noon-bright after dark and hung gold hoops on a black river.
+global uniform vec4 sky_horizon;
+global uniform float night_amount;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -34,6 +38,8 @@ void fragment() {
 	float edge = 1.0 - smoothstep(0.96, 1.0, d);
 	lit *= edge;
 	dark *= edge;
-	ALBEDO = mix(shade, tint, lit / max(lit + dark, 0.001));
+	vec3 catch_ = mix(tint * mix(1.0, 0.2, night_amount), sky_horizon.rgb * 1.1, 0.5);
+	vec3 under = shade * mix(1.0, 0.25, night_amount);
+	ALBEDO = mix(under, catch_, lit / max(lit + dark, 0.001));
 	ALPHA = clamp(lit * 0.42 + dark * 0.22, 0.0, 1.0) * fade;
 }

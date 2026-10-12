@@ -28,6 +28,9 @@ uniform float river_half = 55.0;      // metres from the channel centre to the b
 uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
 global uniform vec4 sky_horizon;
 global uniform float wind_strength;
+global uniform float night_amount;
+global uniform vec3 moon_dir;
+global uniform float moon_light;     // 0 with no moon up .. 1 for a full one
 // sun_dir comes in with cloud_shadow.gdshaderinc, just below.
 #include "res://scripts/world/cloud_shadow.gdshaderinc"
 
@@ -205,6 +208,57 @@ void boils(vec2 p, float tt, float pix, out float slick, out float rim) {
 }
 
 
+// Eddies: in the lee of a point or a cutbank the water along the shore turns
+// back upstream and wheels round on itself. A slow log spiral of scum turning
+// in place, a broken eddy line where it meets the current, and the water
+// inside glassier than the reach. ``near`` says how much bank there is here to
+// make one; past it this does nothing and costs nothing.
+void eddies(vec2 p, float tt, float pix, float near, out float scum, out float calm) {
+	scum = 0.0;
+	calm = 0.0;
+	if (near < 0.01 || pix > 0.8) {
+		return;
+	}
+	const float CELL = 26.0;
+	vec2 g = floor(p / CELL);
+	for (int j = -1; j <= 1; j++) {
+		for (int i = -1; i <= 1; i++) {
+			vec2 c = g + vec2(float(i), float(j));
+			float h = hash(c + 41.7);
+			if (h < 0.45) {
+				continue;             // not every stretch of bank turns one
+			}
+			vec2 at = (c + 0.25 + 0.5 * vec2(hash(c + 3.9), hash(c + 8.4))) * CELL;
+			float R = 5.0 + 6.0 * hash(c + 1.3);
+			vec2 d = p - at;
+			float r = length(d);
+			if (r > R * 1.2) {
+				continue;
+			}
+			float spin = h > 0.72 ? 1.0 : -1.0;
+			float a = atan(d.y, d.x);
+			// Two arms, wound in, turning: what the scum on an eddy does.
+			float arm = sin(a * 2.0 + spin * log(r + 0.6) * 4.0 - spin * tt * (0.5 + h * 0.4));
+			float inside = 1.0 - smoothstep(R * 0.75, R, r);
+			// The arms crowd together at the eye; fade them before they alias.
+			float eye = smoothstep(0.6, 2.2, r) * (1.0 - smoothstep(0.15, 0.5, pix));
+			float threads = smoothstep(0.35, 0.75, noise(d * 1.5 - tt * 0.2));
+			scum = max(scum, smoothstep(0.7, 0.97, arm) * inside * eye * threads * 0.75);
+			// The eddy line: where the turned water rubs against the current.
+			// Beaded and broken, and fainter than the scum inside: drawn whole it
+			// is a white crescent, which reads as a mark painted on the water.
+			float rim = soft_line(r - R + (noise(d * 0.6) - 0.5) * 1.2, 0.3, pix)
+					* smoothstep(0.5, 0.8, noise(vec2(a * 4.0 + tt * 0.3 * spin, h * 9.0)))
+					* smoothstep(0.3, 0.7, noise(d * 2.2 + tt * 0.4));
+			scum = max(scum, rim * 0.45);
+			calm = max(calm, inside);
+		}
+	}
+	scum *= near;
+	calm *= near;
+}
+
+
 // How deep the water is at a point on screen: the height of the surface above
 // whatever the depth buffer has behind it. Whatever that is -- the bed, a hull,
 // a snag, a man's legs -- the water breaks against it the same way.
@@ -296,6 +350,14 @@ void fragment() {
 	float channel = smoothstep(river_half * 0.6, river_half * 0.2, fc) * smoothstep(0.8, 2.0, d_soft);
 	slick *= channel;
 	rim *= channel;
+	// Eddies, in a band off the bank: past the shallows, short of the channel.
+	float inshore = river_half - texture(river_tex, w / map_size).r;  // metres out from the waterline
+	float eddy_band = smoothstep(1.0, 4.0, inshore) * (1.0 - smoothstep(12.0, 22.0, inshore));
+	float eddy_scum;
+	float eddy_calm;
+	eddies(w, TIME, pix0, eddy_band, eddy_scum, eddy_calm);
+	seam = max(seam, eddy_scum);
+	glass = max(glass, eddy_calm * 0.5);
 	// A boil brings up cooler, siltier water: paler and lighter in the middle.
 	c = mix(c, mid_color * 1.15, slick * 0.45);
 	c *= 1.0 - rim * 0.3;
@@ -392,6 +454,18 @@ void fragment() {
 	float mirror = pow(clamp(dot(wn, normalize(sun + eye)), 0.0, 1.0), 90.0);
 	EMISSION += vec3(1.0, 0.94, 0.82) * mirror * 1.7 * (1.0 - foam) * smoothstep(0.0, 0.18, sun.y);
 
+	// By moonlight, as on the land: the caramel goes grey and dims, or the
+	// river glows warm brown through a blue-grey night.
+	float moonlit = smoothstep(0.55, 1.0, night_amount);
+	float lum = dot(c, vec3(0.3, 0.59, 0.11));
+	c = mix(c, vec3(lum) * vec3(0.82, 0.9, 1.08), moonlit * 0.8) * mix(1.0, 0.7, moonlit);
+	// The moon's road itself is the night light's own highlight (sky.gd scales
+	// it by the phase). This adds only the glints: the crests that catch the
+	// moon dead on, breaking the road into a column of sparks.
+	vec3 moon = normalize(moon_dir);
+	float mglint = pow(clamp(dot(wn, normalize(moon + eye)), 0.0, 1.0), 220.0);
+	EMISSION += vec3(0.80, 0.86, 0.96) * mglint * 0.6 * moon_light
+			* smoothstep(0.0, 0.1, moon.y) * (1.0 - foam) * film;
 	ALBEDO = c * mix(1.0, cloud_light(world), 0.7);
 	// The Missouri is opaque: Clark could not see a foot into it, and letting the
 	// bed show through only puts the riverbed mesh's own triangle edges on the

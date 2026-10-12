@@ -260,6 +260,31 @@ func _scenery_steps() -> Array:
 			moon_hour = hh
 	var moon_dir := SkyAndWeather.moon_direction(
 			SkyAndWeather.moon_position(st.current_month, st.current_day, moon_hour, phase))
+	# A low moon in full dark, for its road on the river: the first hour of the
+	# night it stands between ten and thirty degrees up.
+	var road_hour := moon_hour
+	for q in 33:
+		var hh := fposmod(21.0 + q * 0.25, 24.0)
+		var el := SkyAndWeather.moon_position(st.current_month, st.current_day, hh, phase).x
+		if el > 10.0 and el < 30.0:
+			road_hour = hh
+			break
+	var road_dir := SkyAndWeather.moon_direction(
+			SkyAndWeather.moon_position(st.current_month, st.current_day, road_hour, phase))
+	var road_yaw := rad_to_deg(atan2(-road_dir.x, -road_dir.z))
+	# Stand where the river lies between the Leader and that moon: walk away
+	# from it from the bank, across the water, and a few paces up the far side.
+	var from_moon := Vector3(-road_dir.x, 0.0, -road_dir.z).normalized()
+	var road_eye := bank
+	var wet := false
+	for i in 80:
+		var p := bank + from_moon * (4.0 + i * 3.0)
+		var in_river := tr.river_distance(p.x, p.z) < tr.river_half_width()
+		if in_river:
+			wet = true
+		elif wet:
+			road_eye = p + from_moon * 6.0
+			break
 	var moon_yaw := rad_to_deg(atan2(-moon_dir.x, -moon_dir.z))
 	var moon_pitch := rad_to_deg(asin(clampf(moon_dir.y, -1.0, 1.0)))
 	# A heron in the shallows, seen from 30 m: outside the range at which it flushes.
@@ -409,6 +434,11 @@ func _scenery_steps() -> Array:
 		["storm", dogs.x, dogs.z, 20.0, -4.0, 15.0, 1.0],
 		["lightning", dogs.x, dogs.z, 20.0, 12.0, 15.0, 1.0],
 		["night", bluff.x, bluff.z, -90.0, 8.0, 23.0, 0.0],
+		# The river after dark: from the bank, and down onto it from the bluff.
+		["river_night", bank.x, bank.z, bank_yaw, -6.0, 22.5, 0.0],
+		["bluff_night", bluff.x, bluff.z, _yaw_to(bluff, bluff + tr.toward_river(bluff.x, bluff.z) * 20.0), -14.0, 23.5, 0.0],
+		["river_dusk", bank.x, bank.z, bank_yaw, -6.0, 20.2, 0.0],
+		["moon_road", road_eye.x, road_eye.z, road_yaw, -2.0, road_hour, 0.0],
 		["night_sky", bluff.x, bluff.z, 20.0, 30.0, 1.5, 0.0, 2.6],
 		["moon", bluff.x, bluff.z, moon_yaw, moon_pitch, moon_hour, 0.0, 5.5],
 	]
