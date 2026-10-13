@@ -417,6 +417,9 @@ func _scenery_steps() -> Array:
 		["wader", wader_eye.x, wader_eye.z, _yaw_to(wader_eye, wader), -3.0, 10.5, 0.0],
 		["pelicans", pelican_eye.x, pelican_eye.z, _yaw_to(pelican_eye, pelican), -4.0, 9.0, 0.0],
 		["drift", drift_eye.x, drift_eye.z, _yaw_to(drift_eye, drift), -7.0, 12.0, 0.0],
+		# A fixed spot on a sandbar where the bank shelves sharply: the ground's
+		# 4 m cells showed there as facets creased along their diagonals.
+		["sand_crease", 493.1, 667.9, -69.3, -7.0, 12.0, 0.0],
 		["snag", snag_eye.x, snag_eye.z, _yaw_to(snag_eye, snag), -6.0, 11.0, 0.0],
 		["beaver", beaver_eye.x, beaver_eye.z, _yaw_to(beaver_eye, beaver), -28.0, 11.0, 0.0, 5.0],
 		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],

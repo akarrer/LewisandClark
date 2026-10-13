@@ -57,6 +57,11 @@ func build() -> void:
 	mi.mesh = mesh
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://scripts/world/ground.gdshader")
+	mat.set_shader_parameter("ground_color_tex", ground_color_tex)
+	mat.set_shader_parameter("ground_normal_tex", ground_normal_tex)
+	mat.set_shader_parameter("ground_lie_tex", ground_lie_tex)
+	mat.set_shader_parameter("map_size", SIZE)
+	mat.set_shader_parameter("map_res", float(RES))
 	var camp: Vector3 = points.get("camp", Vector3(-1000, 0, -1000))
 	mat.set_shader_parameter("camp", Vector2(camp.x, camp.z))
 	var edge: Vector3 = points.get("landing_edge", camp)
@@ -124,8 +129,9 @@ func river_half_width() -> float:
 	return float(meta["river_half_width_m"])
 
 
-func normal_at(x: float, z: float) -> Vector3:
-	var e := 2.0
+func normal_at(x: float, z: float, e := 2.0) -> Vector3:
+	## ``e`` is how far either side the slope is taken: 2 m follows every cut,
+	## wider gives the lie of the land without the 4 m grid's flat ramps in it.
 	var n := Vector3(height_at(x - e, z) - height_at(x + e, z), 2.0 * e, height_at(x, z - e) - height_at(x, z + e))
 	return n.normalized()
 
@@ -305,19 +311,45 @@ func _color_at(x: float, z: float, h: float, n: Vector3) -> Color:
 	return c
 
 
+## The ground's colour and normal at every vertex, as textures the ground
+## shader samples per pixel (see _build_mesh).
+var ground_color_tex: ImageTexture
+var ground_normal_tex: ImageTexture
+var ground_lie_tex: ImageTexture      # the broad slope, for what grows where
+
+
 func _build_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var step := SIZE / RES
+	# The same colours and normals go into two textures as well as the vertices.
+	# Interpolated across a triangle, a 4 m cell on a sharp bank shades in facets
+	# that crease along its diagonal; sampled bilinearly per pixel they do not
+	# care how the cell was split.
+	var cimg := Image.create_empty(RES + 1, RES + 1, false, Image.FORMAT_RGBA8)
+	var nimg := Image.create_empty(RES + 1, RES + 1, false, Image.FORMAT_RGBAF)
+	# What sort of ground it is (sand, grass, bare loess) goes by the slope,
+	# and is decided on a broad slope, not the sharp one the light uses. The
+	# carve leaves the banks as flat ramps a cell wide, and a threshold on
+	# their slope cut the sand into stair-stepped patches along the cells.
+	var mimg := Image.create_empty(RES + 1, RES + 1, false, Image.FORMAT_RGF)
 	for j in RES + 1:
 		for i in RES + 1:
 			var x := i * step
 			var z := j * step
 			var h := _heights[j * (RES + 1) + i]
 			var n := normal_at(x, z)
-			st.set_color(_color_at(x, z, h, n))
+			var broad := normal_at(x, z, 6.0)
+			var col := _color_at(x, z, h, broad)
+			cimg.set_pixel(i, j, col)
+			mimg.set_pixel(i, j, Color(broad.x, broad.z, 0.0))
+			nimg.set_pixel(i, j, Color(n.x, n.y, n.z, h))   # and the height, in alpha
+			st.set_color(col)
 			st.set_normal(n)
 			st.add_vertex(Vector3(x, h, z))
+	ground_color_tex = ImageTexture.create_from_image(cimg)
+	ground_normal_tex = ImageTexture.create_from_image(nimg)
+	ground_lie_tex = ImageTexture.create_from_image(mimg)
 	for j in RES:
 		for i in RES:
 			var a := j * (RES + 1) + i

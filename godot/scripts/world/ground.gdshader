@@ -21,6 +21,14 @@ uniform vec2 trace_c = vec2(-1000.0);
 uniform float trace_width = 0.62;
 global uniform float wetness;
 global uniform float night_amount;
+// The baked colour and normal again, one texel per vertex (terrain.gd), read
+// per pixel inside the map. The distant hills share this material and have
+// only their vertices.
+uniform sampler2D ground_color_tex : filter_linear, repeat_disable;
+uniform sampler2D ground_normal_tex : filter_linear, repeat_disable;
+uniform sampler2D ground_lie_tex : filter_linear, repeat_disable;   // the broad slope (x, z)
+uniform float map_size = 1024.0;
+uniform float map_res = 256.0;
 
 varying vec3 v_world;
 varying vec3 v_normal;
@@ -81,6 +89,28 @@ float grass_patch(vec2 p) {
 
 #include "res://scripts/world/trace.gdshaderinc"
 
+// A cubic B-spline lookup from four bilinear fetches. Bilinear normals are
+// continuous but their slope jumps at every texel, and on a 4 m grid each jump
+// shades as a crease running along the cell edge; the B-spline is smooth
+// across them.
+vec4 texture_bspline(sampler2D tex, vec2 uv, float res) {
+	vec2 st = uv * res - 0.5;
+	vec2 i = floor(st);
+	vec2 f = st - i;
+	vec2 f2 = f * f;
+	vec2 f3 = f2 * f;
+	vec2 w0 = (1.0 - 3.0 * f + 3.0 * f2 - f3) / 6.0;
+	vec2 w1 = (4.0 - 6.0 * f2 + 3.0 * f3) / 6.0;
+	vec2 w2 = (1.0 + 3.0 * f + 3.0 * f2 - 3.0 * f3) / 6.0;
+	vec2 w3 = f3 / 6.0;
+	vec2 g0 = w0 + w1;
+	vec2 g1 = w2 + w3;
+	vec2 h0 = (i - 0.5 + w1 / g0) / res;
+	vec2 h1 = (i + 1.5 + w3 / g1) / res;
+	return g0.y * (g0.x * texture(tex, vec2(h0.x, h0.y)) + g1.x * texture(tex, vec2(h1.x, h0.y)))
+			+ g1.y * (g0.x * texture(tex, vec2(h0.x, h1.y)) + g1.x * texture(tex, vec2(h1.x, h1.y)));
+}
+
 
 void vertex() {
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -90,21 +120,43 @@ void vertex() {
 void fragment() {
 	vec2 p = v_world.xz;
 	float n = vnoise(p * 0.06) * 0.5 + fbm(p * 0.35) * 0.5;
-	vec3 c = pow(clamp(COLOR.rgb, vec3(0.0), vec3(1.0)), vec3(2.2));  // baked colours are sRGB
-	float prairie = clamp(COLOR.a, 0.0, 1.0);
+	vec4 base = COLOR;
+	vec3 nrm = v_normal;
+	// The height every band keyed to it reads (wet sand, swash, drift lines).
+	// The mesh's own height is flat across each triangle, so a band drawn from
+	// it kinks at every edge and draws the triangles on the sand.
+	float hgt = v_world.y;
+	// The lie of the land: what grows where goes by this, the light by nrm.
+	vec3 lie = v_normal;
+	if (p.x >= 0.0 && p.y >= 0.0 && p.x <= map_size && p.y <= map_size) {
+		vec2 guv = (p / map_size * map_res + 0.5) / (map_res + 1.0);   // texel centres on the vertices
+		// The baked colour jumps from one vertex to the next where sand gives way
+		// to grass or loess, and any interpolation of it prints the 4 m grid.
+		// Smoothed, and the lookup nudged by a texel's worth of noise, so where
+		// the colour changes it does so along a ragged line, not a cell edge.
+		vec2 wob = (vec2(vnoise(p * 0.21), vnoise(p * 0.21 + 31.7)) - 0.5) * 1.6 / (map_res + 1.0);
+		base = texture_bspline(ground_color_tex, guv + wob, map_res + 1.0);
+		vec4 nh = texture_bspline(ground_normal_tex, guv, map_res + 1.0);
+		nrm = normalize(nh.xyz);
+		hgt = nh.w;
+		vec2 lxz = texture_bspline(ground_lie_tex, guv, map_res + 1.0).xy;
+		lie = vec3(lxz.x, sqrt(max(1.0 - dot(lxz, lxz), 0.0)), lxz.y);
+	}
+	vec3 c = pow(clamp(base.rgb, vec3(0.0), vec3(1.0)), vec3(2.2));  // baked colours are sRGB
+	float prairie = clamp(base.a, 0.0, 1.0);
 
 	// Prairie: blend the baked tint toward the grass the blades would show here.
 	float patch = grass_patch(p);
 	vec3 blades = mix(gold, green, patch * 0.8);
 	// The floodplain sits low (~y 1-3); above it the prairie proper.
-	blades = prairie_species(p, blades, smoothstep(2.0, 5.0, v_world.y));
+	blades = prairie_species(p, blades, smoothstep(2.0, 5.0, hgt));
 	vec3 tips = mix(c, blades * 1.08, 0.55);
 	float dist = length(v_world - CAMERA_POSITION_WORLD);
 	float under = 1.0 - smoothstep(grass_radius * 0.55, grass_radius * 1.05, dist);
 	vec3 grassy = mix(tips, mix(thatch, blades, 0.35), under * 0.75);
 	// North-facing slopes (−z) hold moisture and stay greener; crests bleach gold.
-	float north = clamp(-v_normal.z * 2.5, 0.0, 1.0);
-	float slope = 1.0 - v_normal.y;
+	float north = clamp(-lie.z * 2.5, 0.0, 1.0);
+	float slope = 1.0 - lie.y;
 	grassy = mix(grassy, grassy * vec3(0.82, 0.95, 0.80), north * smoothstep(0.02, 0.12, slope));
 	// Fine streaks, like grass seen from afar, fading as the real blades take over.
 	float streak = vnoise(TURN * vec2(p.x * 1.3 + p.y * 0.4, p.y * 4.0));
@@ -121,7 +173,7 @@ void fragment() {
 	// Bare loess (bluff faces, cutbanks): soft strata by height, and tufts of
 	// grass clinging on where the blades themselves are too steep to grow.
 	float bare = (1.0 - prairie) * smoothstep(0.08, 0.25, slope);
-	float strata = sin(v_world.y * 2.2 + vnoise(p * 0.08) * 5.0) * 0.5 + 0.5;
+	float strata = sin(hgt * 2.2 + vnoise(p * 0.08) * 5.0) * 0.5 + 0.5;
 	vec3 loess = c * (0.9 + strata * 0.14);
 	float clinging = smoothstep(0.5, 0.72, fbm(p * 0.9));
 	loess = mix(loess, mix(thatch, blades, 0.6), clinging * 0.7);
@@ -144,29 +196,36 @@ void fragment() {
 	float r_m = min(r_f / 0.72, (1.0 - r_f) / 0.28);
 	float r_h = r_m * r_m;                    // round troughs, sharp crests
 	float r_dh = r_f < 0.72 ? 2.0 * r_m / 0.72 : -2.0 * r_m / 0.28;
-	float r_fade = 1.0 - smoothstep(0.18, 0.45, fwidth(r_ph));
+	// How much ground a pixel covers, worked out from the distance and the
+	// smooth normal rather than with fwidth. fwidth measures the triangle the
+	// pixel lands on, and on a sharp bank every triangle leans its own way, so
+	// the ripples faded in and out by triangles and drew the mesh on the sand.
+	vec3 to_eye = CAMERA_POSITION_WORLD - v_world;
+	float graze = max(abs(dot(nrm, normalize(to_eye))), 0.08);
+	float footprint = length(to_eye) * 0.0012 / graze;
+	float r_fade = 1.0 - smoothstep(0.18, 0.45, footprint / 0.55 * 1.4);
 	// In trains, not one sheet: the higher, drier bar has been blown smooth.
-	float r_mask = smoothstep(0.3, 0.6, vnoise(p * 0.06 + 7.0)) * (1.0 - smoothstep(0.8, 2.4, v_world.y) * 0.6);
+	float r_mask = smoothstep(0.3, 0.6, vnoise(p * 0.06 + 7.0)) * (1.0 - smoothstep(0.8, 2.4, hgt) * 0.6);
 	float r_amt = r_fade * r_mask * sand;
 	vec2 ripple_slope = r_dir * (r_dh / 0.55) * 0.028 * r_amt;
 	float ripple = mix(0.5, r_h, r_amt);
 	// Missouri sand is grey-buff, not beach gold, and at noon a pale sheet of it
 	// was the brightest thing on the screen.
 	vec3 sandy = c * vec3(0.94, 0.93, 0.93) * (0.84 + ripple * 0.2);
-	float wet = 1.0 - smoothstep(-0.2, 0.9, v_world.y + (vnoise(p * 0.5) - 0.5) * 0.4);
+	float wet = 1.0 - smoothstep(-0.2, 0.9, hgt + (vnoise(p * 0.5) - 0.5) * 0.4);
 	sandy = mix(sandy, sandy * vec3(0.62, 0.60, 0.58), wet * 0.85);
 	// The swash: the last hand's breadth above the water is soaked through,
 	// darkest and glossy, with a ragged line where the lap last reached.
-	float swash = 1.0 - smoothstep(-0.36, -0.1, v_world.y + (vnoise(p * 1.7) - 0.5) * 0.12);
+	float swash = 1.0 - smoothstep(-0.36, -0.1, hgt + (vnoise(p * 1.7) - 0.5) * 0.12);
 	sandy = mix(sandy, sandy * vec3(0.55, 0.53, 0.52), swash * 0.8);
 	// A bar is not one sheet of clean sand. The river leaves silt in it, and the
 	// last fall of the water leaves damp patches that dry from the edges in.
-	float damp = smoothstep(0.42, 0.74, fbm(p * 0.09)) * (1.0 - smoothstep(0.6, 2.6, v_world.y));
+	float damp = smoothstep(0.42, 0.74, fbm(p * 0.09)) * (1.0 - smoothstep(0.6, 2.6, hgt));
 	sandy = mix(sandy, sandy * vec3(0.78, 0.76, 0.72), damp * 0.5);  // soft: strong, these read as smudges
 	float silt = smoothstep(0.52, 0.8, fbm(p * 0.35 + 19.0));
 	sandy = mix(sandy, sandy * vec3(0.84, 0.81, 0.75), silt * 0.4);
 	// Drift lines: dark bands of twigs and silt left where the river last stood.
-	float drift_line = smoothstep(0.06, 0.0, abs(fract(v_world.y * 1.3 + vnoise(p * 0.2) * 0.6) - 0.5) - 0.44);
+	float drift_line = smoothstep(0.06, 0.0, abs(fract(hgt * 1.3 + vnoise(p * 0.2) * 0.6) - 0.5) - 0.44);
 	sandy *= 1.0 - drift_line * 0.38 * smoothstep(0.2, 0.8, vnoise(p * 1.1));
 	// Shell and pebble flecks, thickest in the drift lines where the water sorted
 	// them, and only worth drawing where the player can see them.
@@ -214,7 +273,7 @@ void fragment() {
 	// One height field for all of it — ripples on sand, tussocks on prairie — and
 	// its gradient bends the normal, fading out by 25 m where it would only alias.
 	float relief = 1.0 - smoothstep(6.0, 25.0, dist);
-	vec3 bumped = v_normal - vec3(ripple_slope.x, 0.0, ripple_slope.y);
+	vec3 bumped = nrm - vec3(ripple_slope.x, 0.0, ripple_slope.y);
 	if (relief > 0.01) {
 		float e = 0.06;
 		vec2 dx = vec2(e, 0.0);
