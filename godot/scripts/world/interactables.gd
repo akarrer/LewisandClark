@@ -85,3 +85,23 @@ static func elk(color := Color(0.50, 0.36, 0.22)) -> Node3D:
 		for lz in [-0.7, 0.7]:
 			e.add_child(Props.cylinder(0.06, 1.0, dark, Vector3(lx, 0.5, lz)))
 	return e
+
+
+static func specimen(pos: Vector3, label: String) -> Interactable:
+	## A skin stretched on a willow frame beside the fire, drying to go back to
+	## St Louis: what a Discovery looks like in camp before it is written up.
+	var it := Interactable.new()
+	it.name = "Specimen_" + label.replace(" ", "")
+	it.position = pos
+	it.label = label
+	it.radius = 8.0
+	var frame := Color(0.45, 0.36, 0.24)
+	it.add_child(Props.cylinder(0.04, 1.5, frame, Vector3(-0.5, 0.75, 0)))
+	it.add_child(Props.cylinder(0.04, 1.5, frame, Vector3(0.5, 0.75, 0)))
+	var cross := Props.cylinder(0.04, 1.1, frame, Vector3(0, 1.45, 0))
+	cross.rotation.z = PI / 2.0
+	it.add_child(cross)
+	var hide := Props.box(Vector3(0.95, 0.75, 0.04), Color(0.62, 0.55, 0.42), Vector3(0, 0.95, 0))
+	it.add_child(hide)
+	it.add_child(Props.ring(2.2, Color(1.0, 0.86, 0.45)))
+	return it

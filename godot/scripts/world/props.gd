@@ -197,3 +197,24 @@ static func smoke_column() -> GPUParticles3D:
 	quad.material = m
 	p.draw_pass_1 = quad
 	return p
+
+
+static func awning(at: Vector3, terrain: Terrain) -> Node3D:
+	## The keelboat's mainsail stretched over poles, the council's roof on
+	## 3 August 1804. Pitched to shed rain toward the river, as a sail would be.
+	var n := Node3D.new()
+	n.position = at
+	var to_water := terrain.toward_river(at.x, at.z)
+	n.rotation.y = atan2(to_water.x, to_water.z)
+	var pole := Color(0.36, 0.27, 0.18)
+	var canvas := Color(0.86, 0.82, 0.70)
+	for c in [Vector2(-3.6, -2.6), Vector2(3.6, -2.6), Vector2(-3.6, 2.6), Vector2(3.6, 2.6)]:
+		# The back poles taller, so the sail slopes away from where the chiefs sit.
+		var h := 2.9 if c.y < 0.0 else 2.3
+		var ground := terrain.height_at(at.x + c.x, at.z + c.y) - at.y
+		n.add_child(cylinder(0.06, h, pole, Vector3(c.x, ground + h * 0.5, c.y)))
+	var sail := box(Vector3(7.6, 0.04, 5.8), canvas, Vector3(0, 2.65, 0))
+	sail.rotation.x = atan2(0.6, 5.2)
+	(sail.material_override as StandardMaterial3D).cull_mode = BaseMaterial3D.CULL_DISABLED
+	n.add_child(sail)
+	return n

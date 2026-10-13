@@ -55,7 +55,9 @@ func feature(name: String) -> Dictionary:
 	var f = data.get("features", {}).get(name, null)
 	if f is Dictionary:
 		return f
-	return {"on": true} if f == true else {}
+	# A feature can be a bare true ("fleet": true) or a list (the Discoveries);
+	# only a dictionary and a bare true are asked for by name.
+	return {"on": true} if (f is bool and f) else {}
 
 
 func has_feature(name: String) -> bool:

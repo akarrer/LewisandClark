@@ -1,0 +1,64 @@
+{
+ "id": "floyd_sick_call",
+ "title": "The sergeant's colic",
+ "note": "Floyd wrote on 31 July 1804, at this camp: 'I am verry Sick and has been for Somtime but have Recovered my helth again'. He had not; on 19 August he was taken very bad with what Clark called a bilious colic, and he died the next day, almost certainly of a burst appendix. Nothing here changes that (ADR-0012). What the captain decides is how the Corps meets it, with the physic of 1804: Rush's purging pills, the lancet, rest.",
+ "sources": [
+  "https://lewisandclarkjournals.unl.edu/item/lc.jrn.1804-07-31",
+  "https://lewisandclarkjournals.unl.edu/item/lc.jrn.1804-08-20"
+ ],
+ "when": {"region": "council_bluff", "date": "1804-08-02", "after_hour": 9.0,
+  "requires": {"sick_with": ["floyd", "colic"]}},
+ "start": "sick_call",
+ "nodes": {
+  "sick_call": {
+   "lines": [
+    {"speaker": "Sgt. Floyd", "text": "I've been very sick for some time, Captain. But I believe I've recovered my health again."},
+    {"speaker": "York", "text": "He's eaten nothing since yesterday, Captain Lewis."}
+   ],
+   "choices": [
+    {
+     "label": "Dose him with Rush's pills",
+     "note": "Calomel and jalap. The men call them thunderbolts. They purge a man hard.",
+     "cost": [["rush_pills", 1]],
+     "effects": [{"physic": "floyd"}],
+     "reply": [{"speaker": "Sgt. Floyd", "text": "Thunderbolts. Well, sir. If you think it best."}],
+     "next": "after"
+    },
+    {
+     "label": "Bleed him",
+     "note": "The physic of the age: let the fever out with the blood.",
+     "effects": [
+      {"health": ["floyd", -6]},
+      {"journal": "Sergeant Floyd bled, for the colic."}
+     ],
+     "reply": [{"speaker": "Sgt. Floyd", "text": "I'm obliged to you, Captain. I feel lighter for it."}],
+     "next": "after"
+    },
+    {
+     "label": "Excuse him from duty; let him lie in the boat",
+     "effects": [
+      {"excuse": "floyd"},
+      {"journal": "Sergeant Floyd excused from duty, and lies in the boat out of the sun."}
+     ],
+     "reply": [{"speaker": "Sgt. Floyd", "text": "Pryor will see to my mess, sir. It's only for the day."}],
+     "next": "after"
+    },
+    {
+     "label": "Take him at his word",
+     "note": "He says he is mending, and a sergeant wants to be seen at his duty.",
+     "effects": [
+      {"flag": "floyd_at_duty"},
+      {"journal": "Sergeant Floyd says he is mended, and keeps to his duty."}
+     ],
+     "next": "after"
+    }
+   ]
+  },
+  "after": {
+   "end": true,
+   "lines": [
+    {"speaker": "Clark", "text": "Keep an eye on him, Sergeant Pryor."}
+   ]
+  }
+ }
+}

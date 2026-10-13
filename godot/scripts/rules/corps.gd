@@ -217,6 +217,13 @@ func hearten(amount: float) -> void:
 		m["morale"] = clampf(float(m["morale"]) + amount, 0.0, 100.0)
 
 
+func tire(mess_id: String, amount: float) -> void:
+	## A night's guard, a hard errand: fatigue on every present man of a Mess.
+	for m in mess_men(mess_id):
+		if m["status"] == "present":
+			m["fatigue"] = clampf(float(m["fatigue"]) + amount, 0.0, 100.0)
+
+
 func appoint(mess_id: String, id: String) -> void:
 	## A new sergeant for a Mess, as Gass was after Floyd.
 	for ms in messes:

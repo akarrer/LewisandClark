@@ -12,6 +12,12 @@ func _init() -> void:
 	for f in DirAccess.get_files_at("res://tests"):
 		if f.begins_with("test_") and f.ends_with(".gd"):
 			var script: GDScript = load("res://tests/" + f)
+			# A test file that will not compile must fail the run, not vanish
+			# from it: otherwise CI goes green with a whole suite unrun.
+			if script == null or not script.can_instantiate():
+				failures += 1
+				printerr("FAIL %s does not compile" % f)
+				continue
 			var suite = script.new()
 			suite.set("t", self)
 			for m in script.get_script_method_list():

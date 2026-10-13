@@ -20,7 +20,7 @@ func test_heightmap_loaded_from_usgs_bake() -> void:
 
 func test_named_points_exist_and_are_dry() -> void:
 	var tr := _terrain()
-	for key in ["start", "council_bluff", "bluff_approach", "prairie_dog_town", "smoke_ridge"]:
+	for key in ["start", "council_bluff", "bluff_approach", "oto_meeting", "oto_approach", "smoke_ridge"]:
 		t.check(tr.points.has(key), "missing " + key)
 		var p: Vector3 = tr.points[key]
 		t.check(p != Vector3.ZERO, key + " not found")
@@ -40,7 +40,7 @@ func test_council_bluff_overlooks_the_river() -> void:
 
 func test_walkable_spots_are_not_cliffs() -> void:
 	var tr := _terrain()
-	for key in ["start", "prairie_dog_town", "council_bluff"]:
+	for key in ["start", "oto_meeting", "oto_approach", "council_bluff"]:
 		var p: Vector3 = tr.points[key]
 		t.check(tr.normal_at(p.x, p.z).y > 0.85, key + " is too steep")
 	tr.free()
@@ -60,7 +60,7 @@ func test_river_channel_below_water_and_banks_above() -> void:
 func test_story_places_are_reachable_on_foot() -> void:
 	var tr := _terrain()
 	var start: Vector3 = tr.points["start"]
-	for key in ["council_bluff", "prairie_dog_town", "smoke_ridge"]:
+	for key in ["council_bluff", "oto_meeting", "oto_approach", "smoke_ridge"]:
 		var route := tr.find_route(start, tr.points[key])
 		t.check(not route.is_empty(), "no walking route from the start to " + key)
 	tr.free()

@@ -106,8 +106,18 @@ func odds(step_id: String) -> float:
 	if s.is_empty() or done(step_id):
 		return 0.0
 	var chance := float(s.get("base", 0.5))
+	for part in breakdown(step_id):
+		chance += float(part[1])
+	return clampf(chance, FLOOR, CEILING)
+
+
+func breakdown(step_id: String) -> Array:
+	## What moves a step's chance off its base, as [why, amount], for showing
+	## beside the choice. ``odds`` is the base plus these.
+	var s := step(step_id)
+	var parts: Array = []
 	if s.get("needs_interpreter", false) and not interpreter_present:
-		chance -= 0.3
+		parts.append(["no interpreter", -0.3])
 	# What they have asked for, laid out in front of them.
 	var wants: Dictionary = s.get("wants", {})
 	if not wants.is_empty():
@@ -115,12 +125,28 @@ func odds(step_id: String) -> float:
 		for item_id in wants:
 			var need := float(wants[item_id])
 			met += clampf(float(offered.get(item_id, 0)) / maxf(need, 1.0), 0.0, 1.0)
-		chance += 0.4 * (met / float(wants.size()))
+		if met > 0.0:
+			parts.append(["what they asked for is laid out", 0.4 * (met / float(wants.size()))])
 	# Anything else laid out still counts for something, with diminishing return.
-	chance += clampf(float(offered_regard()) / 400.0, 0.0, 0.15)
+	var extra := clampf(float(offered_regard()) / 400.0, 0.0, 0.15)
+	if extra > 0.0:
+		parts.append(["the presents on the ground", extra])
 	# How the council has gone so far carries into what follows.
-	chance += clampf(float(standing) / 200.0, -0.2, 0.2)
-	return clampf(chance, FLOOR, CEILING)
+	var mood := clampf(float(standing) / 200.0, -0.2, 0.2)
+	if absf(mood) > 0.005:
+		parts.append(["how they think of the Corps" if mood > 0.0 else "how coldly they think of the Corps", mood])
+	return parts
+
+
+func offer_asked(step_id: String) -> String:
+	## Lay out exactly what this step asks for. Returns "" or why it cannot be.
+	var wants: Dictionary = step(step_id).get("wants", {})
+	for item_id in wants:
+		if stores.count(item_id) < int(wants[item_id]):
+			return "not enough %s" % str(stores.find(item_id).get("name", item_id)).to_lower()
+	for item_id in wants:
+		offer(item_id, int(wants[item_id]))
+	return ""
 
 
 func resolve(step_id: String, roll: float) -> Dictionary:

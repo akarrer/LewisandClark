@@ -1,0 +1,303 @@
+{
+ "id": "council_bluff_1804",
+ "title": "Under the mainsail",
+ "note": "3 August 1804. A foggy morning. After breakfast the Oto and Missouria were collected 'under an orning of our Main Sail' at the camp; the party paraded in their presence; the captains made a long speech; the chiefs answered, glad of their 'new fathers'; Big Horse and Hospitality were made second chiefs and four principal men given third-grade medals, Little Thief's medal sent after him; Lewis fired the air gun; and every chief closed by 'asking a little Powder & a Drop of Milk'. The Corps set out at three o'clock and made five miles. Clark named the place Council Bluff and thought it the site for a trading house and a fort. The steps and their odds are the Council rules (scripts/rules/council.gd, data/councils.json).",
+ "sources": [
+  "https://lewisandclarkjournals.unl.edu/item/lc.jrn.1804-08-03"
+ ],
+ "review": "Oto and Missouria presence, speech and dress are placeholders pending the paid cultural review (ADR-0004, ADR-0013). Their words are only what Fairfong and the journals report.",
+ "when": {
+  "region": "council_bluff",
+  "date": "1804-08-03",
+  "after_hour": 8.5
+ },
+ "nation": "oto_missouria",
+ "council": "council_bluff_1804",
+ "cast": [
+  {
+   "id": "fairfong",
+   "name": "Fairfong",
+   "outfit": "trader",
+   "hat": true,
+   "count": 1
+  },
+  {
+   "id": "oto",
+   "name": "Oto and Missouria",
+   "outfit": "messenger",
+   "hat": false,
+   "count": 13
+  }
+ ],
+ "stage": {
+  "reuse": "oto_arrival",
+  "from": "oto_meeting",
+  "to": "council_awning",
+  "radius": 12.0,
+  "prompt": "The chiefs are gathering under the sail"
+ },
+ "start": "fog",
+ "nodes": {
+  "fog": {
+   "lines": [
+    {
+     "speaker": "Sgt. Ordway",
+     "text": "A foggy morning, Captain. The chiefs are going up to the awning."
+    },
+    {
+     "speaker": "Clark",
+     "text": "Then let us receive them properly."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Parade the Corps under arms",
+     "note": "Every man turned out in his coat, as the party paraded that morning.",
+     "effects": [
+      {
+       "standing": [
+        "oto_missouria",
+        3
+       ]
+      },
+      {
+       "fatigue": [
+        "floyd",
+        3
+       ]
+      },
+      {
+       "fatigue": [
+        "ordway",
+        3
+       ]
+      },
+      {
+       "fatigue": [
+        "pryor",
+        3
+       ]
+      },
+      {
+       "journal": "The party paraded in the presence of the Indians."
+      }
+     ],
+     "next": "gathered"
+    },
+    {
+     "label": "Receive them without ceremony",
+     "note": "The men keep to their work at the boats.",
+     "effects": [
+      {
+       "standing": [
+        "oto_missouria",
+        -2
+       ]
+      }
+     ],
+     "next": "gathered"
+    }
+   ]
+  },
+  "gathered": {
+   "wait": "arrival",
+   "lines": [
+    {
+     "speaker": "Fairfong",
+     "text": "They are seated, messieurs. Big Horse for the Oto; Hospitality for the Missouria. Little Thief is away on the hunt."
+    },
+    {
+     "speaker": "Fairfong",
+     "text": "They will hear your words now."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Begin",
+     "next": "speech"
+    }
+   ]
+  },
+  "speech": {
+   "lines": [
+    {
+     "speaker": "Clark",
+     "text": "We will tell them of the change in the government of this country, and what their new father wishes of them."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Make the speech",
+     "note": "It goes through Drouillard and Fairfong into the Oto tongue, if Drouillard is here to carry it.",
+     "council": {
+      "step": "speech"
+     },
+     "next": "medals",
+     "reply_pass": [
+      {
+       "speaker": "Fairfong",
+       "text": "They say they are glad their new fathers have come, and they will follow the counsel given them."
+      }
+     ],
+     "reply_fail": [
+      {
+       "speaker": "Fairfong",
+       "text": "They have heard you out. They say little. It went through two tongues, messieurs, and lost something in each."
+      }
+     ]
+    }
+   ]
+  },
+  "medals": {
+   "lines": [
+    {
+     "speaker": "Clark",
+     "text": "Now the medals, and the commissions."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Make the chiefs: medals in three grades, commissions and a flag",
+     "note": "Second-grade medals for Big Horse and Hospitality, third for the four principal men.",
+     "council": {
+      "step": "medals",
+      "offer": "asked"
+     },
+     "next": "air_gun"
+    },
+    {
+     "label": "Keep the medals for the nations upriver",
+     "note": "There are only so many, and the Teton are ahead.",
+     "council": {
+      "step": "medals",
+      "refuse": true
+     },
+     "next": "air_gun"
+    }
+   ]
+  },
+  "air_gun": {
+   "lines": [
+    {
+     "speaker": "Clark",
+     "text": "Captain Lewis, the air gun."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Fire the air gun",
+     "council": {
+      "step": "air_gun"
+     },
+     "next": "the_ask",
+     "reply_pass": [
+      {
+       "speaker": "York",
+       "text": "Look at them, Captain. They can't make out where the powder goes."
+      }
+     ],
+     "reply_fail": [
+      {
+       "speaker": "Fairfong",
+       "text": "The traders have shown them wonders before."
+      }
+     ]
+    },
+    {
+     "label": "Leave it in its case",
+     "council": {
+      "step": "air_gun",
+      "refuse": true
+     },
+     "next": "the_ask"
+    }
+   ]
+  },
+  "the_ask": {
+   "lines": [
+    {
+     "speaker": "Fairfong",
+     "text": "Every one of them ends the same way, messieurs. A little powder, and a drop of milk."
+    }
+   ],
+   "choices": [
+    {
+     "label": "A canister of powder and fifty balls, and a dram all round",
+     "note": "It wins the day, and arms and drinks away what the Corps must live on.",
+     "council": {
+      "step": "the_ask",
+      "offer": "asked"
+     },
+     "next": "send_after"
+    },
+    {
+     "label": "Tell them there is none to spare",
+     "council": {
+      "step": "the_ask",
+      "refuse": true
+     },
+     "next": "send_after"
+    }
+   ]
+  },
+  "send_after": {
+   "lines": [
+    {
+     "speaker": "Fairfong",
+     "text": "And Little Thief? He will hear of this from other mouths if you send him nothing."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Send his medal, a flag and the speech after him, with tobacco",
+     "council": {
+      "step": "send_after",
+      "offer": "asked"
+     },
+     "next": "parting"
+    },
+    {
+     "label": "Send nothing",
+     "council": {
+      "step": "send_after",
+      "refuse": true
+     },
+     "next": "parting"
+    }
+   ]
+  },
+  "parting": {
+   "effects": [
+    {
+     "council_close": true
+    }
+   ],
+   "lines": [
+    {
+     "speaker": "Clark",
+     "text": "This bluff would make a fine place for a trading house, and a fort. We'll call it Council Bluff."
+    }
+   ],
+   "choices": [
+    {
+     "label": "Strike the awning and load the boats",
+     "effects": [
+      {
+       "journal": "We call this place Council Bluff. Set out at three o'clock."
+      }
+     ],
+     "next": "set_out"
+    }
+   ]
+  },
+  "set_out": {
+   "end": true,
+   "lines": [
+    {
+     "speaker": "Sgt. Ordway",
+     "text": "Boats loaded, Captain."
+    }
+   ]
+  }
+ }
+}

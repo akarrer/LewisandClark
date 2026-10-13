@@ -1,0 +1,171 @@
+{
+ "id": "clark_birthday",
+ "title": "Four and thirty",
+ "note": "1 August 1804, at the camp below the bluff, waiting on the Oto. It was Clark's thirty-fourth birthday. He ordered 'a Saddle of fat Vennison, an Elk fleece & a Bevertail to be cooked and a Desert of Cheries, Plumbs, Raspberries Currents and grapes'. That day Shields, Joseph Field and Gibson each killed a deer, an elk was killed, and a beaver was taken in Drouillard's trap. A fair day and a cool evening; the mosquitoes very troublesome.",
+ "sources": [
+  "https://lewisandclarkjournals.unl.edu/item/lc.jrn.1804-08-01"
+ ],
+ "when": {"region": "council_bluff", "date": "1804-08-01", "after_hour": 8.0},
+ "start": "morning",
+ "nodes": {
+  "morning": {
+   "lines": [
+    {"speaker": "Clark", "text": "The first of August. I am four and thirty today, Captain Lewis."},
+    {"speaker": "York", "text": "Then there ought to be a dinner, Captain Clark."}
+   ],
+   "choices": [
+    {
+     "label": "Send the hunters out for his dinner",
+     "note": "Drouillard's traps are set on the creek; Shields, Joseph Field and Gibson are good shots.",
+     "check": {
+      "base": 0.45,
+      "mods": [
+       {"when": {"present": "drouillard"}, "add": 0.15, "why": "Drouillard's traps"},
+       {"when": {"present": "j_field"}, "add": 0.1, "why": "Joseph Field"},
+       {"when": {"present": "gibson"}, "add": 0.1, "why": "Gibson"},
+       {"when": {"present": "shields"}, "add": 0.05, "why": "Shields"}
+      ]
+     },
+     "pass": "good_hunt",
+     "fail": "thin_hunt"
+    },
+    {
+     "label": "Send Pryor's mess along the bank for fruit",
+     "note": "Plums, cherries, currants and grapes grow thick on the bottom.",
+     "effects": [
+      {"flag": "birthday_fruit"},
+      {"fatigue": ["pryor", 6]}
+     ],
+     "reply": [
+      {"speaker": "Sgt. Pryor", "text": "We'll fill the kettles, Captain."}
+     ],
+     "next": "afternoon"
+    },
+    {
+     "label": "No time for dinners; the Oto are looked for",
+     "next": "afternoon"
+    }
+   ]
+  },
+  "good_hunt": {
+   "effects": [
+    {"flag": "birthday_venison"},
+    {"give": ["fresh_meat", 520]},
+    {"hides": 4},
+    {"journal": "Three deer and an elk killed today, and a large beaver taken in Drouillard's trap."}
+   ],
+   "lines": [
+    {"speaker": "Sgt. Ordway", "text": "Three deer and an elk, Captain. And a beaver in Drouillard's trap, a big one."}
+   ],
+   "choices": [
+    {
+     "label": "Send Pryor's mess for fruit as well",
+     "effects": [
+      {"flag": "birthday_fruit"},
+      {"fatigue": ["pryor", 6]}
+     ],
+     "next": "afternoon"
+    },
+    {"label": "That is dinner enough", "next": "afternoon"}
+   ]
+  },
+  "thin_hunt": {
+   "effects": [
+    {"give": ["fresh_meat", 100]},
+    {"hides": 1},
+    {"journal": "The hunters killed one deer, and that a poor one."}
+   ],
+   "lines": [
+    {"speaker": "Sgt. Ordway", "text": "One deer, Captain, and not a fat one. The horses strayed and took half the morning finding."}
+   ],
+   "choices": [
+    {
+     "label": "Send Pryor's mess for fruit",
+     "effects": [
+      {"flag": "birthday_fruit"},
+      {"fatigue": ["pryor", 6]}
+     ],
+     "next": "afternoon"
+    },
+    {"label": "Leave it at that", "next": "afternoon"}
+   ]
+  },
+  "afternoon": {
+   "wait": "hour:18.5",
+   "lines": [
+    {"speaker": "York", "text": "Dinner's near ready at the fire, Captain."}
+   ],
+   "choices": [
+    {"label": "Go down to the fire", "next": "dinner"}
+   ]
+  },
+  "dinner": {
+   "wait": "at:camp",
+   "hint": "York has Clark's dinner at the fire",
+   "lines": [
+    {"speaker": "Clark", "text": "Well. Let us see what the day has come to."}
+   ],
+   "choices": [
+    {
+     "label": "A saddle of fat venison, an elk fleece and a beaver tail, and a dessert of fruit",
+     "when": {"all_flags": ["birthday_venison", "birthday_fruit"]},
+     "effects": [
+      {"hearten": 8},
+      {"journal": "Captain Clark's birthday. A saddle of fat venison, an elk fleece and a beaver tail cooked, and a dessert of cherries, plums, raspberries, currants and grapes of a superior quality."}
+     ],
+     "next": "dram"
+    },
+    {
+     "label": "Venison and a beaver tail",
+     "when": {"flag": "birthday_venison", "not_flag": "birthday_fruit"},
+     "effects": [
+      {"hearten": 5},
+      {"journal": "Captain Clark's birthday. Venison and a beaver tail for his dinner."}
+     ],
+     "next": "dram"
+    },
+    {
+     "label": "Salt pork, and the fruit from the bank",
+     "when": {"flag": "birthday_fruit", "not_flag": "birthday_venison"},
+     "effects": [
+      {"hearten": 3},
+      {"journal": "Captain Clark's birthday. Pork, and plums and grapes gathered on the bottom."}
+     ],
+     "next": "dram"
+    },
+    {
+     "label": "Salt pork, as any other day",
+     "when": {"no_flags": ["birthday_venison", "birthday_fruit"]},
+     "effects": [
+      {"journal": "Captain Clark's birthday, kept with the ordinary ration."}
+     ],
+     "next": "dram"
+    }
+   ]
+  },
+  "dram": {
+   "lines": [
+    {"speaker": "Sgt. Ordway", "text": "The men would drink the Captain's health, sir, if there was the means."}
+   ],
+   "choices": [
+    {
+     "label": "An extra gill all round, for his health",
+     "note": "A gill a man is a gallon and a half out of the whiskey.",
+     "cost": [["whiskey", 1.5]],
+     "effects": [
+      {"hearten": 4},
+      {"journal": "An extra gill to each man, to drink Captain Clark's health."}
+     ],
+     "next": "evening"
+    },
+    {"label": "The usual gill will do", "next": "evening"}
+   ]
+  },
+  "evening": {
+   "end": true,
+   "lines": [
+    {"speaker": "Clark", "text": "The mosquitoes are very troublesome tonight."}
+   ]
+  }
+ }
+}
