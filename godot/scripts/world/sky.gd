@@ -382,6 +382,11 @@ func update(hour: float, delta: float) -> void:
 	var illum := 0.5 - 0.5 * cos(TAU * moon_phase)
 	var moon_spec := illum * 0.7 if moon.x > 2.0 else 0.0
 	sun.light_specular = lerpf(1.0, moon_spec, night)
+	# Likewise its scatter in the air. The volumetric fog reaches only so far and
+	# the sky behind it is not fogged, so at full strength the moonlit air in
+	# front of the far bank glowed brighter than the sky, and the cottonwoods
+	# stood against it white as if in snow.
+	sun.light_volumetric_fog_energy = lerpf(1.0, moon_spec * 0.35, night)
 
 	sky_mat.set_shader_parameter("zenith_color", zenith)
 	sky_mat.set_shader_parameter("horizon_color", horizon.lerp(Color.WHITE, _flash * 0.5))
@@ -439,5 +444,5 @@ func update(hour: float, delta: float) -> void:
 	env.fog_height = 3.0
 	env.fog_height_density = 0.04 * haze
 	# Air thick enough to show shafts at the low sun, clearing through the day.
-	var low_sun := 1.0 - smoothstep(0.1, 0.45, elevation) if is_day else 0.3
+	var low_sun := 1.0 - smoothstep(0.1, 0.45, elevation) if is_day else 0.3 * (1.0 - night)
 	env.volumetric_fog_density = 0.0012 + 0.004 * low_sun + 0.006 * haze + storm * 0.012
