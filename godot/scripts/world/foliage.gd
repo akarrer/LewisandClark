@@ -33,7 +33,7 @@ const PROFILES := {
 		"cured": Color(1.46, 1.22, 0.86), "variation": 0.2},
 	"flowers": {"sway": 0.10, "flutter": 0.3, "translucency": 0.3, "tint": Color(1, 1, 1), "variation": 0.1},
 	"willow": {"sway": 0.18, "flutter": 1.3, "translucency": 0.45, "tint": Color(0.82, 0.95, 0.78), "variation": 0.12},
-	"driftwood": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1, 1, 1), "variation": 0.08, "bark_tint": Color(2.1, 2.0, 1.85)},
+	"driftwood": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1, 1, 1), "variation": 0.08, "bark_tint": Color(1.95, 2.15, 1.75)},  # sun-bleached silver; the bark texture runs purple
 	"rock": {},
 	# The wooded ravines that cut the loess bluffs: shaded, damper, and green well
 	# into August when the open prairie above them has gone to straw.
@@ -273,19 +273,26 @@ func _scatter_cottonwoods(spec: Dictionary) -> void:
 	for i in int(spec["tries"]):
 		var p := _random_point()
 		var d := _dist_to_river(p)
-		if d < 10.0 or d > 170.0 or _near_point(p, 16.0) or not terrain.walkable(p.x, p.z):
+		if d < 10.0 or d > 170.0 or _near_point(p, 16.0) or not terrain.walkable(p.x, p.z) or terrain.is_bar(p.x, p.z):
 			continue
 		var grove := _groves.get_noise_2d(p.x, p.z)
 		var near_water := 1.0 - d / 170.0
 		if rng.randf() > near_water * smoothstep(-0.15, 0.35, grove) * 0.9:
 			continue
-		# Old giants on the banks, younger trees further back; each crown stretched
-		# and leaning its own way so the groves don't read as copies.
-		var size := lerpf(0.55, 1.0, pow(rng.randf(), 1.5)) * lerpf(0.85, 1.25, near_water)
-		var stretch := Vector3(rng.randf_range(0.85, 1.25), rng.randf_range(0.9, 1.45), 1.0)
-		stretch.z = stretch.x * rng.randf_range(0.85, 1.15)
-		var lean := Vector3(rng.randf_range(-0.12, 0.12), 1.0, rng.randf_range(-0.12, 0.12))
-		_add("cottonwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), size, lean, 0.0, stretch)
+		_cottonwood(variants, p, near_water)
+		# A grove, not a tree: cottonwoods seed in on the same bar in the same
+		# flood year, and their crowns run together. Placed one at a time they
+		# stood apart in an even scatter, and the far bank read as a line of
+		# lollipops on a lawn rather than as bottomland timber.
+		for k in rng.randi_range(1, 4):
+			var ang := rng.randf() * TAU
+			var r := rng.randf_range(5.0, 12.0)
+			var q := Vector3(p.x + cos(ang) * r, 0.0, p.z + sin(ang) * r)
+			q.y = terrain.height_at(q.x, q.z)
+			var dq := _dist_to_river(q)
+			if dq < 10.0 or dq > 170.0 or _near_point(q, 16.0) or not terrain.walkable(q.x, q.z) or terrain.is_bar(q.x, q.z):
+				continue
+			_cottonwood(variants, q, 1.0 - dq / 170.0)
 		for u in rng.randi_range(0, 3):
 			var off := Vector3(rng.randf_range(-7, 7), 0, rng.randf_range(-7, 7))
 			var q := Vector3(p.x + off.x, terrain.height_at(p.x + off.x, p.z + off.z), p.z + off.z)
@@ -293,6 +300,16 @@ func _scatter_cottonwoods(spec: Dictionary) -> void:
 				var under: String = beneath[rng.randi() % beneath.size()]
 				var kind := "grove" if under == "tree_5" else "bush"
 				_add(kind, under, q - Vector3(0, 0.1, 0), rng.randf_range(0.5, 0.9), Vector3.UP, 220.0)
+
+
+func _cottonwood(variants: Array, p: Vector3, near_water: float) -> void:
+	## Old giants on the banks, younger trees further back; each crown stretched
+	## and leaning its own way so the groves don't read as copies.
+	var size := lerpf(0.45, 1.1, pow(rng.randf(), 1.4)) * lerpf(0.85, 1.25, near_water)
+	var stretch := Vector3(rng.randf_range(0.85, 1.25), rng.randf_range(0.9, 1.45), 1.0)
+	stretch.z = stretch.x * rng.randf_range(0.85, 1.15)
+	var lean := Vector3(rng.randf_range(-0.12, 0.12), 1.0, rng.randf_range(-0.12, 0.12))
+	_add("cottonwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), size, lean, 0.0, stretch)
 
 
 func _scatter_groves(spec: Dictionary) -> void:
@@ -384,7 +401,7 @@ func _wakes(snags: Array[Vector3]) -> void:
 func _on_bar(p: Vector3, min_above: float) -> bool:
 	## Dry sand: above the river surface by ``min_above`` m, in the channel or the
 	## bare margin beside it (not the grassed bottomland).
-	return p.y > Terrain.WATER_Y - 0.35 + min_above and _dist_to_river(p) < 22.0
+	return p.y > Terrain.WATER_Y - 0.35 + min_above and (_dist_to_river(p) < 6.0 or terrain.is_bar(p.x, p.z))
 
 
 func _scatter_sandbar(spec: Dictionary) -> void:

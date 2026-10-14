@@ -51,7 +51,7 @@ func build(terrain: Terrain, min_dist := 0.0, shadows := false, blades := 8, wid
 	pm.set_shader_parameter("spacing", spacing)
 	pm.set_shader_parameter("clump_scale", clump_scale)
 	pm.set_shader_parameter("rows", rows)
-	pm.set_shader_parameter("river_clear", terrain.river_half_width() + 14.0)  # keep off the sandbars
+	pm.set_shader_parameter("river_clear", terrain.river_half_width() + 4.0)  # past the silt margin; the bars are kept bare by their height
 	pm.set_shader_parameter("max_dist", rows * spacing * 0.5 - 2.0)
 	pm.set_shader_parameter("min_dist", min_dist)
 	var town: Vector3 = terrain.points.get("prairie_dog_town", Vector3(-1000, 0, -1000))

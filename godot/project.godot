@@ -67,6 +67,14 @@ night_amount={
 "type": "float",
 "value": 0.0
 }
+moon_dir={
+"type": "vec3",
+"value": Vector3(0, 1, 0)
+}
+moon_light={
+"type": "float",
+"value": 0.0
+}
 river_mist={
 "type": "float",
 "value": 0.0
