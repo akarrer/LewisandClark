@@ -15,6 +15,7 @@ uniform float translucency = 0.35;  // 0 for bark
 uniform float variation = 0.12;
 uniform float base_shade = 0.7;
 uniform float bark = 0.0;           // 1 on trunks: cottonwood bark is deeply furrowed
+uniform float give_way = 0.0;       // 1 on leaves: pressed flat as the camera backs into a low plant
 // Where a plant stands decides how far it has cured: the MultiMesh carries that
 // per instance in COLOR.r, 0 for a green swale and 1 for the burnt-off upland.
 uniform vec4 cured : source_color = vec4(1.0);
@@ -43,6 +44,19 @@ void vertex() {
 	disp += vec3(leaf, leaf * 0.5, -leaf) * 0.035 * flutter * w * h * (0.5 + gust);
 	// World-space push back into local space (instances are rotated, stretched and leaning).
 	VERTEX += inverse(mat3(MODEL_MATRIX)) * disp;
+	// A tuft of bar grass two metres off still stands taller than the lens is
+	// high, and its blades came out as green slabs across half the screen; the
+	// dither in fragment() only reaches the last metre or so. Low plants are
+	// pressed down toward their root as the camera comes over them instead.
+	// Low means low as it stands, after its instance scale: the models come in
+	// at all sizes and are scaled down to tufts.
+	float stands = plant_height * length(MODEL_MATRIX[1].xyz);
+	float low = give_way * (1.0 - smoothstep(2.0, 3.0, stands));
+	if (low > 0.0) {
+		vec3 eye = CAMERA_POSITION_WORLD - origin;
+		float near_lens = smoothstep(2.8, 1.2, length(eye));
+		VERTEX *= 1.0 - near_lens * 0.9 * low;
+	}
 
 	float r = hash(origin.xz);
 	float g = hash(origin.zx + 7.7);

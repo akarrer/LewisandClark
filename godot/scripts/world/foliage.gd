@@ -145,6 +145,9 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 		sm.set_shader_parameter("tint", profile.get("bark_tint", Color(1.25, 1.18, 1.1)) if bark else (m.albedo_color * profile["tint"]))
 		sm.set_shader_parameter("sway", profile["sway"])
 		sm.set_shader_parameter("plant_height", height)
+		# Low plants give way to the camera (the shader decides what is low,
+		# from the height each instance stands); bark never does.
+		sm.set_shader_parameter("give_way", 0.0 if bark else 1.0)
 		sm.set_shader_parameter("flutter", 0.0 if bark else profile["flutter"])
 		sm.set_shader_parameter("translucency", 0.0 if bark else profile["translucency"])
 		sm.set_shader_parameter("variation", 0.04 if bark else profile["variation"])
@@ -200,6 +203,7 @@ func _flush() -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.set_meta("kind", b["kind"])
+		mmi.set_meta("variant", b["variant"])
 		if b["visibility"] > 0.0:
 			mmi.visibility_range_end = b["visibility"]
 			mmi.visibility_range_end_margin = 12.0
