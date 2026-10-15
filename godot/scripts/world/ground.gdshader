@@ -10,7 +10,7 @@ uniform float mottle = 0.22;
 uniform vec3 gold : source_color = vec3(0.72, 0.62, 0.30);
 uniform vec3 green : source_color = vec3(0.40, 0.52, 0.22);
 uniform vec3 thatch : source_color = vec3(0.30, 0.28, 0.15);
-uniform float grass_radius = 46.0;
+uniform float grass_radius = 60.0;   // where the 3D grass ends (GrassFar: 216 rows x 0.6 m / 2 - 2)
 uniform vec2 camp = vec2(-1000.0);   // ground worn bare around the fire
 uniform float camp_radius = 9.0;
 uniform vec2 trace_a = vec2(-1000.0);  // a path worn between two places
@@ -150,7 +150,11 @@ void fragment() {
 	vec3 blades = mix(gold, green, patch * 0.8);
 	// The floodplain sits low (~y 1-3); above it the prairie proper.
 	blades = prairie_species(p, blades, smoothstep(2.0, 5.0, hgt));
-	vec3 tips = mix(c, blades * 1.08, 0.55);
+	// Past the blades the ground has to be the blades, seen from afar: their
+	// tips and the shade between them, which averages a little darker than a
+	// tip. Half-way to the blade colour left the far prairie a pale green field
+	// beyond a gold one, with the seam running round the camera.
+	vec3 tips = mix(c, blades * 0.98, 0.82);
 	float dist = length(v_world - CAMERA_POSITION_WORLD);
 	float under = 1.0 - smoothstep(grass_radius * 0.55, grass_radius * 1.05, dist);
 	// Under the blades the ground is in their shade: dead thatch, darker than
