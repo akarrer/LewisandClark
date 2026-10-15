@@ -278,6 +278,17 @@ func _process(_delta: float) -> void:
 	_moths.emitting = night > 0.4
 
 
+static var _canvas: ShaderMaterial
+
+
+static func _canvas_mat() -> ShaderMaterial:
+	## One material for every tent panel (canvas.gdshader).
+	if _canvas == null:
+		_canvas = ShaderMaterial.new()
+		_canvas.shader = load("res://scripts/world/canvas.gdshader")
+	return _canvas
+
+
 func _tent() -> Node3D:
 	## A canvas A-frame over a ridge pole, pegged down.
 	var tent := Node3D.new()
@@ -290,6 +301,7 @@ func _tent() -> Node3D:
 	var pitch_deg := rad_to_deg(atan2(height, half))
 	for side in [-1.0, 1.0]:
 		var panel := Props.box(Vector3(length, 0.04, slant), CANVAS, Vector3(0, height * 0.5, side * half * 0.5))
+		panel.material_override = _canvas_mat()
 		panel.rotation_degrees.x = pitch_deg if side > 0.0 else 180.0 - pitch_deg
 		tent.add_child(panel)
 	# The ridge pole lies along the tent (cylinders are built along Y).
