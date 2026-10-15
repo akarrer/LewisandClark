@@ -102,9 +102,14 @@ static func clump_mesh(blades := 12, seed_value := 3, widen := 1.0) -> ArrayMesh
 		var dir := Vector3(cos(ang), 0, sin(ang))
 		var side := dir.cross(Vector3.UP)
 		var base := Vector3(rng.randf_range(-0.12, 0.12), 0, rng.randf_range(-0.12, 0.12))
-		var height := rng.randf_range(0.3, 0.85)
-		var lean := rng.randf_range(0.05, 0.35)
-		var width := rng.randf_range(0.022, 0.045) * widen
+		# Some short, some up past a man's knee: late-summer bluestem is not a lawn.
+		var height := rng.randf_range(0.3, 1.0) * (1.15 if rng.randf() < 0.2 else 1.0)
+		var lean := rng.randf_range(0.05, 0.4)
+		# Wide enough to be seen. At two to four centimetres a blade was a pixel
+		# at five metres, the same colour as the ground under it, and a hillside
+		# read as bare felt with only the blades' shadows on it.
+		var width := rng.randf_range(0.034, 0.068) * widen
+		var tone := rng.randf()   # this blade's own shade, read in grass_blades.gdshader
 		var segs := 2
 		var prev_l := Vector3.ZERO
 		var prev_r := Vector3.ZERO
@@ -118,7 +123,7 @@ static func clump_mesh(blades := 12, seed_value := 3, widen := 1.0) -> ArrayMesh
 				var t0 := float(s - 1) / segs
 				for v in [[prev_l, t0], [prev_r, t0], [l, t], [prev_r, t0], [r, t], [l, t]]:
 					st.set_normal(Vector3.UP)
-					st.set_uv(Vector2(0.5, v[1]))
+					st.set_uv(Vector2(tone, v[1]))
 					st.add_vertex(v[0])
 			prev_l = l
 			prev_r = r

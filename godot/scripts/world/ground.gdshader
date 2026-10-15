@@ -153,7 +153,9 @@ void fragment() {
 	vec3 tips = mix(c, blades * 1.08, 0.55);
 	float dist = length(v_world - CAMERA_POSITION_WORLD);
 	float under = 1.0 - smoothstep(grass_radius * 0.55, grass_radius * 1.05, dist);
-	vec3 grassy = mix(tips, mix(thatch, blades, 0.35), under * 0.75);
+	// Under the blades the ground is in their shade: dead thatch, darker than
+	// any blade standing on it, which is what lets the blades be seen at all.
+	vec3 grassy = mix(tips, mix(thatch, blades, 0.22) * 0.82, under * 0.85);
 	// North-facing slopes (−z) hold moisture and stay greener; crests bleach gold.
 	float north = clamp(-lie.z * 2.5, 0.0, 1.0);
 	float slope = 1.0 - lie.y;

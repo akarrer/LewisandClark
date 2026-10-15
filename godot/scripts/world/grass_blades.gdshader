@@ -13,6 +13,7 @@ global uniform float wind_strength;
 global uniform float wetness;
 
 varying float v_t;
+varying float v_tone;
 varying vec3 v_col;
 #include "res://scripts/world/prairie.gdshaderinc"
 #include "res://scripts/world/cloud_shadow.gdshaderinc"
@@ -46,13 +47,19 @@ void vertex() {
 	base = prairie_species(origin.xz, base, 1.0 - bottom);
 	v_col = base;
 	v_t = t;
+	v_tone = UV.x;
 }
 
 global uniform float night_amount;
 
 void fragment() {
-	vec3 c = mix(mix(root, v_col, 0.35), v_col, smoothstep(0.0, 0.5, v_t));
-	c = mix(c, v_col * 1.25 + vec3(0.05, 0.04, 0.0), smoothstep(0.75, 1.0, v_t));
+	// Each blade its own shade: a clump of one flat colour reads as a single
+	// green shape, not as grass. Some lighter and drier, some darker and greener.
+	vec3 blade = v_col * mix(0.78, 1.18, v_tone);
+	blade = mix(blade, blade * vec3(1.08, 1.0, 0.82), smoothstep(0.6, 1.0, v_tone) * 0.6);   // drier, more straw
+	blade = mix(blade, blade * vec3(0.9, 1.05, 0.92), smoothstep(0.35, 0.0, v_tone) * 0.5);  // greener at the heart
+	vec3 c = mix(mix(root, blade, 0.3), blade, smoothstep(0.0, 0.55, v_t));
+	c = mix(c, blade * 1.22 + vec3(0.05, 0.04, 0.0), smoothstep(0.75, 1.0, v_t));
 	// By moonlight the eye sees no colour, and the blades -- turned up to the
 	// sky, where the moon is -- stood out gold and brighter than the man.
 	float lum = dot(c, vec3(0.3, 0.59, 0.11));
