@@ -1,4 +1,5 @@
 shader_type spatial;
+render_mode cull_disabled;   // a stretched sail is seen from beneath too
 // Tent canvas: linen duck that has been rained on, dried, rolled and pitched a
 // hundred times since St. Louis. A flat colour read as paper -- the brightest
 // thing in every camp shot, white even by moonlight. Here it is greyed and
