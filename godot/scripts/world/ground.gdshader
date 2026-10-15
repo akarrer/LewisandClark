@@ -42,8 +42,17 @@ varying vec3 v_normal;
 // noise then jumps along straight seams laid across the sand.
 float hash(vec2 p) {
 	uvec2 q = uvec2(ivec2(floor(p)) + ivec2(1 << 20));
-	q *= uvec2(1597334673u, 3812015801u);
-	uint n = (q.x ^ q.y) * 1597334673u;
+	// PCG-style 2D hash: a plain multiply-xor of the two axes left whole
+	// rows of corners with related values, and a run of them drew one straight
+	// white seam the length of the river.
+	q = q * 1664525u + 1013904223u;
+	q.x += q.y * 1664525u;
+	q.y += q.x * 1664525u;
+	q = q ^ (q >> 16u);
+	q.x += q.y * 1664525u;
+	q.y += q.x * 1664525u;
+	q = q ^ (q >> 16u);
+	uint n = q.x ^ q.y;
 	return float(n >> 8u) * (1.0 / 16777216.0);
 }
 
@@ -83,8 +92,17 @@ float fbm(vec2 p) {
 // slope, which no amount of filtering could smooth.
 vec2 g_dir(vec2 c) {
 	uvec2 q = uvec2(ivec2(c) + ivec2(1 << 20));
-	q *= uvec2(1597334673u, 3812015801u);
-	uint n = (q.x ^ q.y) * 1597334673u;
+	// PCG-style 2D hash: a plain multiply-xor of the two axes left whole
+	// rows of corners with related values, and a run of them drew one straight
+	// white seam the length of the river.
+	q = q * 1664525u + 1013904223u;
+	q.x += q.y * 1664525u;
+	q.y += q.x * 1664525u;
+	q = q ^ (q >> 16u);
+	q.x += q.y * 1664525u;
+	q.y += q.x * 1664525u;
+	q = q ^ (q >> 16u);
+	uint n = q.x ^ q.y;
 	float a = float(n >> 8u) * (6.2831853 / 16777216.0);
 	return vec2(cos(a), sin(a));
 }
@@ -266,13 +284,16 @@ void fragment() {
 	float footprint = length(to_eye) * 0.0012 / graze;
 	float r_fade = 1.0 - smoothstep(0.18, 0.45, footprint / 0.55 * 1.4);
 	// In trains, not one sheet: the higher, drier bar has been blown smooth.
-	float r_mask = smoothstep(0.3, 0.6, vnoise(p * 0.06 + 7.0)) * (1.0 - smoothstep(0.8, 2.4, hgt) * 0.6);
+	// Trains, with plain sand between them. A wide threshold on one octave
+	// laid ripples over nearly every bar, edge to edge, like corrugated iron.
+	float r_field = vnoise(p * 0.05 + 7.0) * 0.65 + vnoise(TURN * p * 0.13 + 3.0) * 0.35;
+	float r_mask = smoothstep(0.5, 0.72, r_field) * (1.0 - smoothstep(0.8, 2.4, hgt) * 0.7);
 	float r_amt = r_fade * r_mask * sand;
-	vec2 ripple_slope = r_dir * (r_dh / 0.55) * 0.028 * r_amt;
+	vec2 ripple_slope = r_dir * (r_dh / 0.55) * 0.02 * r_amt;
 	float ripple = mix(0.5, r_h, r_amt);
 	// Missouri sand is grey-buff, not beach gold, and at noon a pale sheet of it
 	// was the brightest thing on the screen.
-	vec3 sandy = c * vec3(0.94, 0.93, 0.93) * (0.84 + ripple * 0.2);
+	vec3 sandy = c * vec3(0.94, 0.93, 0.93) * (0.87 + ripple * 0.14);
 	float wet = 1.0 - smoothstep(-0.2, 0.9, hgt + (vnoise(p * 0.5) - 0.5) * 0.4);
 	sandy = mix(sandy, sandy * vec3(0.62, 0.60, 0.58), wet * 0.85);
 	// The swash: the last hand's breadth above the water is soaked through,

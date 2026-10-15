@@ -64,8 +64,17 @@ float hash(vec2 p) {
 // and seams the pattern along straight lines (see ground.gdshader).
 float lhash(vec2 p) {
 	uvec2 q = uvec2(ivec2(floor(p)) + ivec2(1 << 20));
-	q *= uvec2(1597334673u, 3812015801u);
-	uint n = (q.x ^ q.y) * 1597334673u;
+	// PCG-style 2D hash: a plain multiply-xor of the two axes left whole
+	// rows of corners with related values, and a run of them drew one straight
+	// white seam the length of the river.
+	q = q * 1664525u + 1013904223u;
+	q.x += q.y * 1664525u;
+	q.y += q.x * 1664525u;
+	q = q ^ (q >> 16u);
+	q.x += q.y * 1664525u;
+	q.y += q.x * 1664525u;
+	q = q ^ (q >> 16u);
+	uint n = q.x ^ q.y;
 	return float(n >> 8u) * (1.0 / 16777216.0);
 }
 
