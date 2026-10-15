@@ -520,7 +520,13 @@ void fragment() {
 	// Not where the water is a film over the bar: the grazing sheen there drew
 	// one unbroken pale line down every shore.
 	float film = smoothstep(0.0, 0.3, d_soft);
-	vec3 sky_seen = mix(sky_horizon.rgb, sky_zenith.rgb, pow(rdir.y, 0.6));
+	// The sky, though, is looked up off the full wave normal. Each ripple tips
+	// toward higher, bluer sky or lower, paler sky, and that flicker of light
+	// and dark is the whole texture of open water at middle distance; off the
+	// tamed normal the reach between the bank and the far trees lay like oil.
+	vec3 sky_dir = reflect(eye_dir, normalize(mix(vec3(0.0, 1.0, 0.0), wn, 1.0)));
+	float sky_up = clamp(sky_dir.y, 0.0, 1.0);
+	vec3 sky_seen = mix(sky_horizon.rgb * 1.05, sky_zenith.rgb * 0.85, pow(sky_up, 0.45));
 	float found;
 	vec3 scene_seen = march_reflection(world, rdir, VIEW_MATRIX, PROJECTION_MATRIX, INV_PROJECTION_MATRIX,
 			depth_tex, screen_tex, 1.0 + ROUGHNESS * 3.0, found);
@@ -556,8 +562,8 @@ void fragment() {
 	float mglint = pow(clamp(dot(wn, normalize(moon + eye)), 0.0, 1.0), 220.0);
 	// And the road itself, now the engine's specular is off: a broader lobe
 	// off the same normal, brightest at a skim.
-	float mroad = pow(clamp(dot(wn, normalize(moon + eye)), 0.0, 1.0), 40.0) * (0.3 + fres);
-	EMISSION += vec3(0.80, 0.86, 0.96) * (mglint * 0.6 + mroad * 0.5) * moon_light
+	float mroad = pow(clamp(dot(wn, normalize(moon + eye)), 0.0, 1.0), 60.0) * (0.3 + fres);
+	EMISSION += vec3(0.80, 0.86, 0.96) * (mglint * 0.6 + mroad * 0.32) * moon_light
 			* smoothstep(0.0, 0.1, moon.y) * (1.0 - foam) * film;
 	ALBEDO = c * mix(1.0, cloud_light(world), 0.7);
 	// The Missouri is opaque: Clark could not see a foot into it, and letting the
