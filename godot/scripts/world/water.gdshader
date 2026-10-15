@@ -59,10 +59,20 @@ float hash(vec2 p) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
+// For the lattice corners of noise(): an exact integer hash. The float one
+// loses its low digits at the coordinates the fine foam and flecks reach,
+// and seams the pattern along straight lines (see ground.gdshader).
+float lhash(vec2 p) {
+	uvec2 q = uvec2(ivec2(floor(p)) + ivec2(1 << 20));
+	q *= uvec2(1597334673u, 3812015801u);
+	uint n = (q.x ^ q.y) * 1597334673u;
+	return float(n >> 8u) * (1.0 / 16777216.0);
+}
+
 float noise(vec2 p) {
 	vec2 i = floor(p); vec2 f = fract(p);
 	vec2 u = f * f * (3.0 - 2.0 * f);
-	return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
+	return mix(mix(lhash(i), lhash(i + vec2(1, 0)), u.x), mix(lhash(i + vec2(0, 1)), lhash(i + vec2(1, 1)), u.x), u.y);
 }
 
 float fbm(vec2 p) {
