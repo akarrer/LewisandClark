@@ -10,7 +10,7 @@ var _storm_target := 0.0
 var _storm_hold := 0.0
 var _flash := 0.0
 var rain: GPUParticles3D
-var rain_mat: StandardMaterial3D
+var rain_mat: ShaderMaterial
 var _wet := 0.0
 ## What the sky is doing now, for the HUD and the Journal (see rules/weather.gd).
 var cloud_cover := 0.42
@@ -191,28 +191,26 @@ func start_storm(seconds: float) -> void:
 func _build_rain() -> void:
 	rain = GPUParticles3D.new()
 	rain.name = "Rain"
-	rain.amount = 14000
-	rain.lifetime = 1.2
-	rain.visibility_aabb = AABB(Vector3(-40, -30, -40), Vector3(80, 60, 80))
+	# Dense round the camera, where rain is seen at all: past thirty metres a
+	# drop is less than a pixel, and the sky's rain curtains carry the distance.
+	rain.amount = 26000
+	rain.lifetime = 1.0
+	rain.visibility_aabb = AABB(Vector3(-30, -30, -30), Vector3(60, 60, 60))
 	var pm := ParticleProcessMaterial.new()
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(35, 1, 35)
+	pm.emission_box_extents = Vector3(26, 1, 26)
 	pm.direction = Vector3(0.5, -1, 0.18)  # driven aslant by the storm wind
 	pm.spread = 4.0
 	pm.initial_velocity_min = 28.0
 	pm.initial_velocity_max = 36.0
 	pm.gravity = Vector3(0, -9.8, 0)
+	pm.particle_flag_align_y = true        # each streak lies along its own fall
 	rain.process_material = pm
 	var streak := QuadMesh.new()
-	streak.size = Vector2(0.008, 0.42)
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.albedo_color = Color(0.75, 0.8, 0.9, 0.18)
-	m.proximity_fade_enabled = true  # no fat streaks right in front of the lens
-	m.proximity_fade_distance = 5.0
+	streak.size = Vector2(1.0, 1.0)        # sized in rain.gdshader
+	var m := ShaderMaterial.new()
+	m.shader = load("res://scripts/world/rain.gdshader")
 	rain_mat = m
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
 	streak.material = m
 	rain.draw_pass_1 = streak
 	rain.emitting = false
@@ -411,7 +409,7 @@ func update(hour: float, delta: float) -> void:
 
 	# Rain takes the colour of the sky behind it rather than glowing white.
 	var rc := horizon.lerp(Color(0.8, 0.84, 0.9), 0.35).lerp(Color.WHITE, _flash * 0.6)
-	rain_mat.albedo_color = Color(rc, 0.1 + storm * 0.22)
+	rain_mat.set_shader_parameter("tint", Color(rc, 0.12 + storm * 0.22))
 	# Sky colour for materials that fake reflections (the river's sheen); see [shader_globals].
 	# Cloud shadows on the land (cloud_shadow.gdshaderinc): gone at night, and under
 	# a full overcast the whole land is already in shade.
