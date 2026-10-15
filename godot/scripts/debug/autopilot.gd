@@ -521,6 +521,8 @@ func _scenery_steps() -> Array:
 		main.leader.glassing = true      # the spyglass up, for a still of the field
 	if "--rifle" in args:
 		main.leader.rifle_ready = true
+	if "--no-sun-shadow" in args:
+		main.sky.sun.shadow_enabled = false
 	if "--no-ssr" in args:
 		main.sky.env.ssr_enabled = false
 	if "--no-vfog" in args:

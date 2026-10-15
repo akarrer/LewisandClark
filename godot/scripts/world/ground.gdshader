@@ -35,10 +35,16 @@ varying vec3 v_normal;
 #include "res://scripts/world/prairie.gdshaderinc"
 #include "res://scripts/world/cloud_shadow.gdshaderinc"
 
+// Only ever asked at a lattice corner, so keyed by an integer hash. A float
+// hash loses its low digits at the coordinates the fine patterns reach (a
+// grain at 5.5 a metre is lattice 3,000 a kilometre out, flecks at 9 near
+// 5,000) and returns two values for one corner, seen from either side; the
+// noise then jumps along straight seams laid across the sand.
 float hash(vec2 p) {
-	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-	p3 += dot(p3, p3.yzx + 33.33);
-	return fract((p3.x + p3.y) * p3.z);
+	uvec2 q = uvec2(ivec2(floor(p)) + ivec2(1 << 20));
+	q *= uvec2(1597334673u, 3812015801u);
+	uint n = (q.x ^ q.y) * 1597334673u;
+	return float(n >> 8u) * (1.0 / 16777216.0);
 }
 
 float vnoise(vec2 p) {
@@ -64,13 +70,61 @@ float fbm(vec2 p) {
 	return v;
 }
 
+// Gradient noise, for the relief. Value noise will not do there: its slope
+// falls to zero along every edge of its lattice, so a normal bent by it is
+// left unbent in straight lines across the ground -- and with each octave
+// turned, those lines ran across every slope and sandbar at several angles,
+// long and ruled, which is the crease this game had for weeks. Gradient
+// noise is zero on the lattice points instead, and its slope never stops.
+// Keyed by an integer hash. The float hash above loses its low digits at the
+// lattice coordinates the fine octaves reach (tens of thousands), and then
+// gives a corner one gradient seen from one side and another from the other:
+// the pattern jumped across straight seams that ran the length of every
+// slope, which no amount of filtering could smooth.
+vec2 g_dir(vec2 c) {
+	uvec2 q = uvec2(ivec2(c) + ivec2(1 << 20));
+	q *= uvec2(1597334673u, 3812015801u);
+	uint n = (q.x ^ q.y) * 1597334673u;
+	float a = float(n >> 8u) * (6.2831853 / 16777216.0);
+	return vec2(cos(a), sin(a));
+}
+
+float gnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+	float a = dot(g_dir(i), f);
+	float b = dot(g_dir(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0));
+	float c = dot(g_dir(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0));
+	float d = dot(g_dir(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0));
+	return mix(mix(a, b, u.x), mix(c, d, u.x), u.y) + 0.5;
+}
+
+// ``cycles_per_px`` is how many of the base octave's waves one pixel spans.
+// An octave finer than a pixel aliases, and an aliased octave of a regular
+// lattice comes out as straight moire bands -- so each is faded out before it
+// gets there rather than drawn and hoped for.
+float gfbm(vec2 p, float cycles_per_px) {
+	float v = 0.0;
+	float a = 0.52;
+	float f = cycles_per_px;
+	for (int i = 0; i < 4; i++) {
+		float keep = 1.0 - smoothstep(0.2, 0.45, f);
+		v += a * mix(0.5, gnoise(p), keep);
+		p = TURN * p * 2.07;
+		f *= 2.07;
+		a *= 0.5;
+	}
+	return v;
+}
+
 // The height the relief normal is bent by: tussocks on the prairie, soft
 // hummocks on the sand. One function, so all three samples of it agree.
-float relief_h(vec2 q, float sand) {
+float relief_h(vec2 q, float sand, float px) {
 	// The ripple marks on the sand are not in here: they are sharp enough that
 	// their slope is taken exactly (see fragment) rather than by differencing.
-	float h = fbm(q * 2.6);
-	return mix(h, vnoise(q * 0.9), sand * 0.7);
+	float h = gfbm(q * 2.6, px * 2.6);
+	return mix(h, gnoise(q * 0.9), sand * 0.7);
 }
 
 // The grass patch field: 0 = thin tawny grass, 1 = thick green.
@@ -88,6 +142,7 @@ float grass_patch(vec2 p) {
 }
 
 #include "res://scripts/world/trace.gdshaderinc"
+
 
 // A cubic B-spline lookup from four bilinear fetches. Bilinear normals are
 // continuous but their slope jumps at every texel, and on a 4 m grid each jump
@@ -281,7 +336,10 @@ void fragment() {
 	float relief = 1.0 - smoothstep(6.0, 25.0, dist);
 	vec3 bumped = nrm - vec3(ripple_slope.x, 0.0, ripple_slope.y);
 	if (relief > 0.01) {
-		float e = 0.06;
+		// The step the slope is measured over: never finer than a pixel, nor
+		// than the finest wave still drawn, or the difference aliases too.
+		float px = max(footprint, 0.004);
+		float e = max(0.06, px * 1.5);
 		vec2 dx = vec2(e, 0.0);
 		vec2 dz = vec2(0.0, e);
 		float scale = mix(0.5, 0.16, sand);  // dunes are softer than tussocks
@@ -290,9 +348,9 @@ void fragment() {
 		// cobbled grid over every slope in the game -- the single most visible
 		// artifact on the ground, and invisible in the colour, since it was in
 		// the shading.
-		float h0 = relief_h(p, sand);
-		float hx = relief_h(p + dx, sand);
-		float hz = relief_h(p + dz, sand);
+		float h0 = relief_h(p, sand, px);
+		float hx = relief_h(p + dx, sand, px);
+		float hz = relief_h(p + dz, sand, px);
 		bumped += vec3(-(hx - h0), 0.0, -(hz - h0)) / e * scale * relief;
 	}
 	NORMAL = normalize((VIEW_MATRIX * vec4(normalize(bumped), 0.0)).xyz);

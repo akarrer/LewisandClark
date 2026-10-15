@@ -103,12 +103,16 @@ static func clump_mesh(blades := 12, seed_value := 3, widen := 1.0) -> ArrayMesh
 		var side := dir.cross(Vector3.UP)
 		var base := Vector3(rng.randf_range(-0.12, 0.12), 0, rng.randf_range(-0.12, 0.12))
 		# Some short, some up past a man's knee: late-summer bluestem is not a lawn.
-		var height := rng.randf_range(0.3, 1.0) * (1.15 if rng.randf() < 0.2 else 1.0)
+		# Mostly shin to knee, the odd stem higher. Taller than that, and with the
+		# clump's own height jitter on top, the grass stood waist-deep on the man
+		# and walled off every low camera.
+		var height := rng.randf_range(0.28, 0.78) * (1.2 if rng.randf() < 0.12 else 1.0)
 		var lean := rng.randf_range(0.05, 0.4)
 		# Wide enough to be seen. At two to four centimetres a blade was a pixel
 		# at five metres, the same colour as the ground under it, and a hillside
 		# read as bare felt with only the blades' shadows on it.
-		var width := rng.randf_range(0.034, 0.068) * widen
+		# (Up to seven centimetres read as ribbons, not grass, right at the lens.)
+		var width := rng.randf_range(0.028, 0.052) * widen
 		var tone := rng.randf()   # this blade's own shade, read in grass_blades.gdshader
 		var segs := 2
 		var prev_l := Vector3.ZERO
