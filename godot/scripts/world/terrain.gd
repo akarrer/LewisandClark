@@ -301,13 +301,19 @@ func _color_at(x: float, z: float, h: float, n: Vector3) -> Color:
 		c = silt.lerp(c, clampf((d - 1.5) / 6.5, 0.0, 1.0))
 	# A bank the river is eating is bare: raw loess from the waterline up, with
 	# nothing given time to root in it.
-	if d > -2.0 and d < 10.0 and slope > 0.08:
+	# The face is ten metres wide since the carve was widened (build_heightmap
+	# FACE), and the slope here is the broad one; reach that far, and start a
+	# little gentler, or the top of the face is neither grassed nor raw.
+	if d > -2.0 and d < 15.0 and slope > 0.05:
 		var raw := Color(0.58, 0.47, 0.33, 0.0)
-		c = c.lerp(raw, clampf((slope - 0.08) / 0.12, 0.0, 1.0) * (1.0 - clampf((d - 6.0) / 4.0, 0.0, 1.0)))
+		c = c.lerp(raw, clampf((slope - 0.05) / 0.1, 0.0, 1.0) * (1.0 - clampf((d - 11.0) / 4.0, 0.0, 1.0)))
 	# Only the steepest cuts show bare loess; the bluffs themselves are grassed.
-	if slope > 0.3:
+	# The slope here is the broad one (6 m, see _build_mesh), which reads a
+	# 48-degree face as about 0.24: at the old 0.3 threshold the steep bluff
+	# faces kept the grass colour with hardly a blade on them, a bald olive slab.
+	if slope > 0.17:
 		var loess := Color(0.66, 0.52, 0.34, 0.0)
-		c = c.lerp(loess, clampf((slope - 0.3) / 0.2, 0.0, 1.0))
+		c = c.lerp(loess, clampf((slope - 0.17) / 0.13, 0.0, 1.0))
 	return c
 
 
