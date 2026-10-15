@@ -71,15 +71,20 @@ void process() {
 	vec2 c = floor(center.xz / spacing) + grid;
 	vec2 jitter = vec2(hash(c), hash(c + 17.3)) - 0.5;
 	vec2 p = (c + 0.5 + jitter * 1.7) * spacing;  // overlap neighbours so no rows show
-	vec2 uv = p / map_size;
+	// Texel centres sit on the terrain's vertices, every ``cell`` metres from 0:
+	// p / map_size lands up to a texel off that, and on a hillside a few metres
+	// sideways is most of a metre up or down -- the clumps were planted with
+	// their roots underground and only the odd tall blade showed.
+	float texels = map_size / cell + 1.0;
+	vec2 uv = (p / cell + 0.5) / texels;
 	float h = texture(height_tex, uv).r;
 	float river = texture(river_tex, uv).r;
-	float e = cell / map_size;
+	float e = 1.0 / texels;
 	float hx = texture(height_tex, uv + vec2(e, 0.0)).r - texture(height_tex, uv - vec2(e, 0.0)).r;
 	float hz = texture(height_tex, uv + vec2(0.0, e)).r - texture(height_tex, uv - vec2(0.0, e)).r;
 	float slope = length(vec2(hx, hz)) / (2.0 * cell);
 	float d = length(p - center.xz);
-	float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+	float inside = step(0.0, p.x) * step(p.x, map_size) * step(0.0, p.y) * step(p.y, map_size);
 	// Patchy prairie: some ground thick with grass, some thin.
 	float patch = grass_patch(p);
 	float keep = inside * smoothstep(river_clear - 2.0, river_clear + 6.0, river)
