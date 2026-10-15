@@ -83,7 +83,7 @@ func build() -> void:
 	env.fog_enabled = true
 	env.fog_density = 0.0006
 	env.fog_sky_affect = 0.15
-	env.fog_aerial_perspective = 0.4
+	env.fog_aerial_perspective = 0.6
 	env.ssao_enabled = true
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 1.6
@@ -433,7 +433,10 @@ func update(hour: float, delta: float) -> void:
 	env.adjustment_saturation = lerpf(lerpf(1.08, 0.72, storm), 0.5, night)
 	env.ambient_light_energy = p[5] * (1.0 - storm * 0.35)
 	env.fog_light_color = horizon
-	env.fog_density = 0.0006 + storm * 0.006
+	# Air you can see across the plains: hills two kilometres off sit half in the
+	# sky's colour. Thinner, and the far country stood as sharp and green as the
+	# near, flattening every vista into one plane.
+	env.fog_density = 0.0010 + storm * 0.006
 	# Morning haze pooling in the bottomland.
 	haze = clampf(1.0 - absf(hour - 6.8) / 2.2, 0.0, 1.0)
 	# Mist on the river itself: the water is warmer than the air over it at first
