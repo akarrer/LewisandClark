@@ -9,6 +9,12 @@ uniform sampler2D height_tex : filter_linear, repeat_disable;
 uniform sampler2D river_tex : filter_linear, repeat_disable;
 uniform float map_size = 1024.0;
 uniform float river_clear = 56.0;
+
+// The terrain textures have a texel on every grid vertex (Terrain.RES 256,
+// so 257 across); p / map_size lands up to a texel off that.
+vec2 terrain_uv(vec2 xz) {
+	return (xz / map_size * 256.0 + 0.5) / 257.0;
+}
 global uniform float night_amount;
 
 float hash(vec2 p) {
@@ -37,8 +43,8 @@ void process() {
 	p += vec3(sin(TIME * 0.5 + w), sin(TIME * 0.7 + w * 1.3) * 0.6, cos(TIME * 0.45 + w)) * 0.5;
 	// After dark these are fireflies: hold them low over the grass, below the
 	// horizon from standing height, and never out over the water.
-	float ground = texture(height_tex, p.xz / map_size).r;
-	float river = texture(river_tex, p.xz / map_size).r;
+	float ground = texture(height_tex, terrain_uv(p.xz)).r;
+	float river = texture(river_tex, terrain_uv(p.xz)).r;
 	// Most keep to the grass, a few drift up toward head height and above.
 	float lift = pow(hash(vec2(i, 23.7)), 1.8);
 	float low = ground + mix(0.15, 3.6, lift) + sin(TIME * 0.6 + i) * 0.35;

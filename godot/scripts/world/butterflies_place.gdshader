@@ -9,6 +9,12 @@ uniform sampler2D height_tex : filter_linear, repeat_disable;
 uniform sampler2D river_tex : filter_linear, repeat_disable;
 uniform float map_size = 1024.0;
 uniform float river_clear = 46.0;
+
+// The terrain textures have a texel on every grid vertex (Terrain.RES 256,
+// so 257 across); p / map_size lands up to a texel off that.
+vec2 terrain_uv(vec2 xz) {
+	return (xz / map_size * 256.0 + 0.5) / 257.0;
+}
 global uniform float night_amount;
 
 float hash(vec2 p) {
@@ -40,8 +46,8 @@ void process() {
 	p.x = xz.x + sin(TIME * rate + w) * 2.6 + sin(TIME * rate * 3.1 + w * 2.0) * 0.5;
 	p.z = xz.y + cos(TIME * rate * 0.85 + w) * 2.6 + cos(TIME * rate * 2.7 + w * 1.5) * 0.5;
 
-	float ground = texture(height_tex, p.xz / map_size).r;
-	float river = texture(river_tex, p.xz / map_size).r;
+	float ground = texture(height_tex, terrain_uv(p.xz)).r;
+	float river = texture(river_tex, terrain_uv(p.xz)).r;
 	// Low over the flowers, rising and dropping the whole time.
 	float lift = pow(hash(vec2(i, 23.7)), 1.5);
 	p.y = ground + mix(0.35, 2.1, lift) + sin(TIME * (rate * 2.3) + w * 1.7) * 0.42;

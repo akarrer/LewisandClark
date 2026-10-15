@@ -376,9 +376,39 @@ func _scenery_steps() -> Array:
 			# The quad sits downstream of the trunk; back up to the trunk itself.
 			var wake_t: Transform3D = c.multimesh.get_instance_transform(0)
 			snag = wake_t.origin - wake_t.basis.z * 0.5
-			var out := tr.toward_river(bank.x, bank.z)
-			snag_eye = snag - out * 26.0
-			snag_eye.y = tr.height_at(snag_eye.x, snag_eye.z)
+			# Walk out of the channel from the snag itself, as for the drift: the
+			# river direction at some other bank put this eye in the water.
+			var eye2 := snag
+			for step in 80:
+				eye2 -= tr.toward_river(eye2.x, eye2.z) * 3.0
+				if tr.height_at(eye2.x, eye2.z) > Terrain.WATER_Y + 0.25:
+					break
+			eye2 -= tr.toward_river(eye2.x, eye2.z) * 4.0
+			snag_eye = Vector3(eye2.x, tr.height_at(eye2.x, eye2.z), eye2.z)
+			break
+
+	# Along the cut bank under the bluff, where the river undercuts it: down off
+	# the bluff toward the water until the ground is low, then look along it.
+	var cut_eye := bluff
+	for step in 60:
+		cut_eye += tr.toward_river(cut_eye.x, cut_eye.z) * 3.0
+		if tr.height_at(cut_eye.x, cut_eye.z) < 4.0:
+			break
+	cut_eye -= tr.toward_river(cut_eye.x, cut_eye.z) * 6.0
+	var along_bank := tr.downriver(cut_eye.x, cut_eye.z)
+	var cut_yaw := _yaw_to(cut_eye, cut_eye + along_bank * 20.0 + tr.toward_river(cut_eye.x, cut_eye.z) * 6.0)
+
+	# A tuft of tall bar grass standing between the camera and the Leader, a
+	# couple of metres in front of the lens: the shot that showed its blades
+	# as green slabs across the screen.
+	var tuft_eye := bank
+	var tuft_yaw := 0.0
+	for c in main.foliage.get_children():
+		if c is MultiMeshInstance3D and str(c.get_meta("variant", "")) == "tall_grass_1" and c.multimesh.instance_count > 0:
+			var tuft: Vector3 = c.multimesh.get_instance_transform(c.multimesh.instance_count / 2).origin
+			var ahead := tr.toward_river(tuft.x, tuft.z)
+			tuft_eye = tuft + ahead * 1.8
+			tuft_yaw = _yaw_to(tuft, tuft + ahead * 10.0)
 			break
 
 	# A beaver-cut stump on the bank, from a few paces off.
@@ -421,6 +451,10 @@ func _scenery_steps() -> Array:
 		# 4 m cells showed there as facets creased along their diagonals.
 		["sand_crease", 493.1, 667.9, -69.3, -7.0, 12.0, 0.0],
 		["snag", snag_eye.x, snag_eye.z, _yaw_to(snag_eye, snag), -6.0, 11.0, 0.0],
+		# A fixed spot below the landing where the bank had aliased into teeth.
+		["tuft", tuft_eye.x, tuft_eye.z, tuft_yaw, -6.0, 12.0, 0.0],
+		["bank_teeth", 605.9, 867.8, -150.7, -28.0, 11.0, 0.0, 5.0],
+		["cutbank", cut_eye.x, cut_eye.z, cut_yaw, -12.0, 10.0, 0.0],
 		["beaver", beaver_eye.x, beaver_eye.z, _yaw_to(beaver_eye, beaver), -28.0, 11.0, 0.0, 5.0],
 		["bar_willows", thicket_eye.x, thicket_eye.z, _yaw_to(thicket_eye, thicket), -4.0, 15.0, 0.0],
 		["prairie_noon", dogs.x, dogs.z, 90.0, -8.0, 13.0, 0.0],

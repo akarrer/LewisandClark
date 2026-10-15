@@ -145,6 +145,9 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 		sm.set_shader_parameter("tint", profile.get("bark_tint", Color(1.25, 1.18, 1.1)) if bark else (m.albedo_color * profile["tint"]))
 		sm.set_shader_parameter("sway", profile["sway"])
 		sm.set_shader_parameter("plant_height", height)
+		# Low plants give way to the camera (the shader decides what is low,
+		# from the height each instance stands); bark never does.
+		sm.set_shader_parameter("give_way", 0.0 if bark else 1.0)
 		sm.set_shader_parameter("flutter", 0.0 if bark else profile["flutter"])
 		sm.set_shader_parameter("translucency", 0.0 if bark else profile["translucency"])
 		sm.set_shader_parameter("variation", 0.04 if bark else profile["variation"])
@@ -200,6 +203,7 @@ func _flush() -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.set_meta("kind", b["kind"])
+		mmi.set_meta("variant", b["variant"])
 		if b["visibility"] > 0.0:
 			mmi.visibility_range_end = b["visibility"]
 			mmi.visibility_range_end_margin = 12.0
@@ -547,14 +551,13 @@ func _scatter_wildflowers() -> void:
 
 func _scatter_far_country(spec: Dictionary) -> void:
 	## Groves out in the country beyond the playable kilometre. Only ever a few
-	## pixels tall, so they are single blobs on a MultiMesh, unshadowed.
-	var mesh := _far_tree_mesh()
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
-	mm.mesh = mesh
+	## pixels tall, so they are lumps on a MultiMesh, unshadowed: the near band
+	## (within 500 m of the map) in four lumps, the country past it in two,
+	## since out there a tree is a dozen pixels and ten thousand of the full
+	## crown cost two million triangles to draw them.
 	var xforms: Array[Transform3D] = []
 	var tints: Array[Color] = []
+	var outs: Array[float] = []
 	var far := FastNoiseLite.new()
 	far.seed = 909
 	far.frequency = 1.0 / 260.0
@@ -573,54 +576,75 @@ func _scatter_far_country(spec: Dictionary) -> void:
 		xforms.append(Transform3D(basis, Vector3(x, h, z)))
 		var g := rng.randf_range(-0.04, 0.05)
 		tints.append(Color(0.30 + g, 0.40 + g, 0.24 + g * 0.5))
-	mm.instance_count = xforms.size()
-	for i in xforms.size():
-		mm.set_instance_transform(i, xforms[i])
-		mm.set_instance_color(i, tints[i])
-	var mmi := MultiMeshInstance3D.new()
-	mmi.name = "FarCountry"
-	mmi.multimesh = mm
-	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mmi.set_meta("kind", "far_country")
-	add_child(mmi)
+		outs.append(out)
+	for band in [["FarCountry", _far_tree_mesh(), 0.0, 500.0], ["FarCountryDistant", _far_tree_mesh(2, 3, 5), 500.0, 1e9]]:
+		var idx: Array[int] = []
+		for i in xforms.size():
+			if outs[i] >= band[2] and outs[i] < band[3]:
+				idx.append(i)
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.mesh = band[1]
+		mm.instance_count = idx.size()
+		for k in idx.size():
+			mm.set_instance_transform(k, xforms[idx[k]])
+			mm.set_instance_color(k, tints[idx[k]])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = band[0]
+		mmi.multimesh = mm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.set_meta("kind", "far_country")
+		add_child(mmi)
+		if OS.is_stdout_verbose():
+			print("foliage: %s x%d" % [band[0], idx.size()])
 
 
-static func _far_tree_mesh() -> ArrayMesh:
-	## A crown on a stub of trunk: read as a tree at a kilometre, three dozen triangles.
+static func _far_tree_mesh(lumps_n := 4, rings := 4, seg := 6) -> ArrayMesh:
+	## A crown on a stub of trunk: three or four lumps, not one, so the outline
+	## is a tree's and not a lantern's. About a hundred triangles; the shader
+	## (far_tree.gdshader) does the rest. COLOR.a marks crown (1) from trunk (0).
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var rings := 3
-	var seg := 7
-	var pts: Array = []
-	for r in rings + 1:
-		var v := float(r) / rings
-		var y := 0.35 + cos(v * PI) * -0.45 + 0.45
-		var rad := sin(v * PI) * 0.5 + 0.02
-		var row: Array = []
-		for k in seg + 1:
-			var a := TAU * k / seg
-			row.append(Vector3(cos(a) * rad, y, sin(a) * rad))
-		pts.append(row)
-	for r in rings:
-		for k in seg:
-			for v in [pts[r][k], pts[r + 1][k], pts[r + 1][k + 1], pts[r][k], pts[r + 1][k + 1], pts[r][k + 1]]:
-				st.add_vertex(v)
+	var lr := RandomNumberGenerator.new()
+	lr.seed = 71
+	var lumps := [[Vector3(0.0, 0.62, 0.0), 0.42], [Vector3(0.22, 0.52, 0.12), 0.3],
+			[Vector3(-0.2, 0.5, -0.14), 0.32], [Vector3(0.04, 0.82, -0.06), 0.26]]
+	for lump in lumps.slice(0, lumps_n):
+		var centre: Vector3 = lump[0]
+		var r: float = lump[1]
+		var twist := lr.randf() * TAU
+		var pts: Array = []
+		for ri in rings + 1:
+			var v := float(ri) / rings
+			var row: Array = []
+			for k in seg + 1:
+				var a := TAU * k / seg + twist
+				# Flattened underneath, as a crown is where the light stops reaching.
+				var y := -cos(v * PI) * r * (0.75 if v < 0.5 else 1.0)
+				var rad := sin(v * PI) * r * lr.randf_range(0.9, 1.1)
+				row.append(centre + Vector3(cos(a) * rad, y, sin(a) * rad))
+			pts.append(row)
+		for ri in rings:
+			for k in seg:
+				for p in [pts[ri][k], pts[ri + 1][k], pts[ri + 1][k + 1], pts[ri][k], pts[ri + 1][k + 1], pts[ri][k + 1]]:
+					st.set_color(Color(1, 1, 1, 1))
+					st.add_vertex(p)
 	# Trunk.
 	for k in seg:
 		var a0 := TAU * k / seg
 		var a1 := TAU * (k + 1) / seg
-		var w := 0.06
-		var quad := [Vector3(cos(a0) * w, 0, sin(a0) * w), Vector3(cos(a0) * w, 0.4, sin(a0) * w),
-				Vector3(cos(a1) * w, 0.4, sin(a1) * w), Vector3(cos(a1) * w, 0, sin(a1) * w)]
+		var w := 0.05
+		var quad := [Vector3(cos(a0) * w, 0, sin(a0) * w), Vector3(cos(a0) * w, 0.45, sin(a0) * w),
+				Vector3(cos(a1) * w, 0.45, sin(a1) * w), Vector3(cos(a1) * w, 0, sin(a1) * w)]
 		for v in [quad[0], quad[1], quad[2], quad[0], quad[2], quad[3]]:
+			st.set_color(Color(1, 1, 1, 0))
 			st.add_vertex(v)
+	st.index()               # shared vertices, so the lumps shade round, not faceted
 	st.generate_normals()
 	var mesh := st.commit()
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.vertex_color_is_srgb = true
-	m.roughness = 1.0
-	m.albedo_color = Color(1, 1, 1)
+	var m := ShaderMaterial.new()
+	m.shader = load("res://scripts/world/far_tree.gdshader")
 	mesh.surface_set_material(0, m)
 	return mesh
 

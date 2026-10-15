@@ -258,14 +258,18 @@ def carve_river(land, gx, gz, poly, rng, landing):
     # Cut bank: a steep face straight up out of the water to a natural levee,
     # then the bottom as it was -- or the bluff, which the river is gnawing at.
     top = np.minimum(np.maximum(land, FLOODPLAIN_Y + 0.4 + 1.0 * bend), FLOODPLAIN_Y + 4.5)
-    face = np.clip(beyond / 6.0, 0.0, 1.0)
+    # Ten metres, not six: the face has to span a few cells of the 4 m grid,
+    # or along any bank that runs at a slant to the grid it comes out as a
+    # row of teeth.
+    FACE = 10.0
+    face = np.clip(beyond / FACE, 0.0, 1.0)
     face = face * face * (3 - 2 * face)
-    levee = np.clip((beyond - 6.0) / 30.0, 0.0, 1.0)
+    levee = np.clip((beyond - FACE) / 30.0, 0.0, 1.0)
     # Then a bench of bottom at the top of the face before any rise behind it.
     top = np.minimum(top, FLOODPLAIN_Y + 0.4 + 1.0 * bend)
     rise = np.clip((beyond - 18.0) / 22.0, 0.0, 1.0)
     rise = rise * rise * (3 - 2 * rise)
-    bank_cut = np.where(beyond < 6.0, edge_y + (top - edge_y) * face,
+    bank_cut = np.where(beyond < FACE, edge_y + (top - edge_y) * face,
                         np.where(land > top, top + (land - top) * rise,
                                  np.maximum(land, top + (land - top) * levee)))
     banks = bar + (bank_cut - bar) * cut

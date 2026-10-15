@@ -428,6 +428,7 @@ func update(hour: float, delta: float) -> void:
 	RenderingServer.global_shader_parameter_set("sun_dir", sun.global_transform.basis.z)
 	RenderingServer.global_shader_parameter_set("cloud_shadow_strength", 0.55 * smoothstep(0.02, 0.2, elevation) * (1.0 - smoothstep(0.3, 0.8, storm)))
 	RenderingServer.global_shader_parameter_set("sky_horizon", horizon.lerp(zenith, 0.3))
+	RenderingServer.global_shader_parameter_set("sky_zenith", zenith)  # the river's reflections, looking up
 	# A storm drains the colour out of the land and flattens it.
 	env.tonemap_exposure = 1.05 - storm * 0.18
 	# Moonlight drains colour (scotopic vision), so warm grass doesn't glow olive at night.

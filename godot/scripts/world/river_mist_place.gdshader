@@ -10,6 +10,12 @@ uniform sampler2D river_tex : filter_linear, repeat_disable;
 uniform float map_size = 1024.0;
 uniform float river_edge = 62.0;   // out to here from the channel centre
 uniform float water_y = -0.35;
+
+// The terrain textures have a texel on every grid vertex (Terrain.RES 256,
+// so 257 across); p / map_size lands up to a texel off that.
+vec2 terrain_uv(vec2 xz) {
+	return (xz / map_size * 256.0 + 0.5) / 257.0;
+}
 global uniform float river_mist;
 
 float hash(vec2 p) {
@@ -41,10 +47,10 @@ void process() {
 	float lift = pow(hash(vec2(i, 23.7)), 2.2);
 	p.y = water_y + mix(0.15, 3.4, lift) + sin(TIME * 0.09 + i * 2.3) * 0.25;
 
-	float river = texture(river_tex, p.xz / map_size).r;
+	float river = texture(river_tex, terrain_uv(p.xz)).r;
 	float over_water = 1.0 - smoothstep(river_edge - 14.0, river_edge, river);
 	// Not where the bar stands out of the water: mist sits on the river itself.
-	float ground = texture(height_tex, p.xz / map_size).r;
+	float ground = texture(height_tex, terrain_uv(p.xz)).r;
 	over_water *= 1.0 - smoothstep(water_y - 0.1, water_y + 0.9, ground);
 
 	float s = mix(0.7, 1.5, hash(vec2(i, 11.7))) * over_water * smoothstep(0.02, 0.35, river_mist);
