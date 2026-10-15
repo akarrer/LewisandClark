@@ -43,6 +43,10 @@ sky_horizon={
 "type": "color",
 "value": Color(0.68, 0.79, 0.9, 1)
 }
+sky_zenith={
+"type": "color",
+"value": Color(0.35, 0.5, 0.8, 1)
+}
 cloud_cover={
 "type": "float",
 "value": 0.42

@@ -27,6 +27,8 @@ uniform float map_size = 1024.0;
 uniform float river_half = 55.0;      // metres from the channel centre to the bank
 uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
 global uniform vec4 sky_horizon;
+global uniform vec4 sky_zenith;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
 global uniform float wind_strength;
 global uniform float night_amount;
 global uniform vec3 moon_dir;
@@ -259,6 +261,67 @@ void eddies(vec2 p, float tt, float pix, float near, out float scum, out float c
 }
 
 
+// What the water reflects, found by marching the reflected ray through the
+// depth buffer. The river is drawn in the transparent pass (it thins over the
+// bars), and the engine's own screen-space reflections never reach a
+// transparent surface: the far bank and its trees were simply not in the
+// water. ``hit`` comes back 0 where the ray leaves the screen or runs into
+// nothing, and the caller shows the sky there.
+vec3 march_reflection(vec3 from, vec3 dir, mat4 view, mat4 proj, mat4 inv_proj,
+		sampler2D dtex, sampler2D stex, float blur, out float hit) {
+	hit = 0.0;
+	float t = 0.6;
+	vec2 hit_uv = vec2(0.0);
+	float prev_t = 0.0;
+	for (int i = 0; i < 36; i++) {
+		vec3 p = from + dir * t;
+		vec4 vp = view * vec4(p, 1.0);
+		vec4 cp = proj * vp;
+		if (cp.w <= 0.0) {
+			break;
+		}
+		vec2 uv = cp.xy / cp.w * 0.5 + 0.5;
+		if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+			break;
+		}
+		float d = texture(dtex, uv).r;
+		vec4 sv = inv_proj * vec4(uv * 2.0 - 1.0, d, 1.0);
+		float scene_z = sv.z / sv.w;
+		// Behind what the screen shows there, and not so far behind that it
+		// passed under it unseen. "Too far" is a step's length: the steps grow
+		// with distance, and a fixed allowance let a ray skip clean through a
+		// treeline and come back with the sky behind it, which broke the
+		// reflection of the far bank into scattered blots.
+		float step_len = t - prev_t;
+		if (vp.z < scene_z && scene_z - vp.z < 1.0 + step_len * 1.6) {
+			// Narrow it down between the last miss and this.
+			float a = prev_t;
+			float b = t;
+			for (int k = 0; k < 5; k++) {
+				float m = (a + b) * 0.5;
+				vec4 mv = view * vec4(from + dir * m, 1.0);
+				vec4 mc = proj * mv;
+				vec2 muv = mc.xy / mc.w * 0.5 + 0.5;
+				vec4 ms = inv_proj * vec4(muv * 2.0 - 1.0, texture(dtex, muv).r, 1.0);
+				if (mv.z < ms.z / ms.w) {
+					b = m;
+				} else {
+					a = m;
+				}
+			}
+			vec4 fc = proj * view * vec4(from + dir * b, 1.0);
+			hit_uv = fc.xy / fc.w * 0.5 + 0.5;
+			vec2 edge = min(hit_uv, 1.0 - hit_uv);
+			hit = smoothstep(0.0, 0.08, min(edge.x, edge.y));
+			break;
+		}
+		prev_t = t;
+		t *= 1.18;
+	}
+	return hit > 0.0 ? textureLod(stex, hit_uv, blur).rgb : vec3(0.0);
+}
+
+
 // How deep the water is at a point on screen: the height of the surface above
 // whatever the depth buffer has behind it. Whatever that is -- the bed, a hull,
 // a snag, a man's legs -- the water breaks against it the same way.
@@ -432,15 +495,42 @@ void fragment() {
 	float slope_aa = clamp(length(fwidth(wn)) * 2.4, 0.0, 0.55);
 	ROUGHNESS = clamp(mix(0.30, 0.52, smoothstep(30.0, 280.0, dist)) + foam * 0.45 + paw * 0.2 + slope_aa + (1.0 - smoothstep(0.0, 0.3, d_soft)) * 0.5
 			- (glass + slick * 0.5) * 0.18, 0.05, 1.0);
-	SPECULAR = 0.24;
-	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
-	// The silt does not stop at the far bank: let the reflection carry the
-	// river's own colour into it, or the far reach turns into a sheet of sky.
-	vec3 sheen = mix(sky_horizon.rgb, sky_horizon.rgb * deep_color * 2.6, 0.5);
+	// No engine specular: the reflection is done here, sky and scene both, and
+	// the sun and moon roads below. Left on, the engine's sky reflection would
+	// lie over the trees this finds in the water.
+	SPECULAR = 0.0;
+	vec3 eye_dir = normalize(world - CAMERA_POSITION_WORLD);
+	// The reflecting normal: the swell and chop, but tamed. Full strength they
+	// tear the reflection to confetti; this keeps a far bank recognisable,
+	// broken into the streaks a moving river makes of it.
+	vec3 rn = normalize(mix(vec3(0.0, 1.0, 0.0), wn, 0.35));
+	vec3 rdir = reflect(eye_dir, rn);
+	// The current shivers the reflection into streaks that run with it. The
+	// chop alone does this up close, but it is thinned out with distance, and
+	// past it the far bank lay in the water as still as in a millpond.
+	vec2 riffle = vec2(noise(vec2(t * 0.35, (s - TIME * flow_speed) * 0.06)),
+			noise(vec2(t * 0.35 + 9.1, (s - TIME * flow_speed) * 0.06))) - 0.5;
+	rdir.xz += (along * riffle.x * 0.6 + across * riffle.y) * 0.05 * (0.5 + gust);
+	rdir = normalize(rdir);
+	rdir.y = max(rdir.y, 0.002);
+	float cos_v = clamp(dot(-eye_dir, rn), 0.0, 1.0);
+	// Water's own Fresnel (F0 = 0.02): next to nothing looking down into it,
+	// most of the sky skimming across the far reach.
+	float fres = 0.02 + 0.98 * pow(1.0 - cos_v, 5.0);
 	// Not where the water is a film over the bar: the grazing sheen there drew
 	// one unbroken pale line down every shore.
 	float film = smoothstep(0.0, 0.3, d_soft);
-	EMISSION = sheen * fres * mix(0.03, 0.30, smoothstep(5.0, 120.0, dist)) * (1.0 - foam) * film;
+	vec3 sky_seen = mix(sky_horizon.rgb, sky_zenith.rgb, pow(rdir.y, 0.6));
+	float found;
+	vec3 scene_seen = march_reflection(world, rdir, VIEW_MATRIX, PROJECTION_MATRIX, INV_PROJECTION_MATRIX,
+			depth_tex, screen_tex, 1.0 + ROUGHNESS * 3.0, found);
+	vec3 seen = mix(sky_seen, scene_seen, found);
+	// Silt water is not a mirror even where the light skims it: a little of the
+	// river's own colour stays in the reflection, and a ruffled patch or foam
+	// takes most of it away.
+	float reflectance = 0.8 * fres * (1.0 - foam) * film * (1.0 - paw * 0.4) * mix(1.0, 0.55, smoothstep(0.35, 0.8, ROUGHNESS));
+	EMISSION = seen * reflectance * mix(vec3(1.0), deep_color * 2.4, 0.3);
+	c *= 1.0 - reflectance;
 	// Light coming up through the back of a crest, which is most of what gives a
 	// swell its shape from a low angle.
 	float crest = clamp(h / max(SWELL_AMP, 0.001), 0.0, 1.0);
@@ -464,7 +554,10 @@ void fragment() {
 	// moon dead on, breaking the road into a column of sparks.
 	vec3 moon = normalize(moon_dir);
 	float mglint = pow(clamp(dot(wn, normalize(moon + eye)), 0.0, 1.0), 220.0);
-	EMISSION += vec3(0.80, 0.86, 0.96) * mglint * 0.6 * moon_light
+	// And the road itself, now the engine's specular is off: a broader lobe
+	// off the same normal, brightest at a skim.
+	float mroad = pow(clamp(dot(wn, normalize(moon + eye)), 0.0, 1.0), 40.0) * (0.3 + fres);
+	EMISSION += vec3(0.80, 0.86, 0.96) * (mglint * 0.6 + mroad * 0.5) * moon_light
 			* smoothstep(0.0, 0.1, moon.y) * (1.0 - foam) * film;
 	ALBEDO = c * mix(1.0, cloud_light(world), 0.7);
 	// The Missouri is opaque: Clark could not see a foot into it, and letting the
