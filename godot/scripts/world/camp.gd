@@ -242,8 +242,12 @@ func _build_fire() -> void:
 	fire_light.name = "FireLight"
 	fire_light.position = Vector3(0, 0.8, 0)
 	fire_light.light_color = Color(1.0, 0.62, 0.28)
-	fire_light.omni_range = 16.0
-	fire_light.light_energy = 3.0
+	# A fire for forty-five men lights the tents and the faces round it and
+	# throws a glow well out into the grass. At 16 m with the default falloff it
+	# lit a ring a few paces wide and left the camp a black field at night.
+	fire_light.omni_range = 26.0
+	fire_light.omni_attenuation = 0.75
+	fire_light.light_energy = 11.0
 	fire_light.shadow_enabled = true
 	add_child(fire_light)
 
@@ -267,7 +271,10 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	# The fire breathes: the light flickers with the flames.
 	var t := Time.get_ticks_msec() / 1000.0
-	fire_light.light_energy = 2.6 + sin(t * 7.3) * 0.5 + sin(t * 2.1) * 0.35
+	# Strong enough to carry across the camp after dark; by day it is a fire in
+	# the sun, and at full strength it stained the noon grass orange.
+	var strength := lerpf(1.5, 11.0, clampf(night, 0.0, 1.0))
+	fire_light.light_energy = strength * (1.0 + sin(t * 7.3) * 0.13 + sin(t * 2.1) * 0.09)
 	_moths.emitting = night > 0.4
 
 
