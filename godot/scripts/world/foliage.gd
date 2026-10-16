@@ -669,7 +669,7 @@ static func _willow_mesh(seed: int) -> ArrayMesh:
 	bark.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var leaves := SurfaceTool.new()
 	leaves.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var wands := lr.randi_range(18, 26)
+	var wands := lr.randi_range(14, 20)
 	for wi in wands:
 		var a := lr.randf() * TAU
 		var out := Vector3(cos(a), 0.0, sin(a))
@@ -679,7 +679,7 @@ static func _willow_mesh(seed: int) -> ArrayMesh:
 		var splay := lr.randf_range(0.08, 0.32) + root.length() * 0.5
 		var bow := lr.randf_range(0.05, 0.25)
 		var pts: Array[Vector3] = []
-		var steps := 6
+		var steps := 4
 		for i in steps + 1:
 			var t := float(i) / steps
 			pts.append(root + out * (splay * t + bow * t * t) * tall + Vector3.UP * tall * t)
@@ -699,13 +699,13 @@ static func _willow_mesh(seed: int) -> ArrayMesh:
 					bark.add_vertex(v[0])
 		# Leaf sprays up the upper two thirds, each a card along the wand, turned
 		# its own way about it, leaning out a little more toward the tip.
-		var sprays := int(tall * lr.randf_range(7.0, 9.5))
+		var sprays := int(tall * lr.randf_range(6.5, 8.5))
 		for si in sprays:
 			var t := lr.randf_range(0.28, 1.0)
 			var at := root + out * (splay * t + bow * t * t) * tall + Vector3.UP * tall * t
 			var up := (Vector3.UP + out * lr.randf_range(0.1, 0.6)).normalized()
 			var side := up.cross(Vector3(cos(lr.randf() * TAU), 0, sin(lr.randf() * TAU))).normalized()
-			var size := lr.randf_range(0.5, 0.72) * (1.0 - t * 0.3)
+			var size := lr.randf_range(0.6, 0.85) * (1.0 - t * 0.3)
 			var w := side * size * 0.28
 			var h := up * size
 			var n := (out * 0.6 + Vector3.UP * 0.8).normalized()
