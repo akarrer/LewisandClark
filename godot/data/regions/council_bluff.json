@@ -203,10 +203,14 @@
           "twisted_tree_5"
         ],
         "beneath": [
-          "bush_1",
-          "bush_with_flowers_1",
+          "proc_dogwood_0",
+          "proc_dogwood_1",
+          "proc_dogwood_2",
+          "proc_buckbrush_0",
+          "proc_buckbrush_1",
           "plant_1",
-          "tree_5"
+          "proc_sapling_0",
+          "proc_sapling_1"
         ]
       },
       "groves": {
@@ -273,8 +277,10 @@
       "bushes": {
         "tries": 1400,
         "variants": [
-          "bush_1",
-          "bush_with_flowers_1"
+          "proc_buckbrush_0",
+          "proc_buckbrush_1",
+          "proc_buckbrush_2",
+          "proc_dogwood_0"
         ]
       },
       "rocks": {

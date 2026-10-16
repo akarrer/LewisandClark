@@ -84,20 +84,33 @@ func test_foliage_asks_only_for_known_stands():
 					"%s: wildflower %s has no look in Foliage.PROFILES" % [id, w.get("kind", "")])
 
 
+func _model_names(id: String) -> Array:
+	var f := Region.load_region(id).foliage()
+	var names: Array = []
+	for stand in f.get("stands", {}).values():
+		for field in ["variants", "beneath", "snags", "tufts", "stones", "felled", "young"]:
+			names.append_array(stand.get(field, []))
+	for w in f.get("wildflowers", []):
+		names.append_array(w.get("variants", []))
+	return names
+
+
 func test_foliage_models_exist():
 	# The art is fetched rather than committed, so CI cannot check this; locally it can.
 	if not DirAccess.dir_exists_absolute(Foliage.NATURE):
 		return
 	for id in _regions():
-		var f := Region.load_region(id).foliage()
-		var names: Array = []
-		for stand in f.get("stands", {}).values():
-			for field in ["variants", "beneath", "snags", "tufts", "stones", "felled"]:
-				names.append_array(stand.get(field, []))
-		for w in f.get("wildflowers", []):
-			names.append_array(w.get("variants", []))
-		for n in names:
-			t.check(ResourceLoader.exists(Foliage.NATURE + str(n) + ".glb"), "%s: no model %s" % [id, n])
+		for n in _model_names(id):
+			if not str(n).begins_with("proc_"):
+				t.check(ResourceLoader.exists(Foliage.NATURE + str(n) + ".glb"), "%s: no model %s" % [id, n])
+
+
+func test_built_shrubs_are_known():
+	# Shrubs built in code (proc_<form>_<n>) need no art, so CI can check these.
+	for id in _regions():
+		for n in _model_names(id):
+			if str(n).begins_with("proc_"):
+				t.check(Foliage.is_built(str(n)), "%s: no such built shrub %s" % [id, n])
 
 
 func test_wildlife_asks_only_for_known_animals():
