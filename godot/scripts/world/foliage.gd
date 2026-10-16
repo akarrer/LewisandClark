@@ -23,16 +23,21 @@ var _groves := FastNoiseLite.new()
 ## Wind and look per kind: sway (m at the top), flutter, translucency, tint, colour variation.
 const PROFILES := {
 	"cottonwood": {"sway": 0.35, "flutter": 1.0, "translucency": 0.45, "tint": Color(0.98, 1.0, 0.80), "variation": 0.14},
-	"grove": {"sway": 0.22, "flutter": 0.8, "translucency": 0.35, "tint": Color(0.86, 0.95, 0.78), "variation": 0.12},
+	# Bur oak: dark, grey, corky bark (the kit's runs orange, and up on the open
+	# hills read as lollipop sticks).
+	# Bur oak leaves are a darker, glossier green than the cottonwoods'.
+	"grove": {"sway": 0.18, "flutter": 0.6, "translucency": 0.28, "tint": Color(0.70, 0.84, 0.62), "variation": 0.12,
+		"bark_tint": Color(0.95, 0.92, 0.88), "bark_grey": 0.8},
 	"bush": {"sway": 0.08, "flutter": 0.6, "translucency": 0.35, "tint": Color(0.92, 1.0, 0.82), "variation": 0.16},
 	# The kit's grass models are spring green. On the uplands in August the prairie
 	# has cured to straw; only the swales and the river bottom hold their colour.
-	# ``cured`` is what a fully burnt-off clump is multiplied by, blended per
-	# instance, so the whole field is still one material and one draw call.
-	"grass": {"sway": 0.14, "flutter": 0.3, "translucency": 0.4, "tint": Color(0.74, 0.85, 0.60),
-		"cured": Color(1.46, 1.22, 0.86), "variation": 0.2},
+	# ``repaint`` draws a clump in the prairie field's own green-to-straw, by how
+	# far it has cured (per instance), so a clump stands out of the field by its
+	# shape and not as a lime-green stranger.
+	"grass": {"sway": 0.14, "flutter": 0.3, "translucency": 0.4, "tint": Color(1, 1, 1),
+		"repaint": true, "variation": 0.2},
 	"flowers": {"sway": 0.10, "flutter": 0.3, "translucency": 0.3, "tint": Color(1, 1, 1), "variation": 0.1},
-	"willow": {"sway": 0.18, "flutter": 1.3, "translucency": 0.45, "tint": Color(0.82, 0.95, 0.78), "variation": 0.12},
+	"willow": {"sway": 0.18, "flutter": 1.3, "translucency": 0.45, "tint": Color(1.0, 0.98, 0.84), "variation": 0.12},
 	"driftwood": {"sway": 0.0, "flutter": 0.0, "translucency": 0.0, "tint": Color(1, 1, 1), "variation": 0.08, "bark_tint": Color(1.95, 2.15, 1.75)},  # sun-bleached silver; the bark texture runs purple
 	"rock": {},
 	# The wooded ravines that cut the loess bluffs: shaded, damper, and green well
@@ -119,6 +124,8 @@ func build(t: Terrain) -> void:
 
 func _mesh(name: String, kind: String) -> Mesh:
 	var key := name + "|" + kind
+	if not _meshes.has(key) and name.begins_with("willow_clump_"):
+		_meshes[key] = _with_wind(_willow_mesh(int(name.substr(13))), PROFILES.get(kind, {}))
 	if not _meshes.has(key):
 		var scene: PackedScene = load(NATURE + name + ".glb")
 		var inst := scene.instantiate()
@@ -153,7 +160,8 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 		sm.set_shader_parameter("variation", 0.04 if bark else profile["variation"])
 		sm.set_shader_parameter("alpha_cut", 0.0 if bark else 0.5)
 		sm.set_shader_parameter("bark", 1.0 if bark else 0.0)
-		sm.set_shader_parameter("cured", Color(1, 1, 1) if bark else profile.get("cured", Color(1, 1, 1)))
+		sm.set_shader_parameter("bark_grey", profile.get("bark_grey", 0.6))
+		sm.set_shader_parameter("repaint", 0.0 if bark or not profile.get("repaint", false) else 1.0)
 		out.surface_set_material(s, sm)
 	return out
 
@@ -317,10 +325,12 @@ func _cottonwood(variants: Array, p: Vector3, near_water: float) -> void:
 
 
 func _scatter_groves(spec: Dictionary) -> void:
-	## Groves of smaller trees (bur oak country) in the ravines of the uplands.
+	## Bur oak groves in the ravines of the uplands.
 	var variants: Array = spec["variants"]
 	var snags: Array = spec["snags"]
 	var snag_share := float(spec["snag_share"])
+	var young: Array = spec.get("young", [])
+	var young_share := float(spec.get("young_share", 0.0))
 	for g in int(spec["tries"]):
 		var p := _random_point()
 		if not _in_draw(p) or rng.randf() > 0.55:
@@ -332,9 +342,21 @@ func _scatter_groves(spec: Dictionary) -> void:
 			if _dist_to_river(p) < 12.0 or _near_point(p, 12.0) or not _in_draw(p):
 				continue
 			# The odd lightning-struck snag, not a burned forest.
-			var v: String = snags[rng.randi() % snags.size()] if rng.randf() < snag_share else variants[rng.randi() % variants.size()]
-			var stretch := Vector3(rng.randf_range(0.85, 1.2), rng.randf_range(0.85, 1.3), rng.randf_range(0.85, 1.2))
-			_add("grove", v, p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0, stretch, COARSE_CHUNK)
+			if rng.randf() < snag_share:
+				var stretch := Vector3(rng.randf_range(0.85, 1.2), rng.randf_range(0.85, 1.3), rng.randf_range(0.85, 1.2))
+				_add("grove", snags[rng.randi() % snags.size()], p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0, stretch, COARSE_CHUNK)
+			elif young.size() > 0 and rng.randf() < young_share:
+				# A young oak: still narrow, but squat and bushy, not a pole with a ball on it.
+				var w := rng.randf_range(1.25, 1.6)
+				_add("grove", young[rng.randi() % young.size()], p - Vector3(0, 0.2, 0), rng.randf_range(0.55, 0.85), Vector3.UP, 0.0,
+						Vector3(w, rng.randf_range(0.6, 0.8), w * rng.randf_range(0.85, 1.15)), COARSE_CHUNK)
+			else:
+				# An open-grown bur oak: about as wide as it is tall, on a short
+				# trunk, its crown spread on crooked limbs.
+				var w := rng.randf_range(1.1, 1.35)
+				var lean := Vector3(rng.randf_range(-0.08, 0.08), 1.0, rng.randf_range(-0.08, 0.08))
+				_add("grove", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), rng.randf_range(0.42, 0.68), lean, 0.0,
+						Vector3(w, rng.randf_range(0.7, 0.9), w * rng.randf_range(0.85, 1.15)), COARSE_CHUNK)
 
 
 func _scatter_driftwood(spec: Dictionary) -> void:
@@ -422,19 +444,18 @@ func _scatter_sandbar(spec: Dictionary) -> void:
 			q.y = terrain.height_at(q.x, q.z)
 			if not _on_bar(q, 0.3):
 				continue
-			# Sizes from knee-high suckers to two-metre stems, each leaning its own way.
-			var narrow := rng.randf_range(0.4, 0.8)
+			# Sizes from knee-high suckers to clumps over a man's head, each leaning its own way.
 			var lean := Vector3(rng.randf_range(-0.14, 0.14), 1.0, rng.randf_range(-0.14, 0.14))
-			# Three kinds of stem in a thicket, or it reads as one bush repeated.
+			# Willow clumps of several builds, and the odd cottonwood among them.
 			if rng.randf() < 0.18:
 				# A young cottonwood among the willows: it grows as a tree, not a stem,
-				# so it does not take the willow's narrow-and-tall stretch.
+				# not a clump of wands.
 				_add("grove", "tree_5", q - Vector3(0, 0.1, 0), rng.randf_range(0.22, 0.38), lean, 260.0,
 						Vector3(0.9, rng.randf_range(1.0, 1.25), 0.9))
 			else:
-				var kind: String = "bush_with_flowers_1" if rng.randf() < 0.25 else "bush_1"
-				_add("willow", kind, q - Vector3(0, 0.1, 0), rng.randf_range(0.4, 1.35), lean, 260.0,
-						Vector3(narrow, rng.randf_range(1.2, 2.4), narrow * rng.randf_range(0.85, 1.2)))
+				_add("willow", "willow_clump_%d" % rng.randi_range(0, WILLOW_CLUMPS - 1), q - Vector3(0, 0.1, 0),
+						rng.randf_range(0.45, 1.15), lean, 260.0,
+						Vector3(1.0, rng.randf_range(0.85, 1.25), rng.randf_range(0.85, 1.15)))
 		if rng.randf() < 0.45:
 			var q2 := p + Vector3(rng.randf_range(-5, 5), 0, rng.randf_range(-5, 5))
 			q2.y = terrain.height_at(q2.x, q2.z)
@@ -647,6 +668,126 @@ static func _far_tree_mesh(lumps_n := 4, rings := 4, seg := 6) -> ArrayMesh:
 	m.shader = load("res://scripts/world/far_tree.gdshader")
 	mesh.surface_set_material(0, m)
 	return mesh
+
+
+## Sandbar willow (Salix interior) comes up on the bars as clumps of straight,
+## whippy wands from one root, narrow grey-green leaves all up them; nothing in
+## the kit looks like it (a bush stretched tall read as a green column on a
+## stick). A few clumps are built here, each from its own seed.
+const WILLOW_CLUMPS := 4
+
+
+static func _willow_mesh(seed: int) -> ArrayMesh:
+	var lr := RandomNumberGenerator.new()
+	lr.seed = 4100 + seed
+	var bark := SurfaceTool.new()
+	bark.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var leaves := SurfaceTool.new()
+	leaves.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var wands := lr.randi_range(14, 20)
+	for wi in wands:
+		var a := lr.randf() * TAU
+		var out := Vector3(cos(a), 0.0, sin(a))
+		var root := out * lr.randf_range(0.0, 0.28)
+		var tall := lr.randf_range(1.5, 3.0)
+		# Outer wands splay further; all of them bow a little outward at the tip.
+		var splay := lr.randf_range(0.08, 0.32) + root.length() * 0.5
+		var bow := lr.randf_range(0.05, 0.25)
+		var pts: Array[Vector3] = []
+		var steps := 4
+		for i in steps + 1:
+			var t := float(i) / steps
+			pts.append(root + out * (splay * t + bow * t * t) * tall + Vector3.UP * tall * t)
+		# The wand: three-sided and tapering to nothing.
+		for i in steps:
+			var r0 := 0.018 * (1.0 - float(i) / steps) + 0.002
+			var r1 := 0.018 * (1.0 - float(i + 1) / steps) + 0.002
+			for k in 3:
+				var a0 := TAU * k / 3.0
+				var a1 := TAU * (k + 1) / 3.0
+				var o0 := Vector3(cos(a0), 0, sin(a0))
+				var o1 := Vector3(cos(a1), 0, sin(a1))
+				for v in [[pts[i] + o0 * r0, 0.0], [pts[i + 1] + o0 * r1, 1.0], [pts[i + 1] + o1 * r1, 1.0],
+						[pts[i] + o0 * r0, 0.0], [pts[i + 1] + o1 * r1, 1.0], [pts[i] + o1 * r0, 0.0]]:
+					bark.set_uv(Vector2(0.5, v[1]))
+					bark.set_normal(((v[0] as Vector3) - pts[i]).normalized())
+					bark.add_vertex(v[0])
+		# Leaf sprays up the upper two thirds, each a card along the wand, turned
+		# its own way about it, leaning out a little more toward the tip.
+		var sprays := int(tall * lr.randf_range(6.5, 8.5))
+		for si in sprays:
+			var t := lr.randf_range(0.28, 1.0)
+			var at := root + out * (splay * t + bow * t * t) * tall + Vector3.UP * tall * t
+			var up := (Vector3.UP + out * lr.randf_range(0.1, 0.6)).normalized()
+			var side := up.cross(Vector3(cos(lr.randf() * TAU), 0, sin(lr.randf() * TAU))).normalized()
+			var size := lr.randf_range(0.6, 0.85) * (1.0 - t * 0.3)
+			var w := side * size * 0.28
+			var h := up * size
+			var n := (out * 0.6 + Vector3.UP * 0.8).normalized()
+			var quad := [[at - w, Vector2(0, 1)], [at - w + h, Vector2(0, 0)], [at + w + h, Vector2(1, 0)], [at + w, Vector2(1, 1)]]
+			for qi in [0, 1, 2, 0, 2, 3]:
+				leaves.set_uv(quad[qi][1])
+				leaves.set_normal(n)
+				leaves.add_vertex(quad[qi][0])
+	var mesh := bark.commit()
+	leaves.commit(mesh)
+	var bm := StandardMaterial3D.new()
+	bm.resource_name = "Bark_Willow"
+	var bimg := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	bimg.fill(Color(0.36, 0.27, 0.19))
+	bm.albedo_texture = ImageTexture.create_from_image(bimg)
+	mesh.surface_set_material(0, bm)
+	var lm := StandardMaterial3D.new()
+	lm.resource_name = "Leaves_Willow"
+	lm.albedo_texture = _willow_leaf_texture()
+	mesh.surface_set_material(1, lm)
+	return mesh
+
+
+static var _leaf_tex: Texture2D
+
+
+static func _willow_leaf_texture() -> Texture2D:
+	## A spray of narrow willow leaves on a twig, up the middle of the card:
+	## dull green above, some turned up to show the silver underside.
+	if _leaf_tex != null:
+		return _leaf_tex
+	var w := 64
+	var h := 128
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.42, 0.48, 0.32, 0.0))
+	var lr := RandomNumberGenerator.new()
+	lr.seed = 9
+	for y in range(8, h):
+		for x in range(31, 33):
+			img.set_pixel(x, y, Color(0.38, 0.32, 0.2, 1.0))
+	var n := 11
+	for li in n:
+		var by := h - 10 - li * (h - 18) / n
+		var side := -1.0 if li % 2 == 0 else 1.0
+		var ang := deg_to_rad(lr.randf_range(22.0, 42.0))
+		var dir := Vector2(sin(ang) * side, -cos(ang))
+		var length := lr.randf_range(26.0, 38.0)
+		var half := lr.randf_range(2.6, 3.6)
+		var silver := lr.randf() < 0.35
+		var col := Color(0.66, 0.70, 0.60) if silver else Color(0.47, 0.53, 0.36).lerp(Color(0.37, 0.44, 0.28), lr.randf())
+		var base := Vector2(32, by)
+		for y in h:
+			for x in w:
+				var d := Vector2(x + 0.5, y + 0.5) - base
+				var along := d.dot(dir)
+				if along < 0.0 or along > length:
+					continue
+				var across := absf(d.dot(Vector2(-dir.y, dir.x)))
+				var u := along / length
+				# Lanceolate: widest a third of the way out, drawn to a long point.
+				var half_at := half * sin(PI * pow(u, 0.7))
+				if across < half_at:
+					var shade := 0.88 + 0.24 * (1.0 - across / maxf(half_at, 0.01))
+					img.set_pixel(x, y, Color(col.r * shade, col.g * shade, col.b * shade, 1.0))
+	img.generate_mipmaps()
+	_leaf_tex = ImageTexture.create_from_image(img)
+	return _leaf_tex
 
 
 func _scatter_beaver_sign(spec: Dictionary) -> void:
