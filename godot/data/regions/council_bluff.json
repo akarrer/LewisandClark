@@ -303,8 +303,6 @@
       {
         "kind": "sunflower",
         "variants": [
-          "flower_group_2",
-          "flower_single_2",
           "flower_petal_3"
         ],
         "seed": 311,

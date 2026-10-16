@@ -215,6 +215,11 @@ static func awning(at: Vector3, terrain: Terrain) -> Node3D:
 		n.add_child(cylinder(0.06, h, pole, Vector3(c.x, ground + h * 0.5, c.y)))
 	var sail := box(Vector3(7.6, 0.04, 5.8), canvas, Vector3(0, 2.65, 0))
 	sail.rotation.x = atan2(0.6, 5.2)
-	(sail.material_override as StandardMaterial3D).cull_mode = BaseMaterial3D.CULL_DISABLED
+	# The same weathered canvas as the tents (canvas.gdshader), cut wider.
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://scripts/world/canvas.gdshader")
+	sm.set_shader_parameter("panel_len", 5.8)
+	sm.set_shader_parameter("bolt", 0.9)
+	sail.material_override = sm
 	n.add_child(sail)
 	return n

@@ -34,6 +34,11 @@ void vertex() {
 	v_colour = mix(day_colour, firefly, night_amount);
 	// INSTANCE_CUSTOM.z carries the placement scale (0 = not drawn at all).
 	float size = mix(1.0, 2.0, night_amount) * (0.6 + r) * INSTANCE_CUSTOM.z;
+	// Not right in front of the lens: a firefly a hand's breadth from the camera
+	// filled a corner of the shot as a green blur the size of a moon. Fade it
+	// out inside two metres; a real one that close is past before you see it.
+	float to_cam = length(MODEL_MATRIX[3].xyz - CAMERA_POSITION_WORLD);
+	v_glow *= smoothstep(1.0, 2.5, to_cam);
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
 	VERTEX.xy *= size;
 }
