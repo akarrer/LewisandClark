@@ -15,12 +15,19 @@ uniform float translucency = 0.35;  // 0 for bark
 uniform float variation = 0.12;
 uniform float base_shade = 0.7;
 uniform float bark = 0.0;           // 1 on trunks: cottonwood bark is deeply furrowed
+uniform float bark_grey = 0.0;      // how far a trunk is drained toward grey (the kit's bark runs orange)
 uniform float give_way = 0.0;       // 1 on leaves: pressed flat as the camera backs into a low plant
 // Where a plant stands decides how far it has cured: the MultiMesh carries that
 // per instance in COLOR.r, 0 for a green swale and 1 for the burnt-off upland.
-uniform vec4 cured : source_color = vec4(1.0);
+// The kit's grass is spring green, and no tint multiplied over spring green
+// gives straw (it only goes lime), so grass is repainted from the texture's
+// light and dark between the prairie field's own green and gold.
+uniform float repaint = 0.0;
+uniform vec3 green : source_color = vec3(0.40, 0.52, 0.22);
+uniform vec3 straw : source_color = vec3(0.72, 0.62, 0.30);
 global uniform float wind_strength;     // darken toward the ground (fake occlusion)
 
+varying float v_cure;
 varying float v_height;
 varying vec3 v_tint;
 varying vec3 v_local;
@@ -61,7 +68,7 @@ void vertex() {
 	float r = hash(origin.xz);
 	float g = hash(origin.zx + 7.7);
 	v_tint = vec3(1.0 + (r - 0.5) * variation * 2.0, 1.0 + (g - 0.5) * variation * 1.5, 1.0 - (r - 0.5) * variation);
-	v_tint *= mix(vec3(1.0), cured.rgb, COLOR.r);
+	v_cure = COLOR.r;
 	v_height = h;
 	v_local = VERTEX;
 }
@@ -79,8 +86,13 @@ void fragment() {
 	}
 	vec4 tex = texture(albedo_tex, UV);
 	vec3 c = tex.rgb * tint.rgb * v_tint;
+	if (repaint > 0.5) {
+		float shade = clamp(dot(tex.rgb, vec3(0.3, 0.59, 0.11)) / 0.42, 0.45, 1.5);
+		c = mix(green, straw, v_cure) * shade * v_tint;
+	}
 	c *= mix(base_shade, 1.08, smoothstep(0.0, 0.6, v_height));
 	if (bark > 0.5) {
+		c = mix(c, vec3(dot(c, vec3(0.3, 0.59, 0.11))) * vec3(1.0, 0.95, 0.88), bark_grey);
 		// Furrows running up the trunk, deeper and wider low down, as a mature
 		// cottonwood's bark is: the texture alone reads as painted-on card.
 		float around = atan(v_local.x, v_local.z);
