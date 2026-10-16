@@ -22,11 +22,11 @@ var _groves := FastNoiseLite.new()
 
 ## Wind and look per kind: sway (m at the top), flutter, translucency, tint, colour variation.
 const PROFILES := {
-	"cottonwood": {"sway": 0.35, "flutter": 1.0, "translucency": 0.45, "tint": Color(0.98, 1.0, 0.80), "variation": 0.14},
+	"cottonwood": {"sway": 0.35, "flutter": 1.0, "translucency": 0.45, "tint": Color(1.0, 1.0, 0.95), "variation": 0.14},
 	# Bur oak: dark, grey, corky bark (the kit's runs orange, and up on the open
 	# hills read as lollipop sticks).
 	# Bur oak leaves are a darker, glossier green than the cottonwoods'.
-	"grove": {"sway": 0.18, "flutter": 0.6, "translucency": 0.28, "tint": Color(0.70, 0.84, 0.62), "variation": 0.12,
+	"grove": {"sway": 0.18, "flutter": 0.6, "translucency": 0.28, "tint": Color(1.0, 1.0, 0.95), "variation": 0.12,
 		"bark_tint": Color(0.95, 0.92, 0.88), "bark_grey": 0.8},
 	"bush": {"sway": 0.08, "flutter": 0.6, "translucency": 0.35, "tint": Color(1.0, 1.0, 0.95), "variation": 0.16},
 	# Cottonwood leaves tremble on their flat stalks at the least air.
@@ -134,7 +134,7 @@ func _mesh(name: String, kind: String) -> Mesh:
 		var scene: PackedScene = load(NATURE + name + ".glb")
 		var inst := scene.instantiate()
 		var mi: MeshInstance3D = inst.find_children("*", "MeshInstance3D", true, false)[0]
-		_meshes[key] = _with_wind(_summer_leaves(mi.mesh), PROFILES.get(kind, {}))
+		_meshes[key] = _with_wind(_summer_leaves(mi.mesh, kind), PROFILES.get(kind, {}))
 		inst.free()
 	return _meshes[key]
 
@@ -170,18 +170,28 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 	return out
 
 
-func _summer_leaves(mesh: Mesh) -> Mesh:
-	## The kit's twisted-tree leaves are autumn red; August cottonwoods are green.
+func _summer_leaves(mesh: Mesh, kind: String) -> Mesh:
+	## The cottonwoods and oaks wear leaves of their own (LeafArt): the kit's
+	## twisted-tree leaves are autumn red, and its green card is ten big blobs
+	## that made every crown a heap of pebbles.
+	var crown: String = {"cottonwood": "cottonwood", "grove": "oak"}.get(kind, "")
 	var out: Mesh = null
 	for s in mesh.get_surface_count():
 		var m := mesh.surface_get_material(s) as BaseMaterial3D
-		if m and m.resource_name.begins_with("Leaves_TwistedTree"):
-			if out == null:
-				out = mesh.duplicate()
-			var green := m.duplicate() as BaseMaterial3D
+		if m == null or not m.resource_name.begins_with("Leaves_"):
+			continue
+		if crown == "" and not m.resource_name.begins_with("Leaves_TwistedTree"):
+			continue
+		if out == null:
+			out = mesh.duplicate()
+		var green := m.duplicate() as BaseMaterial3D
+		if crown != "":
+			green.albedo_texture = LeafArt.crown(crown)
+			green.albedo_color = Color(1, 1, 1)
+		else:
 			green.albedo_texture = load(NATURE + "tree_1_Leaves_NormalTree_C.png")
 			green.albedo_color = Color(1.0, 1.0, 0.82)
-			out.surface_set_material(s, green)
+		out.surface_set_material(s, green)
 	return out if out != null else mesh
 
 
