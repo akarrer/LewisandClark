@@ -211,14 +211,20 @@
       },
       "groves": {
         "tries": 900,
-        "note": "Bur oak country in the draws; the odd lightning-struck snag.",
+        "note": "Bur oak country in the draws: old open-grown oaks, low and spreading on crooked limbs, some young ones coming up among them, and the odd lightning-struck snag.",
         "variants": [
-          "tree_1",
-          "tree_2",
+          "twisted_tree_1",
+          "twisted_tree_2",
+          "twisted_tree_3",
+          "twisted_tree_4",
+          "twisted_tree_5"
+        ],
+        "young": [
           "tree_3",
           "tree_4",
           "tree_5"
         ],
+        "young_share": 0.3,
         "snags": [
           "dead_tree_1",
           "dead_tree_3"

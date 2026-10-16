@@ -25,7 +25,8 @@ const PROFILES := {
 	"cottonwood": {"sway": 0.35, "flutter": 1.0, "translucency": 0.45, "tint": Color(0.98, 1.0, 0.80), "variation": 0.14},
 	# Bur oak: dark, grey, corky bark (the kit's runs orange, and up on the open
 	# hills read as lollipop sticks).
-	"grove": {"sway": 0.22, "flutter": 0.8, "translucency": 0.35, "tint": Color(0.86, 0.95, 0.78), "variation": 0.12,
+	# Bur oak leaves are a darker, glossier green than the cottonwoods'.
+	"grove": {"sway": 0.18, "flutter": 0.6, "translucency": 0.28, "tint": Color(0.70, 0.84, 0.62), "variation": 0.12,
 		"bark_tint": Color(0.95, 0.92, 0.88), "bark_grey": 0.8},
 	"bush": {"sway": 0.08, "flutter": 0.6, "translucency": 0.35, "tint": Color(0.92, 1.0, 0.82), "variation": 0.16},
 	# The kit's grass models are spring green. On the uplands in August the prairie
@@ -324,10 +325,12 @@ func _cottonwood(variants: Array, p: Vector3, near_water: float) -> void:
 
 
 func _scatter_groves(spec: Dictionary) -> void:
-	## Groves of smaller trees (bur oak country) in the ravines of the uplands.
+	## Bur oak groves in the ravines of the uplands.
 	var variants: Array = spec["variants"]
 	var snags: Array = spec["snags"]
 	var snag_share := float(spec["snag_share"])
+	var young: Array = spec.get("young", [])
+	var young_share := float(spec.get("young_share", 0.0))
 	for g in int(spec["tries"]):
 		var p := _random_point()
 		if not _in_draw(p) or rng.randf() > 0.55:
@@ -339,9 +342,21 @@ func _scatter_groves(spec: Dictionary) -> void:
 			if _dist_to_river(p) < 12.0 or _near_point(p, 12.0) or not _in_draw(p):
 				continue
 			# The odd lightning-struck snag, not a burned forest.
-			var v: String = snags[rng.randi() % snags.size()] if rng.randf() < snag_share else variants[rng.randi() % variants.size()]
-			var stretch := Vector3(rng.randf_range(0.85, 1.2), rng.randf_range(0.85, 1.3), rng.randf_range(0.85, 1.2))
-			_add("grove", v, p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0, stretch, COARSE_CHUNK)
+			if rng.randf() < snag_share:
+				var stretch := Vector3(rng.randf_range(0.85, 1.2), rng.randf_range(0.85, 1.3), rng.randf_range(0.85, 1.2))
+				_add("grove", snags[rng.randi() % snags.size()], p - Vector3(0, 0.2, 0), rng.randf_range(0.7, 1.15), Vector3.UP, 0.0, stretch, COARSE_CHUNK)
+			elif young.size() > 0 and rng.randf() < young_share:
+				# A young oak: still narrow, but squat and bushy, not a pole with a ball on it.
+				var w := rng.randf_range(1.25, 1.6)
+				_add("grove", young[rng.randi() % young.size()], p - Vector3(0, 0.2, 0), rng.randf_range(0.55, 0.85), Vector3.UP, 0.0,
+						Vector3(w, rng.randf_range(0.6, 0.8), w * rng.randf_range(0.85, 1.15)), COARSE_CHUNK)
+			else:
+				# An open-grown bur oak: about as wide as it is tall, on a short
+				# trunk, its crown spread on crooked limbs.
+				var w := rng.randf_range(1.1, 1.35)
+				var lean := Vector3(rng.randf_range(-0.08, 0.08), 1.0, rng.randf_range(-0.08, 0.08))
+				_add("grove", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), rng.randf_range(0.42, 0.68), lean, 0.0,
+						Vector3(w, rng.randf_range(0.7, 0.9), w * rng.randf_range(0.85, 1.15)), COARSE_CHUNK)
 
 
 func _scatter_driftwood(spec: Dictionary) -> void:
