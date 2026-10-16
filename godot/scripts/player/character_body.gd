@@ -29,13 +29,13 @@ const BUILDS := {"york": {"height": 1.07, "stride": 1.1}, "lewis": {"height": 1.
 ## Period dress per person for outfit.gdshader (placeholder until commissioned models).
 ## Unlisted keys get the enlisted man's kit in their own coat colour.
 const OUTFITS := {
-	"lewis": {"hair": Color(0.36, 0.25, 0.15), "coat": Color(0.13, 0.17, 0.30), "facing": Color(0.55, 0.13, 0.11), "breeches": Color(0.72, 0.64, 0.46), "legs": Color(0.10, 0.08, 0.07)},
+	"lewis": {"cut": "coat", "hair": Color(0.36, 0.25, 0.15), "coat": Color(0.13, 0.17, 0.30), "facing": Color(0.55, 0.13, 0.11), "breeches": Color(0.72, 0.64, 0.46), "legs": Color(0.10, 0.08, 0.07)},
 	"clark": {"hair": Color(0.55, 0.26, 0.12), "facing": Color(0.30, 0.22, 0.14), "waistcoat": Color(0.70, 0.62, 0.48), "legs": Color(0.36, 0.27, 0.18), "skin": Color(0.84, 0.64, 0.52)},
 	"york": {"hair": Color(0.08, 0.06, 0.05), "facing": Color(0.22, 0.17, 0.13), "breeches": Color(0.34, 0.30, 0.24), "legs": Color(0.24, 0.18, 0.13), "skin": Color(0.30, 0.20, 0.15)},
 	"drouillard": {"hair": Color(0.07, 0.06, 0.05), "facing": Color(0.52, 0.40, 0.27), "waistcoat": null, "breeches": Color(0.50, 0.40, 0.27), "legs": Color(0.46, 0.36, 0.24), "skin": Color(0.62, 0.45, 0.33)},
 	# A French trader living among the Oto: a trade coat gone brown, leggings.
-	"trader": {"hair": Color(0.20, 0.14, 0.09), "coat": Color(0.36, 0.27, 0.18), "facing": Color(0.30, 0.22, 0.15), "waistcoat": null, "breeches": Color(0.46, 0.37, 0.25), "legs": Color(0.42, 0.33, 0.22), "skin": Color(0.78, 0.58, 0.45)},
-	"messenger": {"hair": Color(0.05, 0.05, 0.05), "facing": Color(0.62, 0.18, 0.14), "waistcoat": null, "stock": null, "breeches": Color(0.48, 0.38, 0.26), "legs": Color(0.44, 0.34, 0.23), "skin": Color(0.58, 0.40, 0.29)},
+	"trader": {"cut": "coat", "hair": Color(0.20, 0.14, 0.09), "coat": Color(0.36, 0.27, 0.18), "facing": Color(0.30, 0.22, 0.15), "waistcoat": null, "breeches": Color(0.46, 0.37, 0.25), "legs": Color(0.42, 0.33, 0.22), "skin": Color(0.78, 0.58, 0.45)},
+	"messenger": {"cut": "shirt", "hair": Color(0.05, 0.05, 0.05), "facing": Color(0.62, 0.18, 0.14), "waistcoat": null, "stock": null, "breeches": Color(0.48, 0.38, 0.26), "legs": Color(0.44, 0.34, 0.23), "skin": Color(0.58, 0.40, 0.29)},
 }
 
 
@@ -68,6 +68,8 @@ func _ready() -> void:
 	model.scale = Vector3.ONE * height
 	anim = model.find_children("*", "AnimationPlayer", true, false)[0]
 	var mesh: MeshInstance3D = model.find_children("*", "MeshInstance3D", true, false)[0]
+	# Cloth over the mannequin's muscles, and the skirt of his frock or coat.
+	mesh.mesh = Clothes.dress(mesh.mesh, _cut())
 	var outfit := _outfit_material()
 	for s in mesh.mesh.get_surface_count():
 		mesh.set_surface_override_material(s, outfit)
@@ -78,8 +80,17 @@ func _ready() -> void:
 	play("Idle")
 
 
+func _outfit() -> Dictionary:
+	return OUTFITS.get(key, OUTFITS["messenger"] if key.begins_with("messenger") else {})
+
+
+func _cut() -> String:
+	## A hunting frock unless the outfit says otherwise (see Clothes.CUTS).
+	return str(_outfit().get("cut", "frock"))
+
+
 func _outfit_material() -> ShaderMaterial:
-	var o: Dictionary = OUTFITS.get(key, OUTFITS["messenger"] if key.begins_with("messenger") else {})
+	var o: Dictionary = _outfit()
 	var skin: Color = o.get("skin", Color(0.82, 0.63, 0.51))
 	var m := ShaderMaterial.new()
 	m.shader = preload("res://scripts/player/outfit.gdshader")

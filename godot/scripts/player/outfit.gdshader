@@ -24,6 +24,9 @@ varying float v_front;
 varying float v_hair;
 varying float v_torso;
 varying vec3 v_pos;
+// Rest-pose position (Clothes puts it in CUSTOM0; w = 1 on the skirt): the
+// face and the hairline are painted in it, whatever pose the body is in.
+varying vec4 v_rest;
 #include "res://scripts/world/cloud_shadow.gdshaderinc"
 
 void vertex() {
@@ -56,12 +59,19 @@ void vertex() {
 			if (b >= 2 && b <= 4) spine += w;
 		}
 	}
+	v_rest = CUSTOM0;
+	if (CUSTOM0.w > 0.5) {
+		r = vec4(1.0, 0.0, 0.0, 0.0);  // the skirt is the coat's cloth, though it hangs off the thighs
+		torso = 0.0;
+	}
 	v_region = r;
 	v_hand = hand;
 	v_forearm = forearm;
 	v_neck = neck;
-	// Hair over the back and sides of the head, the face left bare.
-	v_hair = head * smoothstep(0.1, -0.35, NORMAL.z + max(NORMAL.y, 0.0) * -0.6);
+	// Hair over the crown, back and sides, down to a hairline across the brow.
+	vec3 q = CUSTOM0.xyz;
+	float hairline = mix(1.61, 1.748, smoothstep(0.0, 0.07, q.z)) + abs(q.x) * 0.25 * smoothstep(0.0, 0.07, q.z);
+	v_hair = head * smoothstep(hairline - 0.006, hairline + 0.006, q.y);
 	v_torso = torso;
 	v_pos = VERTEX;
 	// Waistcoat: the front-centre of the chest (the mannequin faces +Z).
@@ -85,8 +95,36 @@ void fragment() {
 	// mannequin's torso triangles are too big to carry a thin band per vertex).
 	float belt = 1.0 - smoothstep(0.022, 0.03, abs(v_pos.x - (v_pos.y - 1.12) * 0.9));
 	c = mix(c, strap, belt * smoothstep(0.4, 0.7, v_torso));
-	c = mix(c, stock, smoothstep(0.6, 0.85, v_neck) * 0.9);
+	// The stock: a band of linen wound round the neck, under the jaw. Drawn in
+	// the rest pose, not by the neck bone's weight, which spreads over the
+	// shoulders and left a speckled smear across the top of the chest.
+	vec3 rq = v_rest.xyz;
+	float round_neck = 1.0 - smoothstep(0.065, 0.085, length(rq.xz - vec2(0.0, -0.005)));
+	float stock_band = smoothstep(1.475, 1.49, rq.y) * (1.0 - smoothstep(1.565, 1.58, rq.y)) * round_neck;
+	c = mix(c, stock, stock_band * (1.0 - v_rest.w));
 	c = mix(c, hair, smoothstep(0.3, 0.6, v_hair));
+	// A face: brows, eyes set in shadow, the shade under the nose, a mouth.
+	// Only on the front of the head (the mannequin faces +Z in its rest pose).
+	vec3 q = v_rest.xyz;
+	float face = r.w * smoothstep(0.05, 0.08, q.z) * step(1.58, q.y) * (1.0 - v_hair);
+	if (face > 0.0) {
+		float ax = abs(q.x);
+		float socket = 1.0 - smoothstep(0.0, 1.0, length(vec2((ax - 0.034) / 0.026, (q.y - 1.705) / 0.016)));
+		float eye = 1.0 - smoothstep(0.7, 1.0, length(vec2((ax - 0.034) / 0.011, (q.y - 1.703) / 0.0055)));
+		float brow_y = 1.722 + (ax - 0.034) * -0.12;
+		float brow = (1.0 - smoothstep(0.003, 0.0055, abs(q.y - brow_y))) * (1.0 - smoothstep(0.050, 0.058, ax)) * smoothstep(0.010, 0.016, ax);
+		float nose = (1.0 - smoothstep(0.0, 1.0, length(vec2(q.x / 0.016, (q.y - 1.662) / 0.006)))) * 0.6
+				+ (1.0 - smoothstep(0.0025, 0.005, ax)) * smoothstep(1.66, 1.67, q.y) * (1.0 - smoothstep(1.69, 1.70, q.y)) * 0.15;
+		float mouth = (1.0 - smoothstep(0.0018, 0.0035, abs(q.y - 1.637 - ax * ax * 3.0))) * (1.0 - smoothstep(0.016, 0.022, ax));
+		float cheek = 1.0 - smoothstep(0.0, 1.0, length(vec2((ax - 0.048) / 0.02, (q.y - 1.668) / 0.016)));
+		vec3 f = c;
+		f = mix(f, f * vec3(1.06, 0.92, 0.88), cheek * 0.35);
+		f *= 1.0 - socket * 0.22 - nose * 0.25;
+		f = mix(f, hair * 0.85, brow);
+		f = mix(f, vec3(0.07, 0.05, 0.045), eye * 0.9);
+		f = mix(f, f * vec3(0.62, 0.42, 0.40), mouth * 0.85);
+		c = mix(c, f, face);
+	}
 	// Woven grain on cloth only.
 	float cloth = 1.0 - r.w;
 	vec2 g = UV * 900.0;
