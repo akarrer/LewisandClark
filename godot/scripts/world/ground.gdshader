@@ -427,7 +427,11 @@ void fragment() {
 		float e = max(0.06, px * 1.5);
 		vec2 dx = vec2(e, 0.0);
 		vec2 dz = vec2(0.0, e);
-		float scale = mix(0.5, 0.16, sand);  // dunes are softer than tussocks
+		// Tussocks are a hand high on a pace of ground, a gentle tilt. At 0.5 the
+		// bumps leant up to sixty degrees, their far sides went near black, and
+		// wherever the grass was thin (the camp, the landing) the ground read as
+		// a camouflage print.
+		float scale = 0.16;
 		// fbm, not two octaves of plain value noise. The gradient of value noise
 		// peaks inside every lattice cell, so bending the normal by it laid a
 		// cobbled grid over every slope in the game -- the single most visible
@@ -436,7 +440,10 @@ void fragment() {
 		float h0 = relief_h(p, sand, px);
 		float hx = relief_h(p + dx, sand, px);
 		float hz = relief_h(p + dz, sand, px);
-		bumped += vec3(-(hx - h0), 0.0, -(hz - h0)) / e * scale * relief;
+		vec2 tilt = vec2(-(hx - h0), -(hz - h0)) / e * scale * relief;
+		// And never more than about twenty-five degrees, whatever the noise does.
+		tilt *= min(1.0, 0.45 / max(length(tilt), 1e-4));
+		bumped += vec3(tilt.x, 0.0, tilt.y);
 	}
 	NORMAL = normalize((VIEW_MATRIX * vec4(normalize(bumped), 0.0)).xyz);
 	// The same moonlight as the blades: the prairie under them goes grey with them.
