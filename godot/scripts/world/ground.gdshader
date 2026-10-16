@@ -136,6 +136,29 @@ float gfbm(vec2 p, float cycles_per_px) {
 	return v;
 }
 
+// How near a point is to the edge of its cell in a field of random cells:
+// 0 on an edge. Mud drying on a bar shrinks and splits into these polygons.
+float cell_edge(vec2 x) {
+	vec2 i = floor(x);
+	vec2 f = fract(x);
+	float d1 = 8.0;
+	float d2 = 8.0;
+	for (int j = -1; j <= 1; j++) {
+		for (int k = -1; k <= 1; k++) {
+			vec2 g = vec2(float(k), float(j));
+			vec2 o = vec2(hash(i + g), hash(i + g + vec2(4099.0, 77.0))) * 0.8 + 0.1;
+			float d = length(g + o - f);
+			if (d < d1) {
+				d2 = d1;
+				d1 = d;
+			} else if (d < d2) {
+				d2 = d;
+			}
+		}
+	}
+	return d2 - d1;
+}
+
 // The height the relief normal is bent by: tussocks on the prairie, soft
 // hummocks on the sand. One function, so all three samples of it agree.
 float relief_h(vec2 q, float sand, float px) {
@@ -293,19 +316,60 @@ void fragment() {
 	float ripple = mix(0.5, r_h, r_amt);
 	// Missouri sand is grey-buff, not beach gold, and at noon a pale sheet of it
 	// was the brightest thing on the screen.
-	vec3 sandy = c * vec3(0.94, 0.93, 0.93) * (0.87 + ripple * 0.14);
+	// Buff, though: grey-white read as snow under a blue sky.
+	vec3 sandy = c * vec3(0.95, 0.92, 0.85) * (0.87 + ripple * 0.14);
 	float wet = 1.0 - smoothstep(-0.2, 0.9, hgt + (vnoise(p * 0.5) - 0.5) * 0.4);
-	sandy = mix(sandy, sandy * vec3(0.62, 0.60, 0.58), wet * 0.85);
+	sandy = mix(sandy, sandy * vec3(0.60, 0.56, 0.50), wet * 0.85);  // wet sand goes brown, not grey
 	// The swash: the last hand's breadth above the water is soaked through,
 	// darkest and glossy, with a ragged line where the lap last reached.
 	float swash = 1.0 - smoothstep(-0.36, -0.1, hgt + (vnoise(p * 1.7) - 0.5) * 0.12);
-	sandy = mix(sandy, sandy * vec3(0.55, 0.53, 0.52), swash * 0.8);
+	sandy = mix(sandy, sandy * vec3(0.52, 0.48, 0.42), swash * 0.8);
 	// A bar is not one sheet of clean sand. The river leaves silt in it, and the
 	// last fall of the water leaves damp patches that dry from the edges in.
 	float damp = smoothstep(0.42, 0.74, fbm(p * 0.09)) * (1.0 - smoothstep(0.6, 2.6, hgt));
 	sandy = mix(sandy, sandy * vec3(0.78, 0.76, 0.72), damp * 0.5);  // soft: strong, these read as smudges
 	float silt = smoothstep(0.52, 0.8, fbm(p * 0.35 + 19.0));
 	sandy = mix(sandy, sandy * vec3(0.84, 0.81, 0.75), silt * 0.4);
+	// Only where there is sand to see: it is most of a pixel's work on a bar,
+	// and the prairie covers most of the screen.
+	if (sand > 0.001) {
+		// The dry top of a bar is the wind's: fine pale sand drifted in long tongues
+		// down the wind with the coarse, darker lag left between them, and the
+		// surface combed into small ripples a hand apart. Without it the high bars
+		// were one flat sheet from the waterline to the willows.
+		vec2 wind = vec2(0.95, -0.31);
+		vec2 across = vec2(-wind.y, wind.x);
+		// Bars stand only a foot or two out of the river (its surface is at -0.35).
+		// Mud lies in the hollows; the wind has the rest (see below).
+		float mud = smoothstep(0.55, 0.75, fbm(p * 0.07 + 41.0)) * (1.0 - smoothstep(0.15, 0.5, hgt)) * (1.0 - swash);
+		float dry = smoothstep(-0.05, 0.4, hgt) * (1.0 - damp) * (1.0 - mud);
+		float tongues = vnoise(vec2(dot(p, wind) * 0.06, dot(p, across) * 0.55)) * 0.65
+				+ vnoise(vec2(dot(p, wind) * 0.15, dot(p, across) * 1.3) + 11.0) * 0.35;
+		sandy *= mix(1.0, mix(0.88, 1.06, smoothstep(0.3, 0.72, tongues)), dry);
+		// Wind ripples: crests across the wind, a long back and steep lee like the
+		// current's but under half the size, and only where the current's are not.
+		float w_ph = dot(p, wind) / 0.24 + vnoise(p * 0.7) * 3.0 + vnoise(p * 2.3) * 0.8;
+		float w_f = fract(w_ph);
+		float w_m = min(w_f / 0.75, (1.0 - w_f) / 0.25);
+		float w_dh = w_f < 0.75 ? 2.0 * w_m / 0.75 : -2.0 * w_m / 0.25;
+		float w_amt = (1.0 - smoothstep(0.18, 0.45, footprint / 0.24 * 1.4)) * dry * (1.0 - r_mask) * sand
+				* smoothstep(0.3, 0.5, vnoise(p * 0.22 + 5.0));
+		ripple_slope += wind * (w_dh / 0.24) * 0.012 * w_amt;
+		sandy *= 1.0 + (w_m * w_m - 0.5) * 0.14 * w_amt;
+		// Mud: in the low hollows the last fall of the river left a skin of silt,
+		// grey-brown, that has dried and split into polygons a hand or two across.
+		if (mud > 0.01 && dist < 60.0) {
+			// A crack is a couple of centimetres wide, thinner than a pixel a few
+			// metres off at a low eye. Drawn no thinner than a pixel, and paler as it
+			// is widened, so it keeps its weight on the screen and does not alias.
+			float w_cell = max(0.06, footprint * 2.4 * 1.3);
+			float cracks = 1.0 - smoothstep(w_cell * 0.45, w_cell, cell_edge(p * 2.4 + (vec2(vnoise(p * 3.1), vnoise(p * 3.1 + 9.0)) - 0.5) * 0.35));
+			cracks *= min(1.0, 0.09 / w_cell) * (1.0 - smoothstep(0.06, 0.14, footprint));
+			vec3 skin = sandy * vec3(0.80, 0.77, 0.72);
+			skin *= 1.0 - cracks * 0.45;
+			sandy = mix(sandy, skin, mud * (1.0 - smoothstep(35.0, 60.0, dist)));
+		}
+	}
 	// Drift lines: dark bands of twigs and silt left where the river last stood.
 	float drift_line = smoothstep(0.06, 0.0, abs(fract(hgt * 1.3 + vnoise(p * 0.2) * 0.6) - 0.5) - 0.44);
 	sandy *= 1.0 - drift_line * 0.38 * smoothstep(0.2, 0.8, vnoise(p * 1.1));
