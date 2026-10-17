@@ -22,11 +22,14 @@ var _groves := FastNoiseLite.new()
 
 ## Wind and look per kind: sway (m at the top), flutter, translucency, tint, colour variation.
 const PROFILES := {
-	"cottonwood": {"sway": 0.35, "flutter": 1.0, "translucency": 0.45, "tint": Color(0.98, 1.0, 0.80), "variation": 0.14},
+	# The kit's twisted tree stands on a trunk nearly as thick as it is tall,
+	# flared like an elephant's foot; a bottomland cottonwood carries a long,
+	# clean bole. ``bole`` draws the bark in toward the axis at the ground.
+	"cottonwood": {"sway": 0.35, "flutter": 1.0, "translucency": 0.45, "tint": Color(1.0, 1.0, 0.95), "variation": 0.14, "bole": 0.6},
 	# Bur oak: dark, grey, corky bark (the kit's runs orange, and up on the open
 	# hills read as lollipop sticks).
 	# Bur oak leaves are a darker, glossier green than the cottonwoods'.
-	"grove": {"sway": 0.18, "flutter": 0.6, "translucency": 0.28, "tint": Color(0.70, 0.84, 0.62), "variation": 0.12,
+	"grove": {"sway": 0.18, "flutter": 0.6, "translucency": 0.28, "tint": Color(1.0, 1.0, 0.95), "variation": 0.12,
 		"bark_tint": Color(0.95, 0.92, 0.88), "bark_grey": 0.8},
 	"bush": {"sway": 0.08, "flutter": 0.6, "translucency": 0.35, "tint": Color(1.0, 1.0, 0.95), "variation": 0.16},
 	# Cottonwood leaves tremble on their flat stalks at the least air.
@@ -97,6 +100,7 @@ func build(t: Terrain) -> void:
 	_groves.frequency = 1.0 / 90.0
 	if _stands.has("cottonwoods"):
 		_scatter_cottonwoods(_stands["cottonwoods"])
+		_scatter_canopy(int(_stands["cottonwoods"].get("canopy", 0)))
 	if _stands.has("groves"):
 		_scatter_groves(_stands["groves"])
 	if _stands.has("driftwood"):
@@ -134,7 +138,7 @@ func _mesh(name: String, kind: String) -> Mesh:
 		var scene: PackedScene = load(NATURE + name + ".glb")
 		var inst := scene.instantiate()
 		var mi: MeshInstance3D = inst.find_children("*", "MeshInstance3D", true, false)[0]
-		_meshes[key] = _with_wind(_summer_leaves(mi.mesh), PROFILES.get(kind, {}))
+		_meshes[key] = _with_wind(_summer_leaves(mi.mesh, kind), PROFILES.get(kind, {}))
 		inst.free()
 	return _meshes[key]
 
@@ -165,23 +169,34 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 		sm.set_shader_parameter("alpha_cut", 0.0 if bark else 0.5)
 		sm.set_shader_parameter("bark", 1.0 if bark else 0.0)
 		sm.set_shader_parameter("bark_grey", profile.get("bark_grey", 0.6))
+		sm.set_shader_parameter("bole", profile.get("bole", 1.0) if bark else 1.0)
 		sm.set_shader_parameter("repaint", 0.0 if bark or not profile.get("repaint", false) else 1.0)
 		out.surface_set_material(s, sm)
 	return out
 
 
-func _summer_leaves(mesh: Mesh) -> Mesh:
-	## The kit's twisted-tree leaves are autumn red; August cottonwoods are green.
+func _summer_leaves(mesh: Mesh, kind: String) -> Mesh:
+	## The cottonwoods and oaks wear leaves of their own (LeafArt): the kit's
+	## twisted-tree leaves are autumn red, and its green card is ten big blobs
+	## that made every crown a heap of pebbles.
+	var crown: String = {"cottonwood": "cottonwood", "grove": "oak"}.get(kind, "")
 	var out: Mesh = null
 	for s in mesh.get_surface_count():
 		var m := mesh.surface_get_material(s) as BaseMaterial3D
-		if m and m.resource_name.begins_with("Leaves_TwistedTree"):
-			if out == null:
-				out = mesh.duplicate()
-			var green := m.duplicate() as BaseMaterial3D
+		if m == null or not m.resource_name.begins_with("Leaves_"):
+			continue
+		if crown == "" and not m.resource_name.begins_with("Leaves_TwistedTree"):
+			continue
+		if out == null:
+			out = mesh.duplicate()
+		var green := m.duplicate() as BaseMaterial3D
+		if crown != "":
+			green.albedo_texture = LeafArt.crown(crown)
+			green.albedo_color = Color(1, 1, 1)
+		else:
 			green.albedo_texture = load(NATURE + "tree_1_Leaves_NormalTree_C.png")
 			green.albedo_color = Color(1.0, 1.0, 0.82)
-			out.surface_set_material(s, green)
+		out.surface_set_material(s, green)
 	return out if out != null else mesh
 
 
@@ -318,11 +333,66 @@ func _scatter_cottonwoods(spec: Dictionary) -> void:
 				_add(kind, under, q - Vector3(0, 0.1, 0), rng.randf_range(0.5, 0.9), Vector3.UP, 180.0)
 
 
+func _scatter_canopy(tries: int) -> void:
+	## The bottomland timber seen from across the river or down off the bluff
+	## should be one roof of leaves, the giants standing out of it. The real
+	## trees alone, each a few crowns' width apart, lined the far bank like
+	## lollipops on a lawn. Between and behind them, cheap crown lumps (the
+	## far-country mesh) fill the canopy -- but only beyond a stone's throw, so
+	## near at hand there are only real trees. Chunked, because a MultiMesh's
+	## visibility range is measured from its middle.
+	const NEAR := 260.0
+	const CHUNK_M := 128.0
+	var chunks := {}
+	# Its own dice: drawing on the shared ones would move every stand grown after it.
+	var cr := RandomNumberGenerator.new()
+	cr.seed = 5150
+	for i in tries:
+		var p := Vector3(cr.randf() * Terrain.SIZE, 0.0, cr.randf() * Terrain.SIZE)
+		p.y = terrain.height_at(p.x, p.z)
+		var d := _dist_to_river(p)
+		if d < 14.0 or d > 190.0 or terrain.is_bar(p.x, p.z) or not terrain.is_bottomland(p.x, p.z):
+			continue
+		if _groves.get_noise_2d(p.x, p.z) < cr.randf_range(-0.25, 0.25):
+			continue
+		var near_water := 1.0 - d / 190.0
+		var size := cr.randf_range(7.5, 13.0) * lerpf(0.8, 1.15, near_water)
+		var basis := Basis(Vector3.UP, cr.randf() * TAU).scaled(Vector3(size * cr.randf_range(0.8, 1.25), size * cr.randf_range(0.9, 1.25), size * cr.randf_range(0.8, 1.25)))
+		var key := Vector2i(int(p.x / CHUNK_M), int(p.z / CHUNK_M))
+		if not chunks.has(key):
+			chunks[key] = []
+		var g := cr.randf_range(-0.04, 0.05)
+		# The cottonwoods' own lighter, yellower green (LeafArt "cottonwood").
+		chunks[key].append([Transform3D(basis, p - Vector3(0, size * 0.18, 0)), Color(0.40 + g, 0.49 + g, 0.24 + g * 0.5)])
+	var mesh := _far_tree_mesh()
+	for key in chunks:
+		var list: Array = chunks[key]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.mesh = mesh
+		mm.instance_count = list.size()
+		for k in list.size():
+			mm.set_instance_transform(k, list[k][0])
+			mm.set_instance_color(k, list[k][1])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "Canopy"
+		mmi.multimesh = mm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_begin = NEAR
+		mmi.visibility_range_begin_margin = 30.0
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		mmi.set_meta("kind", "canopy")
+		add_child(mmi)
+
+
 func _cottonwood(variants: Array, p: Vector3, near_water: float) -> void:
 	## Old giants on the banks, younger trees further back; each crown stretched
 	## and leaning its own way so the groves don't read as copies.
 	var size := lerpf(0.45, 1.1, pow(rng.randf(), 1.4)) * lerpf(0.85, 1.25, near_water)
-	var stretch := Vector3(rng.randf_range(0.85, 1.25), rng.randf_range(0.9, 1.45), 1.0)
+	# Tall, and broad with it: a plains cottonwood spreads; stretched only
+	# upward the young ones stood like Lombardy poplars.
+	var stretch := Vector3(rng.randf_range(1.0, 1.3), rng.randf_range(1.05, 1.4), 1.0)
 	stretch.z = stretch.x * rng.randf_range(0.85, 1.15)
 	var lean := Vector3(rng.randf_range(-0.12, 0.12), 1.0, rng.randf_range(-0.12, 0.12))
 	_add("cottonwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), size, lean, 0.0, stretch)
@@ -584,23 +654,36 @@ func _scatter_far_country(spec: Dictionary) -> void:
 	var xforms: Array[Transform3D] = []
 	var tints: Array[Color] = []
 	var outs: Array[float] = []
+	# Its own dice, so the stands grown after it stay where they were.
+	var fr := RandomNumberGenerator.new()
+	fr.seed = 6061
 	var far := FastNoiseLite.new()
 	far.seed = 909
 	far.frequency = 1.0 / 260.0
 	for i in int(spec["tries"]):
-		var x := rng.randf_range(-1700.0, Terrain.SIZE + 1700.0)
-		var z := rng.randf_range(-1700.0, Terrain.SIZE + 1700.0)
+		var x := fr.randf_range(-1700.0, Terrain.SIZE + 1700.0)
+		var z := fr.randf_range(-1700.0, Terrain.SIZE + 1700.0)
 		var out := Vector2(x - clampf(x, 0.0, Terrain.SIZE), z - clampf(z, 0.0, Terrain.SIZE)).length()
 		if out < 40.0:
 			continue  # inside the map, or hard against its edge: real trees grow there
 		# Clumped into groves and draws, thinning as the country dries out westward.
-		if far.get_noise_2d(x, z) < rng.randf_range(-0.1, 0.45):
+		if far.get_noise_2d(x, z) < fr.randf_range(-0.1, 0.45):
 			continue
 		var h := terrain.skirt_height(x, z)
-		var size := rng.randf_range(6.0, 13.0) * clampf(1.4 - out / 2600.0, 0.6, 1.2)
-		var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(size * rng.randf_range(0.8, 1.2), size, size * rng.randf_range(0.8, 1.2)))
+		# In the draws and hollows, not sprinkled over the ridges: the timber
+		# here kept to the ravines, out of the wind and the prairie fires, and
+		# the ridges were open grass. Kept where the ground lies below the
+		# ground round it, the deeper the surer.
+		var around := 0.0
+		for d in [Vector2(70, 0), Vector2(-70, 0), Vector2(0, 70), Vector2(0, -70), Vector2(50, 50), Vector2(-50, -50), Vector2(50, -50), Vector2(-50, 50)]:
+			around += terrain.skirt_height(x + d.x, z + d.y)
+		var hollow := around / 8.0 - h
+		if hollow < fr.randf_range(-0.5, 3.0):
+			continue
+		var size := fr.randf_range(6.0, 13.0) * clampf(1.4 - out / 2600.0, 0.6, 1.2)
+		var basis := Basis(Vector3.UP, fr.randf() * TAU).scaled(Vector3(size * fr.randf_range(0.8, 1.2), size, size * fr.randf_range(0.8, 1.2)))
 		xforms.append(Transform3D(basis, Vector3(x, h, z)))
-		var g := rng.randf_range(-0.04, 0.05)
+		var g := fr.randf_range(-0.04, 0.05)
 		tints.append(Color(0.30 + g, 0.40 + g, 0.24 + g * 0.5))
 		outs.append(out)
 	for band in [["FarCountry", _far_tree_mesh(), 0.0, 500.0], ["FarCountryDistant", _far_tree_mesh(2, 3, 5), 500.0, 1e9]]:

@@ -15,7 +15,8 @@ uniform float translucency = 0.35;  // 0 for bark
 uniform float variation = 0.12;
 uniform float base_shade = 0.7;
 uniform float bark = 0.0;           // 1 on trunks: cottonwood bark is deeply furrowed
-uniform float bark_grey = 0.0;      // how far a trunk is drained toward grey (the kit's bark runs orange)
+uniform float bark_grey = 0.0;
+uniform float bole = 1.0;           // how far in the trunk is drawn at the ground (1 = as modelled)      // how far a trunk is drained toward grey (the kit's bark runs orange)
 uniform float give_way = 0.0;       // 1 on leaves: pressed flat as the camera backs into a low plant
 // Where a plant stands decides how far it has cured: the MultiMesh carries that
 // per instance in COLOR.r, 0 for a green swale and 1 for the burnt-off upland.
@@ -40,6 +41,9 @@ float hash(vec2 p) {
 }
 
 void vertex() {
+	// A slimmer bole: drawn in toward the axis at the foot, not at all a third
+	// of the way up where the limbs go. Before anything else reads VERTEX.
+	VERTEX.xz *= mix(bole, 1.0, smoothstep(0.0, plant_height * 0.34, VERTEX.y));
 	vec3 origin = MODEL_MATRIX[3].xyz;
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	float h = clamp(VERTEX.y / plant_height, 0.0, 1.0);
