@@ -50,6 +50,7 @@ static func dress(src: ArrayMesh, cut: String) -> ArrayMesh:
 
 
 static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
+	var hem := float(spec["hem"])
 	var surfaces: Array = []
 	for s in src.get_surface_count():
 		surfaces.append(src.surface_get_arrays(s))
@@ -59,6 +60,7 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 	var pos: Array[Vector3] = []
 	var cover: Array[float] = []
 	var out_by: Array[float] = []
+	var thigh: Array[float] = []
 	var ids: Array = []
 	for a in surfaces:
 		var V: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
@@ -73,13 +75,17 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 				pos.append(V[i])
 				var c := 0.0
 				var o := 0.0
+				var th := 0.0
 				for j in 4:
 					var b := B[i * 4 + j]
 					var w := W[i * 4 + j]
 					c += w * float(COVER.get(b, 0.0))
 					o += w * float(LET_OUT.get(b, 0.0))
+					if b == THIGH_L or b == THIGH_R:
+						th += w
 				cover.append(c)
 				out_by.append(o)
+				thigh.append(th)
 			sid[i] = weld[k]
 		ids.append(sid)
 	var n := pos.size()
@@ -127,6 +133,11 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 	for i in n:
 		nrm[i] = nrm[i].normalized() if nrm[i].length() > 1e-9 else Vector3.UP
 		pos[i] += nrm[i] * out_by[i]
+		# Under the skirt the thighs are slimmed, so a stride that lifts the knee
+		# into the cloth does not bring it out through the front. Nothing sees
+		# them there; below the hem the breeches are full.
+		var under := smoothstep(hem - 0.03, hem + 0.05, pos[i].y)
+		pos[i] -= nrm[i] * 0.045 * thigh[i] * under
 
 	var out := ArrayMesh.new()
 	var fmt_custom := Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
@@ -151,11 +162,11 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 		a[Mesh.ARRAY_TANGENT] = null
 		a[Mesh.ARRAY_CUSTOM0] = rest
 		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a, [], {}, fmt_custom)
-	_add_skirt(out, spec, fmt_custom)
+	_add_skirt(out, spec, fmt_custom, pos)
 	return out
 
 
-static func _add_skirt(out: ArrayMesh, spec: Dictionary, fmt: int) -> void:
+static func _add_skirt(out: ArrayMesh, spec: Dictionary, fmt: int, body: Array[Vector3]) -> void:
 	## A skirt from the waist to the hem: a flared ring, its top on the hips and
 	## its lower rows shared between the hips and whichever thigh they hang
 	## over, so it swings with the stride but stays one piece of cloth.
@@ -163,6 +174,7 @@ static func _add_skirt(out: ArrayMesh, spec: Dictionary, fmt: int) -> void:
 	var rows := 5
 	var top := 0.98
 	var hem := float(spec["hem"])
+	var reach := _reach(body, top, hem, rows, seg)
 	var open := float(spec["open"])   # radians each side of the front left open
 	var verts := PackedVector3Array()
 	var norms := PackedVector3Array()
@@ -176,10 +188,18 @@ static func _add_skirt(out: ArrayMesh, spec: Dictionary, fmt: int) -> void:
 		var y := lerpf(top, hem, t)
 		# The waist is narrow and the skirt flares over the seat and thighs.
 		var rx := lerpf(0.165, 0.215, t)
-		var rz := lerpf(0.135, 0.17, t)
+		var rz := lerpf(0.14, 0.19, sqrt(t))
 		for k in seg + 1:
 			var ang := TAU * float(k) / seg      # 0 at the front (+Z)
 			var p := Vector3(sin(ang) * rx, y, cos(ang) * rz - 0.02)
+			# Never inside the body: out past the widest of hips and thighs at
+			# this height and bearing. A fixed ellipse left the mannequin's
+			# sculpted thighs standing out through the cloth even at rest.
+			var flat := Vector2(p.x, p.z + 0.02)
+			var need: float = reach[r][k % seg] + 0.02
+			if flat.length() < need:
+				flat = flat.normalized() * need
+				p = Vector3(flat.x, y, flat.y - 0.02)
 			verts.append(p)
 			norms.append(Vector3(sin(ang) / rx, 0.0, cos(ang) / rz).normalized())
 			uvs.append(Vector2(float(k) / seg * 3.0, t))
@@ -187,7 +207,7 @@ static func _add_skirt(out: ArrayMesh, spec: Dictionary, fmt: int) -> void:
 			# The front rides on the thigh more than the back: a stride lifts the
 			# knee into the cloth, and with too little of the thigh's swing the
 			# leg came through it.
-			var hang := t * lerpf(0.55, 0.92, smoothstep(-0.3, 0.8, cos(ang)))
+			var hang := t * lerpf(0.55, 1.0, smoothstep(-0.3, 0.7, cos(ang)))
 			bones.append_array(PackedInt32Array([HIPS, THIGH_L, THIGH_R, 0]))
 			weights.append_array(PackedFloat32Array([1.0 - hang, hang * side, hang * (1.0 - side), 0.0]))
 			rest.append_array(PackedFloat32Array([p.x, p.y, p.z, 1.0]))
@@ -224,3 +244,29 @@ static func _add_skirt(out: ArrayMesh, spec: Dictionary, fmt: int) -> void:
 	a[Mesh.ARRAY_CUSTOM0] = rest
 	a[Mesh.ARRAY_INDEX] = idx
 	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a, [], {}, fmt)
+
+
+static func _reach(body: Array[Vector3], top: float, hem: float, rows: int, seg: int) -> Array:
+	## How far out the body comes, row by row down the skirt and bearing by
+	## bearing round it, from the skirt's centre line; each row at least as far
+	## as the one above, since a skirt hangs from the widest part, not into it.
+	var reach: Array = []
+	for r in rows + 1:
+		var row: Array[float] = []
+		row.resize(seg)
+		row.fill(0.0)
+		reach.append(row)
+	for p in body:
+		if p.y > top + 0.02 or p.y < hem - 0.04 or absf(p.x) > 0.35:
+			continue
+		var flat := Vector2(p.x, p.z + 0.02)
+		var k := posmod(int(round(atan2(flat.x, flat.y) / TAU * seg)), seg)
+		var rf := clampf((top - p.y) / (top - hem) * rows, 0.0, float(rows))
+		for r in [int(floor(rf)), int(ceil(rf))]:
+			for dk in [-1, 0, 1]:
+				var kk := posmod(k + dk, seg)
+				reach[r][kk] = maxf(reach[r][kk], flat.length())
+	for r in range(1, rows + 1):
+		for k in seg:
+			reach[r][k] = maxf(reach[r][k], reach[r - 1][k])
+	return reach
