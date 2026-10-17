@@ -29,13 +29,13 @@ const BUILDS := {"york": {"height": 1.07, "stride": 1.1}, "lewis": {"height": 1.
 ## Period dress per person for outfit.gdshader (placeholder until commissioned models).
 ## Unlisted keys get the enlisted man's kit in their own coat colour.
 const OUTFITS := {
-	"lewis": {"hair": Color(0.36, 0.25, 0.15), "coat": Color(0.13, 0.17, 0.30), "facing": Color(0.55, 0.13, 0.11), "breeches": Color(0.72, 0.64, 0.46), "legs": Color(0.10, 0.08, 0.07)},
+	"lewis": {"cut": "coat", "cocked": true, "hair": Color(0.36, 0.25, 0.15), "coat": Color(0.13, 0.17, 0.30), "facing": Color(0.55, 0.13, 0.11), "breeches": Color(0.72, 0.64, 0.46), "legs": Color(0.10, 0.08, 0.07)},
 	"clark": {"hair": Color(0.55, 0.26, 0.12), "facing": Color(0.30, 0.22, 0.14), "waistcoat": Color(0.70, 0.62, 0.48), "legs": Color(0.36, 0.27, 0.18), "skin": Color(0.84, 0.64, 0.52)},
-	"york": {"hair": Color(0.08, 0.06, 0.05), "facing": Color(0.22, 0.17, 0.13), "breeches": Color(0.34, 0.30, 0.24), "legs": Color(0.24, 0.18, 0.13), "skin": Color(0.30, 0.20, 0.15)},
-	"drouillard": {"hair": Color(0.07, 0.06, 0.05), "facing": Color(0.52, 0.40, 0.27), "waistcoat": null, "breeches": Color(0.50, 0.40, 0.27), "legs": Color(0.46, 0.36, 0.24), "skin": Color(0.62, 0.45, 0.33)},
+	"york": {"queue": false, "hair": Color(0.08, 0.06, 0.05), "facing": Color(0.22, 0.17, 0.13), "breeches": Color(0.34, 0.30, 0.24), "legs": Color(0.24, 0.18, 0.13), "skin": Color(0.30, 0.20, 0.15)},
+	"drouillard": {"queue": false, "hair": Color(0.07, 0.06, 0.05), "facing": Color(0.52, 0.40, 0.27), "waistcoat": null, "breeches": Color(0.50, 0.40, 0.27), "legs": Color(0.46, 0.36, 0.24), "skin": Color(0.62, 0.45, 0.33)},
 	# A French trader living among the Oto: a trade coat gone brown, leggings.
-	"trader": {"hair": Color(0.20, 0.14, 0.09), "coat": Color(0.36, 0.27, 0.18), "facing": Color(0.30, 0.22, 0.15), "waistcoat": null, "breeches": Color(0.46, 0.37, 0.25), "legs": Color(0.42, 0.33, 0.22), "skin": Color(0.78, 0.58, 0.45)},
-	"messenger": {"hair": Color(0.05, 0.05, 0.05), "facing": Color(0.62, 0.18, 0.14), "waistcoat": null, "stock": null, "breeches": Color(0.48, 0.38, 0.26), "legs": Color(0.44, 0.34, 0.23), "skin": Color(0.58, 0.40, 0.29)},
+	"trader": {"cut": "coat", "queue": false, "hair": Color(0.20, 0.14, 0.09), "coat": Color(0.36, 0.27, 0.18), "facing": Color(0.30, 0.22, 0.15), "waistcoat": null, "breeches": Color(0.46, 0.37, 0.25), "legs": Color(0.42, 0.33, 0.22), "skin": Color(0.78, 0.58, 0.45)},
+	"messenger": {"cut": "shirt", "hair": Color(0.05, 0.05, 0.05), "facing": Color(0.62, 0.18, 0.14), "waistcoat": null, "stock": null, "breeches": Color(0.48, 0.38, 0.26), "legs": Color(0.44, 0.34, 0.23), "skin": Color(0.58, 0.40, 0.29)},
 }
 
 
@@ -68,18 +68,30 @@ func _ready() -> void:
 	model.scale = Vector3.ONE * height
 	anim = model.find_children("*", "AnimationPlayer", true, false)[0]
 	var mesh: MeshInstance3D = model.find_children("*", "MeshInstance3D", true, false)[0]
+	# Cloth over the mannequin's muscles, and the skirt of his frock or coat.
+	mesh.mesh = Clothes.dress(mesh.mesh, _cut())
 	var outfit := _outfit_material()
 	for s in mesh.mesh.get_surface_count():
 		mesh.set_surface_override_material(s, outfit)
 	var skeleton: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
+	skeleton.add_child(RelaxedHands.new())
 	if hat:
 		_add_hat(skeleton)
 	_add_rifle(skeleton)
 	play("Idle")
 
 
+func _outfit() -> Dictionary:
+	return OUTFITS.get(key, OUTFITS["messenger"] if key.begins_with("messenger") else {})
+
+
+func _cut() -> String:
+	## A hunting frock unless the outfit says otherwise (see Clothes.CUTS).
+	return str(_outfit().get("cut", "frock"))
+
+
 func _outfit_material() -> ShaderMaterial:
-	var o: Dictionary = OUTFITS.get(key, OUTFITS["messenger"] if key.begins_with("messenger") else {})
+	var o: Dictionary = _outfit()
 	var skin: Color = o.get("skin", Color(0.82, 0.63, 0.51))
 	var m := ShaderMaterial.new()
 	m.shader = preload("res://scripts/player/outfit.gdshader")
@@ -96,6 +108,9 @@ func _outfit_material() -> ShaderMaterial:
 		m.set_shader_parameter("waistcoat", vest)
 	var stock = o.get("stock", Color(0.88, 0.86, 0.80))
 	m.set_shader_parameter("stock", skin if stock == null else stock)
+	var cut: Dictionary = Clothes.CUTS.get(_cut(), Clothes.CUTS["frock"])
+	m.set_shader_parameter("hem", float(cut["hem"]))
+	m.set_shader_parameter("open_front", 1.0 if float(cut["open"]) > 0.0 else 0.0)
 	return m
 
 
@@ -153,23 +168,23 @@ func _add_hat(skeleton: Skeleton3D) -> void:
 	var attach := BoneAttachment3D.new()
 	attach.bone_name = "DEF-head"
 	skeleton.add_child(attach)
-	var felt := StandardMaterial3D.new()
-	felt.albedo_color = Color(0.12, 0.10, 0.09)
-	felt.roughness = 1.0
-	var brim := MeshInstance3D.new()
-	var bm := CylinderMesh.new()
-	bm.top_radius = 0.2; bm.bottom_radius = 0.2; bm.height = 0.02
-	brim.mesh = bm
-	brim.material_override = felt
-	brim.position = Vector3(0, 0.2, 0)
-	attach.add_child(brim)
-	var crown := MeshInstance3D.new()
-	var cm := CylinderMesh.new()
-	cm.top_radius = 0.1; cm.bottom_radius = 0.12; cm.height = 0.14
-	crown.mesh = cm
-	crown.material_override = felt
-	crown.position = Vector3(0, 0.27, 0)
-	attach.add_child(crown)
+	var hat_mesh := MeshInstance3D.new()
+	hat_mesh.mesh = Hats.build(Hats.style_for(key, bool(_outfit().get("cocked", false))))
+	attach.add_child(hat_mesh)
+	if _outfit().get("queue", true):
+		_add_queue(attach)
+
+
+func _add_queue(head: Node3D) -> void:
+	## The hair drawn back and tied in a queue at the nape with a black ribbon,
+	## as the Army still wore it in 1804.
+	var hair: Color = _outfit().get("hair", Color(0.28, 0.19, 0.12))
+	var tail := Props.cylinder(0.014, 0.13, hair, Vector3(0, 0.03, -0.112), 0.008)
+	tail.rotation_degrees.x = -14.0
+	head.add_child(tail)
+	var ribbon := Props.cylinder(0.018, 0.03, Color(0.05, 0.05, 0.05), Vector3(0, 0.085, -0.104))
+	ribbon.rotation_degrees.x = -14.0
+	head.add_child(ribbon)
 
 
 func _init_gait() -> void:
