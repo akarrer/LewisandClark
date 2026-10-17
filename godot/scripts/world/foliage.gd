@@ -135,7 +135,10 @@ func _mesh(name: String, kind: String) -> Mesh:
 		var scene: PackedScene = load(NATURE + name + ".glb")
 		var inst := scene.instantiate()
 		var mi: MeshInstance3D = inst.find_children("*", "MeshInstance3D", true, false)[0]
-		_meshes[key] = _with_wind(_summer_leaves(mi.mesh, kind), PROFILES.get(kind, {}))
+		var m: Mesh = _summer_leaves(mi.mesh, kind)
+		if kind == "cottonwood":
+			m = _slim_bole(m)
+		_meshes[key] = _with_wind(m, PROFILES.get(kind, {}))
 		inst.free()
 	return _meshes[key]
 
@@ -168,6 +171,27 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 		sm.set_shader_parameter("bark_grey", profile.get("bark_grey", 0.6))
 		sm.set_shader_parameter("repaint", 0.0 if bark or not profile.get("repaint", false) else 1.0)
 		out.surface_set_material(s, sm)
+	return out
+
+
+static func _slim_bole(mesh: Mesh) -> Mesh:
+	## The kit's twisted tree stands on a trunk as thick as it is tall, flared
+	## like an elephant's foot. A bottomland cottonwood carries a long, clean
+	## bole up to its crown. The bark is drawn in toward the trunk's axis, most
+	## at the foot and not at all by a third of the way up, where the limbs go.
+	var out := ArrayMesh.new()
+	var h := maxf(mesh.get_aabb().end.y, 0.5)
+	for si in mesh.get_surface_count():
+		var a := mesh.surface_get_arrays(si)
+		var mat := mesh.surface_get_material(si)
+		if mat != null and mat.resource_name.to_lower().contains("bark"):
+			var V: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			for i in V.size():
+				var k := lerpf(0.6, 1.0, smoothstep(0.0, h * 0.34, V[i].y))
+				V[i] = Vector3(V[i].x * k, V[i].y, V[i].z * k)
+			a[Mesh.ARRAY_VERTEX] = V
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+		out.surface_set_material(si, mat)
 	return out
 
 
@@ -386,7 +410,8 @@ func _cottonwood(variants: Array, p: Vector3, near_water: float) -> void:
 	## Old giants on the banks, younger trees further back; each crown stretched
 	## and leaning its own way so the groves don't read as copies.
 	var size := lerpf(0.45, 1.1, pow(rng.randf(), 1.4)) * lerpf(0.85, 1.25, near_water)
-	var stretch := Vector3(rng.randf_range(0.85, 1.25), rng.randf_range(0.9, 1.45), 1.0)
+	# Taller than wide: cottonwoods reach for the light over the bottoms.
+	var stretch := Vector3(rng.randf_range(0.85, 1.15), rng.randf_range(1.1, 1.6), 1.0)
 	stretch.z = stretch.x * rng.randf_range(0.85, 1.15)
 	var lean := Vector3(rng.randf_range(-0.12, 0.12), 1.0, rng.randf_range(-0.12, 0.12))
 	_add("cottonwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), size, lean, 0.0, stretch)
