@@ -22,7 +22,10 @@ var _groves := FastNoiseLite.new()
 
 ## Wind and look per kind: sway (m at the top), flutter, translucency, tint, colour variation.
 const PROFILES := {
-	"cottonwood": {"sway": 0.35, "flutter": 1.0, "translucency": 0.45, "tint": Color(1.0, 1.0, 0.95), "variation": 0.14},
+	# The kit's twisted tree stands on a trunk nearly as thick as it is tall,
+	# flared like an elephant's foot; a bottomland cottonwood carries a long,
+	# clean bole. ``bole`` draws the bark in toward the axis at the ground.
+	"cottonwood": {"sway": 0.35, "flutter": 1.0, "translucency": 0.45, "tint": Color(1.0, 1.0, 0.95), "variation": 0.14, "bole": 0.6},
 	# Bur oak: dark, grey, corky bark (the kit's runs orange, and up on the open
 	# hills read as lollipop sticks).
 	# Bur oak leaves are a darker, glossier green than the cottonwoods'.
@@ -135,10 +138,7 @@ func _mesh(name: String, kind: String) -> Mesh:
 		var scene: PackedScene = load(NATURE + name + ".glb")
 		var inst := scene.instantiate()
 		var mi: MeshInstance3D = inst.find_children("*", "MeshInstance3D", true, false)[0]
-		var m: Mesh = _summer_leaves(mi.mesh, kind)
-		if kind == "cottonwood":
-			m = _slim_bole(m)
-		_meshes[key] = _with_wind(m, PROFILES.get(kind, {}))
+		_meshes[key] = _with_wind(_summer_leaves(mi.mesh, kind), PROFILES.get(kind, {}))
 		inst.free()
 	return _meshes[key]
 
@@ -169,29 +169,9 @@ func _with_wind(mesh: Mesh, profile: Dictionary) -> Mesh:
 		sm.set_shader_parameter("alpha_cut", 0.0 if bark else 0.5)
 		sm.set_shader_parameter("bark", 1.0 if bark else 0.0)
 		sm.set_shader_parameter("bark_grey", profile.get("bark_grey", 0.6))
+		sm.set_shader_parameter("bole", profile.get("bole", 1.0) if bark else 1.0)
 		sm.set_shader_parameter("repaint", 0.0 if bark or not profile.get("repaint", false) else 1.0)
 		out.surface_set_material(s, sm)
-	return out
-
-
-static func _slim_bole(mesh: Mesh) -> Mesh:
-	## The kit's twisted tree stands on a trunk as thick as it is tall, flared
-	## like an elephant's foot. A bottomland cottonwood carries a long, clean
-	## bole up to its crown. The bark is drawn in toward the trunk's axis, most
-	## at the foot and not at all by a third of the way up, where the limbs go.
-	var out := ArrayMesh.new()
-	var h := maxf(mesh.get_aabb().end.y, 0.5)
-	for si in mesh.get_surface_count():
-		var a := mesh.surface_get_arrays(si)
-		var mat := mesh.surface_get_material(si)
-		if mat != null and mat.resource_name.to_lower().contains("bark"):
-			var V: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
-			for i in V.size():
-				var k := lerpf(0.6, 1.0, smoothstep(0.0, h * 0.34, V[i].y))
-				V[i] = Vector3(V[i].x * k, V[i].y, V[i].z * k)
-			a[Mesh.ARRAY_VERTEX] = V
-		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
-		out.surface_set_material(si, mat)
 	return out
 
 
