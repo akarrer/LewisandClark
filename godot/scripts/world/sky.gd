@@ -311,7 +311,13 @@ static func palette(hour: float) -> Array:
 	return [KEYS[0][1], KEYS[0][2], KEYS[0][3], KEYS[0][4], KEYS[0][5], KEYS[0][6]]
 
 
+## Game time, not the wall clock: under Movie Maker (and any slow frame) the
+## wall clock runs ahead of the game, and everything timed by it raced.
+var _clock := 0.0
+
+
 func update(hour: float, delta: float) -> void:
+	_clock += delta
 	# The afternoon storm, if this day was given one, breaks when its hour comes.
 	if storm_today and not _storm_done and hour >= storm_hour and hour < storm_hour + 3.0:
 		_storm_done = true
@@ -416,7 +422,7 @@ func update(hour: float, delta: float) -> void:
 	var coverage := cloud_cover
 	night_amount = night
 	# Wind the plants lean into: a breathing prairie breeze, half a gale in a storm.
-	var gust := 1.0 + 0.35 * sin(Time.get_ticks_msec() / 1000.0 * 0.11) + storm * 2.6
+	var gust := 1.0 + 0.35 * sin(_clock * 0.11) + storm * 2.6
 	RenderingServer.global_shader_parameter_set("night_amount", night)
 	RenderingServer.global_shader_parameter_set("wind_strength", gust)
 	# Ground and plants darken and gleam as the rain soaks in, drying slowly after.

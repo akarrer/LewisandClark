@@ -268,9 +268,15 @@ func _ready() -> void:
 			man.anim.speed_scale = randf_range(0.85, 1.1)
 
 
-func _process(_delta: float) -> void:
+## Game time, not the wall clock: under Movie Maker (and any slow frame) the
+## wall clock runs ahead of the game, and everything timed by it raced.
+var _clock := 0.0
+
+
+func _process(delta: float) -> void:
+	_clock += delta
 	# The fire breathes: the light flickers with the flames.
-	var t := Time.get_ticks_msec() / 1000.0
+	var t := _clock
 	# Strong enough to carry across the camp after dark; by day it is a fire in
 	# the sun, and at full strength it stained the noon grass orange.
 	var strength := lerpf(1.5, 11.0, clampf(night, 0.0, 1.0))

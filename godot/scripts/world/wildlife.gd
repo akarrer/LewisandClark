@@ -117,8 +117,14 @@ func _add(animal: Node3D, p: Vector3, size: float) -> void:
 	})
 
 
+## Game time, not the wall clock: under Movie Maker (and any slow frame) the
+## wall clock runs ahead of the game, and everything timed by it raced.
+var _clock := 0.0
+
+
 func _process(delta: float) -> void:
-	var t := Time.get_ticks_msec() / 1000.0
+	_clock += delta
+	var t := _clock
 	_fly(delta, t)
 	_wade(delta, t)
 	_loaf(delta, t)
