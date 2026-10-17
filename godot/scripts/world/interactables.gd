@@ -28,7 +28,15 @@ static func landmark_marker(pos: Vector3, title: String) -> Interactable:
 	it.position = pos
 	it.label = "Visit " + title
 	it.radius = 6.0
-	it.add_child(Props.cylinder(0.07, 7.0, Color(0.36, 0.26, 0.16), Vector3(0, 3.5, 0)))
+	# A staff cut from a young ash, tapering, with a turned ball at the head and
+	# the halyard run down it to a cleat.
+	var wood := Color(0.36, 0.26, 0.16)
+	it.add_child(Props.cylinder(0.075, 7.0, wood, Vector3(0, 3.5, 0), 0.042))
+	it.add_child(Props.sphere(0.075, Color(0.30, 0.21, 0.12), Vector3(0, 7.06, 0)))
+	var halyard := Props.cylinder(0.006, 6.0, Color(0.70, 0.64, 0.50), Vector3(0.075, 4.0, 0.0))
+	halyard.rotation_degrees.z = -0.35
+	it.add_child(halyard)
+	it.add_child(Props.box(Vector3(0.03, 0.16, 0.04), wood.darkened(0.2), Vector3(0.08, 1.15, 0)))
 	var colours := Props.flag(1.8, 1.05)
 	colours.position = Vector3(0.05, 6.1, 0)
 	it.add_child(colours)

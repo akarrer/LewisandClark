@@ -99,14 +99,16 @@ static func flag(width: float, height: float) -> Node3D:
 	holder.name = "Colours"
 	var mesh := PlaneMesh.new()
 	mesh.size = Vector2(width, height)
-	mesh.subdivide_width = 24
-	mesh.subdivide_depth = 6
+	# Fine enough to carry the folds (flag.gdshader rolls them in the vertex stage).
+	mesh.subdivide_width = 56
+	mesh.subdivide_depth = 18
 	mesh.orientation = PlaneMesh.FACE_Z
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.position = Vector3(width * 0.5, 0, 0)  # hoist at the holder's origin
 	var m := ShaderMaterial.new()
 	m.shader = load("res://scripts/world/flag.gdshader")
+	m.set_shader_parameter("size", Vector2(width, height))
 	mi.material_override = m
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	holder.add_child(mi)
