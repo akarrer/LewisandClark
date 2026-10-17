@@ -532,6 +532,22 @@ func _scenery_steps() -> Array:
 	if "--no-far-grass" in args:
 		main.get_node("GrassField").visible = false
 		main.get_node("GrassFar").visible = false
+	if "--reel" in args:
+		# A sizzle reel, recorded with --write-movie: each view settles, then
+		# holds while the camera turns slowly, its start logged so the clip can
+		# be cut from the movie by time. Pan rate per view: --pan=deg/s.
+		var rate := 1.6
+		for a in args:
+			if a.begins_with("--pan="):
+				rate = float(a.substr(6))
+		for i in views.size():
+			var v: Array = views[i]
+			steps.append(["view"] + v)
+			steps.append(["wait", 3.0])
+			steps.append(["clip", v[0]])
+			steps.append(["pan", rate if i % 2 == 0 else -rate, 2.6])
+		steps.append(["report"])
+		return steps
 	for v in views:
 		steps.append(["view"] + v)
 		steps.append(["wait", 8.0 if "--hold" in args else 2.5])
@@ -562,6 +578,20 @@ func _process(delta: float) -> void:
 			_release()
 			_wait += delta
 			if _wait >= s[1]:
+				_next()
+		"clip":
+			_log.append("CLIP %s %.4f" % [s[1], _t])
+			_next()
+		"pan":
+			# Turn the eye slowly (the Leader's or the free camera's) for s[2] s.
+			_release()
+			var turn: float = float(s[1]) * delta
+			if _free_cam != null and _free_cam.current:
+				_free_cam.rotation.y += deg_to_rad(turn)
+			else:
+				main.leader._yaw += turn
+			_wait += delta
+			if _wait >= s[2]:
 				_next()
 		"shot":
 			_shot(s[1])
