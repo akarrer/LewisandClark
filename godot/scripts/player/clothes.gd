@@ -61,6 +61,8 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 	var cover: Array[float] = []
 	var out_by: Array[float] = []
 	var thigh: Array[float] = []
+	var arm: Array[float] = []
+	var trunk: Array[float] = []
 	var ids: Array = []
 	for a in surfaces:
 		var V: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
@@ -76,6 +78,8 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 				var c := 0.0
 				var o := 0.0
 				var th := 0.0
+				var ar := 0.0
+				var tr := 0.0
 				for j in 4:
 					var b := B[i * 4 + j]
 					var w := W[i * 4 + j]
@@ -83,9 +87,17 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 					o += w * float(LET_OUT.get(b, 0.0))
 					if b == THIGH_L or b == THIGH_R:
 						th += w
+					if b in [8, 9, 27, 28]:
+						ar += w
+					elif b in [7, 26] and absf(V[i].x) > 0.15:
+						ar += w   # the deltoid, out past the body: part of the sleeve
+					if b in [2, 3, 4]:
+						tr += w
 				cover.append(c)
 				out_by.append(o)
 				thigh.append(th)
+				arm.append(ar)
+				trunk.append(tr)
 			sid[i] = weld[k]
 		ids.append(sid)
 	var n := pos.size()
@@ -105,7 +117,7 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 			nbrs[c][a] = true; nbrs[c][b] = true
 	# Taubin smoothing: a shrinking step and an inflating one, alternately, so
 	# the muscles go and the volume stays.
-	for it in 16:
+	for it in 24:
 		var lam := 0.5 if it % 2 == 0 else -0.53
 		var nxt := pos.duplicate()
 		for i in n:
@@ -117,6 +129,8 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 			avg /= float(nbrs[i].size())
 			nxt[i] = pos[i] + (avg - pos[i]) * lam * cover[i]
 		pos = nxt
+	_tailor_sleeves(pos, arm)
+	_flatten_chest(pos, trunk)
 	# Normals of the smoothed surface, then let the cloth out along them.
 	var nrm: Array[Vector3] = []
 	nrm.resize(n)
@@ -270,3 +284,70 @@ static func _reach(body: Array[Vector3], top: float, hem: float, rows: int, seg:
 		for k in seg:
 			reach[r][k] = maxf(reach[r][k], reach[r - 1][k])
 	return reach
+
+
+## The arms in the rest pose lie along x at this height and depth.
+const ARM_AXIS := Vector2(1.44, -0.07)
+
+
+static func _tailor_sleeves(pos: Array[Vector3], arm: Array[float]) -> void:
+	## A sleeve is a tube that tapers from shoulder to cuff; smoothing alone
+	## leaves the biceps and the forearm's bulge standing out of it. Each arm
+	## point is set at the average distance from the arm's axis found at that
+	## point along it, that average itself smoothed along the arm.
+	const BIN := 0.02
+	var sums := {}
+	var counts := {}
+	for i in pos.size():
+		if arm[i] < 0.6:
+			continue
+		var b := int(floor(absf(pos[i].x) / BIN))
+		var r := Vector2(pos[i].y, pos[i].z).distance_to(ARM_AXIS)
+		sums[b] = float(sums.get(b, 0.0)) + r
+		counts[b] = int(counts.get(b, 0)) + 1
+	var radius := {}
+	for b in sums:
+		var tot := 0.0
+		var wsum := 0.0
+		for d in range(-3, 4):
+			if sums.has(b + d):
+				var w := 1.0 / (1.0 + absf(d))
+				tot += float(sums[b + d]) / float(counts[b + d]) * w
+				wsum += w
+		radius[b] = tot / wsum
+	for i in pos.size():
+		if arm[i] <= 0.0:
+			continue
+		var b := int(floor(absf(pos[i].x) / BIN))
+		if not radius.has(b):
+			continue
+		var off := Vector2(pos[i].y, pos[i].z) - ARM_AXIS
+		if off.length() < 1e-5:
+			continue
+		var want := off.normalized() * float(radius[b])
+		var t := smoothstep(0.3, 0.9, arm[i])
+		var q := ARM_AXIS + off.lerp(want, t)
+		pos[i] = Vector3(pos[i].x, q.x, q.y)
+
+
+static func _flatten_chest(pos: Array[Vector3], trunk: Array[float]) -> void:
+	## A coat lies flat across the chest from the breastbone out: nothing in
+	## front may stand proud of the line down the middle, which takes the
+	## sculpted pectorals and the stomach muscles out of the cloth.
+	const BIN := 0.02
+	var keel := {}
+	for i in pos.size():
+		if trunk[i] < 0.3 or absf(pos[i].x) > 0.03 or pos[i].z <= 0.0:
+			continue
+		var b := int(floor(pos[i].y / BIN))
+		keel[b] = maxf(float(keel.get(b, -1.0)), pos[i].z)
+	for i in pos.size():
+		if trunk[i] <= 0.0 or pos[i].z <= 0.0:
+			continue
+		var b := int(floor(pos[i].y / BIN))
+		if not keel.has(b):
+			continue
+		# Round over toward the sides, as a body is, rather than a flat board.
+		var cap := float(keel[b]) + 0.006 - pos[i].x * pos[i].x * 0.9
+		if pos[i].z > cap:
+			pos[i].z = lerpf(pos[i].z, cap, trunk[i])
