@@ -107,6 +107,9 @@ func _outfit_material() -> ShaderMaterial:
 		m.set_shader_parameter("waistcoat", vest)
 	var stock = o.get("stock", Color(0.88, 0.86, 0.80))
 	m.set_shader_parameter("stock", skin if stock == null else stock)
+	var cut: Dictionary = Clothes.CUTS.get(_cut(), Clothes.CUTS["frock"])
+	m.set_shader_parameter("hem", float(cut["hem"]))
+	m.set_shader_parameter("open_front", 1.0 if float(cut["open"]) > 0.0 else 0.0)
 	return m
 
 

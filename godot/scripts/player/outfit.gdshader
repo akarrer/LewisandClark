@@ -15,6 +15,13 @@ uniform vec3 stock : source_color = vec3(0.88, 0.86, 0.80);
 uniform vec3 hair : source_color = vec3(0.30, 0.20, 0.12);
 uniform vec3 strap : source_color = vec3(0.30, 0.21, 0.13);
 uniform float has_waistcoat = 1.0;
+// The hem of the frock or coat (rest-pose height; Clothes.CUTS). The body
+// above it is under the cloth, so it is the cloth's colour: where a stride
+// brings a thigh out through the skirt it then reads as a fold, not a patch
+// of breeches, and no band of breeches shows at the waist.
+uniform float hem = -1.0;
+uniform float open_front = 0.0;   // 1 for a coat open down the front: the breeches show there
+varying float v_under;
 
 varying vec4 v_region;  // coat, breeches, legs, skin
 varying float v_hand;
@@ -65,6 +72,8 @@ void vertex() {
 		torso = 0.0;
 	}
 	v_region = r;
+	v_under = (CUSTOM0.w < 0.5 && hem > 0.0) ? smoothstep(hem + 0.01, hem + 0.05, CUSTOM0.y) * (r.y + r.z) : 0.0;
+	v_under *= 1.0 - open_front * smoothstep(0.0, 0.05, CUSTOM0.z) * (1.0 - smoothstep(0.07, 0.13, abs(CUSTOM0.x)));
 	v_hand = hand;
 	v_forearm = forearm;
 	v_neck = neck;
@@ -88,6 +97,7 @@ void fragment() {
 	vec4 r = v_region / max(dot(v_region, vec4(1.0)), 0.0001);
 	vec3 body = mix(coat, waistcoat, clamp(v_front * 1.6, 0.0, 1.0) * has_waistcoat);
 	vec3 c = body * r.x + breeches * r.y + legs * r.z + skin * r.w;
+	c = mix(c, coat, clamp(v_under, 0.0, 1.0));
 	// Cuffs where the sleeve meets the wrist; a stock wrapped at the throat.
 	float cuff = smoothstep(0.02, 0.1, v_hand) * (1.0 - smoothstep(0.45, 0.6, v_hand)) * step(0.05, v_forearm + v_hand * 0.5);
 	c = mix(c, facing, cuff);
@@ -100,7 +110,8 @@ void fragment() {
 	// shoulders and left a speckled smear across the top of the chest.
 	vec3 rq = v_rest.xyz;
 	float round_neck = 1.0 - smoothstep(0.065, 0.085, length(rq.xz - vec2(0.0, -0.005)));
-	float stock_band = smoothstep(1.475, 1.49, rq.y) * (1.0 - smoothstep(1.565, 1.58, rq.y)) * round_neck;
+	float stock_band = smoothstep(1.482, 1.488, rq.y) * (1.0 - smoothstep(1.56, 1.566, rq.y)) * round_neck;
+	stock_band = step(0.5, stock_band);   // a band of linen has an edge
 	c = mix(c, stock, stock_band * (1.0 - v_rest.w));
 	c = mix(c, hair, smoothstep(0.3, 0.6, v_hair));
 	// A face: brows, eyes set in shadow, the shade under the nose, a mouth.
@@ -131,8 +142,8 @@ void fragment() {
 	float weave = (hash(floor(g)) - 0.5) * 0.08 + (sin(g.x * 3.14) * sin(g.y * 3.14)) * 0.03;
 	c *= 1.0 + weave * cloth;
 	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
-	ROUGHNESS = mix(0.95, 0.6, r.w);
-	SPECULAR = mix(0.15, 0.35, r.w);
+	ROUGHNESS = mix(mix(0.95, 0.6, r.w), 0.95, stock_band);
+	SPECULAR = mix(mix(0.15, 0.35, r.w), 0.1, stock_band);   // linen, not wet skin
 	// A little light through ears and fingers.
 	BACKLIGHT = skin * 0.15 * r.w;
 }
