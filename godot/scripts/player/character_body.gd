@@ -74,6 +74,7 @@ func _ready() -> void:
 	for s in mesh.mesh.get_surface_count():
 		mesh.set_surface_override_material(s, outfit)
 	var skeleton: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
+	skeleton.add_child(RelaxedHands.new())
 	if hat:
 		_add_hat(skeleton)
 	_add_rifle(skeleton)
