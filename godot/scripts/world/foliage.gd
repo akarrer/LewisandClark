@@ -654,23 +654,36 @@ func _scatter_far_country(spec: Dictionary) -> void:
 	var xforms: Array[Transform3D] = []
 	var tints: Array[Color] = []
 	var outs: Array[float] = []
+	# Its own dice, so the stands grown after it stay where they were.
+	var fr := RandomNumberGenerator.new()
+	fr.seed = 6061
 	var far := FastNoiseLite.new()
 	far.seed = 909
 	far.frequency = 1.0 / 260.0
 	for i in int(spec["tries"]):
-		var x := rng.randf_range(-1700.0, Terrain.SIZE + 1700.0)
-		var z := rng.randf_range(-1700.0, Terrain.SIZE + 1700.0)
+		var x := fr.randf_range(-1700.0, Terrain.SIZE + 1700.0)
+		var z := fr.randf_range(-1700.0, Terrain.SIZE + 1700.0)
 		var out := Vector2(x - clampf(x, 0.0, Terrain.SIZE), z - clampf(z, 0.0, Terrain.SIZE)).length()
 		if out < 40.0:
 			continue  # inside the map, or hard against its edge: real trees grow there
 		# Clumped into groves and draws, thinning as the country dries out westward.
-		if far.get_noise_2d(x, z) < rng.randf_range(-0.1, 0.45):
+		if far.get_noise_2d(x, z) < fr.randf_range(-0.1, 0.45):
 			continue
 		var h := terrain.skirt_height(x, z)
-		var size := rng.randf_range(6.0, 13.0) * clampf(1.4 - out / 2600.0, 0.6, 1.2)
-		var basis := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(size * rng.randf_range(0.8, 1.2), size, size * rng.randf_range(0.8, 1.2)))
+		# In the draws and hollows, not sprinkled over the ridges: the timber
+		# here kept to the ravines, out of the wind and the prairie fires, and
+		# the ridges were open grass. Kept where the ground lies below the
+		# ground round it, the deeper the surer.
+		var around := 0.0
+		for d in [Vector2(70, 0), Vector2(-70, 0), Vector2(0, 70), Vector2(0, -70), Vector2(50, 50), Vector2(-50, -50), Vector2(50, -50), Vector2(-50, 50)]:
+			around += terrain.skirt_height(x + d.x, z + d.y)
+		var hollow := around / 8.0 - h
+		if hollow < fr.randf_range(-0.5, 3.0):
+			continue
+		var size := fr.randf_range(6.0, 13.0) * clampf(1.4 - out / 2600.0, 0.6, 1.2)
+		var basis := Basis(Vector3.UP, fr.randf() * TAU).scaled(Vector3(size * fr.randf_range(0.8, 1.2), size, size * fr.randf_range(0.8, 1.2)))
 		xforms.append(Transform3D(basis, Vector3(x, h, z)))
-		var g := rng.randf_range(-0.04, 0.05)
+		var g := fr.randf_range(-0.04, 0.05)
 		tints.append(Color(0.30 + g, 0.40 + g, 0.24 + g * 0.5))
 		outs.append(out)
 	for band in [["FarCountry", _far_tree_mesh(), 0.0, 500.0], ["FarCountryDistant", _far_tree_mesh(2, 3, 5), 500.0, 1e9]]:

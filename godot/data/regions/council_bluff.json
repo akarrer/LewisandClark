@@ -261,7 +261,7 @@
         ]
       },
       "far_country": {
-        "tries": 26000
+        "tries": 70000
       },
       "beaver_sign": {
         "tries": 4000,
