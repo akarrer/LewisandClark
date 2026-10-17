@@ -97,7 +97,9 @@ void fragment() {
 	vec4 r = v_region / max(dot(v_region, vec4(1.0)), 0.0001);
 	vec3 body = mix(coat, waistcoat, clamp(v_front * 1.6, 0.0, 1.0) * has_waistcoat);
 	vec3 c = body * r.x + breeches * r.y + legs * r.z + skin * r.w;
-	c = mix(c, coat, clamp(v_under, 0.0, 1.0));
+	// And in the cloth's shadow: a knee that comes through the skirt mid-stride,
+	// lit as if out in the open, showed as a pale patch on it.
+	c = mix(c, coat * 0.55, clamp(v_under, 0.0, 1.0));
 	// Cuffs where the sleeve meets the wrist; a stock wrapped at the throat.
 	float cuff = smoothstep(0.02, 0.1, v_hand) * (1.0 - smoothstep(0.45, 0.6, v_hand)) * step(0.05, v_forearm + v_hand * 0.5);
 	c = mix(c, facing, cuff);
@@ -141,6 +143,23 @@ void fragment() {
 	vec2 g = UV * 900.0;
 	float weave = (hash(floor(g)) - 0.5) * 0.08 + (sin(g.x * 3.14) * sin(g.y * 3.14)) * 0.03;
 	c *= 1.0 + weave * cloth;
+	// Where cloth meets cloth: the legs in the shade just under the hem, the
+	// inside of a skirt or cape in its own shadow.
+	if (hem > 0.0 && v_rest.w < 0.5) {
+		c *= 1.0 - 0.38 * smoothstep(hem - 0.16, hem - 0.01, v_rest.y) * (1.0 - smoothstep(hem + 0.02, hem + 0.05, v_rest.y)) * (r.y + r.z);
+	}
+	if (fract(v_rest.w) > 0.1) {
+		c *= 0.55;
+	}
+	// The cape's edge cut into a fringe, and a darker line where it is hemmed.
+	if (v_rest.w > 1.5) {
+		float fringe_zone = smoothstep(0.72, 0.8, UV.y);
+		float strand = step(0.5, fract(UV.x * 34.0));
+		if (fringe_zone > 0.5 && strand < 0.5 && UV.y > 0.8) {
+			discard;
+		}
+		c *= 1.0 - 0.25 * (1.0 - smoothstep(0.0, 0.03, abs(UV.y - 0.76)));
+	}
 	ALBEDO = c * cloud_light((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
 	ROUGHNESS = mix(mix(0.95, 0.6, r.w), 0.95, stock_band);
 	SPECULAR = mix(mix(0.15, 0.35, r.w), 0.1, stock_band);   // linen, not wet skin

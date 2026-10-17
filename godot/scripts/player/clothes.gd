@@ -34,7 +34,7 @@ const LET_OUT := {1: 0.016, 2: 0.018, 3: 0.018, 4: 0.014, 5: 0.004, 7: 0.004, 8:
 ## Cuts: how far the skirt hangs (y in the rest pose; the knee is at 0.53) and
 ## whether it is open down the front.
 const CUTS := {
-	"frock": {"hem": 0.62, "open": 0.0},     # a hunting shirt, belted, to mid-thigh
+	"frock": {"hem": 0.62, "open": 0.0, "cape": 1.31},  # a hunting shirt, belted, to mid-thigh, caped
 	"coat": {"hem": 0.56, "open": 0.42},     # an officer's coat, skirts open in front
 	"shirt": {"hem": 0.80, "open": 0.0},     # a shirt worn out over the breeches
 }
@@ -177,6 +177,8 @@ static func _build(src: ArrayMesh, spec: Dictionary) -> ArrayMesh:
 		a[Mesh.ARRAY_CUSTOM0] = rest
 		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a, [], {}, fmt_custom)
 	_add_skirt(out, spec, fmt_custom, pos)
+	if spec.has("cape"):
+		_add_cape(out, float(spec["cape"]), fmt_custom, pos)
 	return out
 
 
@@ -237,17 +239,7 @@ static func _add_skirt(out: ArrayMesh, spec: Dictionary, fmt: int, body: Array[V
 			var d := c + 1
 			idx.append_array(PackedInt32Array([a, c, b, b, c, d]))
 	# Both faces: the inside of a skirt shows when it swings, and at the open front.
-	var inner := idx.size()
-	var base := verts.size()
-	for i in base:
-		verts.append(verts[i])
-		norms.append(-norms[i])
-		uvs.append(uvs[i])
-		rest.append_array(rest.slice(i * 4, i * 4 + 4))
-	bones.append_array(bones.duplicate())
-	weights.append_array(weights.duplicate())
-	for i in range(0, inner, 3):
-		idx.append_array(PackedInt32Array([idx[i] + base, idx[i + 2] + base, idx[i + 1] + base]))
+	_inside_too(verts, norms, uvs, bones, weights, rest, idx)
 	var a := []
 	a.resize(Mesh.ARRAY_MAX)
 	a[Mesh.ARRAY_VERTEX] = verts
@@ -351,3 +343,95 @@ static func _flatten_chest(pos: Array[Vector3], trunk: Array[float]) -> void:
 		var cap := float(keel[b]) + 0.006 - pos[i].x * pos[i].x * 0.9
 		if pos[i].z > cap:
 			pos[i].z = lerpf(pos[i].z, cap, trunk[i])
+
+
+const SPINE_TOP := 4
+
+
+static func _add_cape(out: ArrayMesh, hem: float, fmt: int, body: Array[Vector3]) -> void:
+	## The hunting shirt's cape: a short, open-ended layer of the same cloth from
+	## the collar down over the shoulders and the top of the chest, its edge cut
+	## into a fringe. Riding the top of the spine, so the arms swing beneath it.
+	var seg := 32
+	var rows := 4
+	var top := 1.50
+	# How far out the body comes at each height and bearing, the arms left out
+	# (the rest pose holds them out level with the shoulders).
+	var reach: Array = []
+	for r in rows + 1:
+		var row: Array[float] = []
+		row.resize(seg)
+		row.fill(0.0)
+		reach.append(row)
+	for p in body:
+		if p.y > top + 0.02 or p.y < hem - 0.03 or absf(p.x) > 0.22:
+			continue
+		var flat := Vector2(p.x, p.z + 0.01)
+		var k := posmod(int(round(atan2(flat.x, flat.y) / TAU * seg)), seg)
+		var r := clampi(int(round((top - p.y) / (top - hem) * rows)), 0, rows)
+		for dk in [-1, 0, 1]:
+			reach[r][posmod(k + dk, seg)] = maxf(reach[r][posmod(k + dk, seg)], flat.length())
+	for r in range(1, rows + 1):
+		for k in seg:
+			reach[r][k] = maxf(reach[r][k], reach[r - 1][k])
+	var verts := PackedVector3Array()
+	var norms := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var bones := PackedInt32Array()
+	var weights := PackedFloat32Array()
+	var rest := PackedFloat32Array()
+	var idx := PackedInt32Array()
+	for r in rows + 1:
+		var t := float(r) / rows
+		# Lying on the shoulders, so it falls away faster at the sides.
+		var y := lerpf(top, hem, t) - t * t * 0.02
+		for k in seg + 1:
+			var ang := TAU * float(k) / seg
+			var dir := Vector2(sin(ang), cos(ang))
+			# Out from the neck over the shoulders: wide to the sides, where it
+			# lies on them, not so far in front and behind.
+			var rr := maxf(lerpf(0.085, lerpf(0.15, 0.205, absf(dir.x)), sqrt(t)), float(reach[r][k % seg]) + 0.012 + 0.02 * maxf(dir.y, 0.0))
+			var p := Vector3(dir.x * rr, y - absf(dir.x) * t * 0.05, dir.y * rr * 0.85 - 0.01)
+			verts.append(p)
+			norms.append(Vector3(dir.x, 0.55 * (1.0 - t), dir.y).normalized())
+			uvs.append(Vector2(float(k) / seg * 4.0, t))
+			bones.append_array(PackedInt32Array([SPINE_TOP, 0, 0, 0]))
+			weights.append_array(PackedFloat32Array([1.0, 0.0, 0.0, 0.0]))
+			# w = 2: the cape (outfit.gdshader cuts its fringe).
+			rest.append_array(PackedFloat32Array([p.x, p.y, p.z, 2.0]))
+	for r in rows:
+		for k in seg:
+			var a := r * (seg + 1) + k
+			var b := a + 1
+			var c := a + seg + 1
+			var d := c + 1
+			idx.append_array(PackedInt32Array([a, c, b, b, c, d]))
+	_inside_too(verts, norms, uvs, bones, weights, rest, idx)
+	var a := []
+	a.resize(Mesh.ARRAY_MAX)
+	a[Mesh.ARRAY_VERTEX] = verts
+	a[Mesh.ARRAY_NORMAL] = norms
+	a[Mesh.ARRAY_TEX_UV] = uvs
+	a[Mesh.ARRAY_BONES] = bones
+	a[Mesh.ARRAY_WEIGHTS] = weights
+	a[Mesh.ARRAY_CUSTOM0] = rest
+	a[Mesh.ARRAY_INDEX] = idx
+	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a, [], {}, fmt)
+
+
+static func _inside_too(verts: PackedVector3Array, norms: PackedVector3Array, uvs: PackedVector2Array,
+		bones: PackedInt32Array, weights: PackedFloat32Array, rest: PackedFloat32Array, idx: PackedInt32Array) -> void:
+	## A second, inward-facing copy of a sheet of cloth, so its inside is drawn.
+	## The copy's rest w is a quarter up (outfit.gdshader shades it as the
+	## inside: the material culls back faces, so FRONT_FACING cannot tell).
+	var faces := idx.size()
+	var base := verts.size()
+	for i in base:
+		verts.append(verts[i])
+		norms.append(-norms[i])
+		uvs.append(uvs[i])
+		rest.append_array(PackedFloat32Array([rest[i * 4], rest[i * 4 + 1], rest[i * 4 + 2], rest[i * 4 + 3] + 0.25]))
+	bones.append_array(bones.duplicate())
+	weights.append_array(weights.duplicate())
+	for i in range(0, faces, 3):
+		idx.append_array(PackedInt32Array([idx[i] + base, idx[i + 2] + base, idx[i + 1] + base]))
