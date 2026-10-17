@@ -97,6 +97,7 @@ func build(t: Terrain) -> void:
 	_groves.frequency = 1.0 / 90.0
 	if _stands.has("cottonwoods"):
 		_scatter_cottonwoods(_stands["cottonwoods"])
+		_scatter_canopy(int(_stands["cottonwoods"].get("canopy", 0)))
 	if _stands.has("groves"):
 		_scatter_groves(_stands["groves"])
 	if _stands.has("driftwood"):
@@ -326,6 +327,59 @@ func _scatter_cottonwoods(spec: Dictionary) -> void:
 				var under: String = beneath[rng.randi() % beneath.size()]
 				var kind := "grove" if under == "tree_5" else ("sapling" if under.begins_with("proc_sapling") else "bush")
 				_add(kind, under, q - Vector3(0, 0.1, 0), rng.randf_range(0.5, 0.9), Vector3.UP, 180.0)
+
+
+func _scatter_canopy(tries: int) -> void:
+	## The bottomland timber seen from across the river or down off the bluff
+	## should be one roof of leaves, the giants standing out of it. The real
+	## trees alone, each a few crowns' width apart, lined the far bank like
+	## lollipops on a lawn. Between and behind them, cheap crown lumps (the
+	## far-country mesh) fill the canopy -- but only beyond a stone's throw, so
+	## near at hand there are only real trees. Chunked, because a MultiMesh's
+	## visibility range is measured from its middle.
+	const NEAR := 260.0
+	const CHUNK_M := 128.0
+	var chunks := {}
+	# Its own dice: drawing on the shared ones would move every stand grown after it.
+	var cr := RandomNumberGenerator.new()
+	cr.seed = 5150
+	for i in tries:
+		var p := Vector3(cr.randf() * Terrain.SIZE, 0.0, cr.randf() * Terrain.SIZE)
+		p.y = terrain.height_at(p.x, p.z)
+		var d := _dist_to_river(p)
+		if d < 14.0 or d > 190.0 or terrain.is_bar(p.x, p.z) or not terrain.is_bottomland(p.x, p.z):
+			continue
+		if _groves.get_noise_2d(p.x, p.z) < cr.randf_range(-0.25, 0.25):
+			continue
+		var near_water := 1.0 - d / 190.0
+		var size := cr.randf_range(7.5, 13.0) * lerpf(0.8, 1.15, near_water)
+		var basis := Basis(Vector3.UP, cr.randf() * TAU).scaled(Vector3(size * cr.randf_range(0.8, 1.25), size * cr.randf_range(0.9, 1.25), size * cr.randf_range(0.8, 1.25)))
+		var key := Vector2i(int(p.x / CHUNK_M), int(p.z / CHUNK_M))
+		if not chunks.has(key):
+			chunks[key] = []
+		var g := cr.randf_range(-0.04, 0.05)
+		# The cottonwoods' own lighter, yellower green (LeafArt "cottonwood").
+		chunks[key].append([Transform3D(basis, p - Vector3(0, size * 0.18, 0)), Color(0.40 + g, 0.49 + g, 0.24 + g * 0.5)])
+	var mesh := _far_tree_mesh()
+	for key in chunks:
+		var list: Array = chunks[key]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.mesh = mesh
+		mm.instance_count = list.size()
+		for k in list.size():
+			mm.set_instance_transform(k, list[k][0])
+			mm.set_instance_color(k, list[k][1])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "Canopy"
+		mmi.multimesh = mm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_begin = NEAR
+		mmi.visibility_range_begin_margin = 30.0
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		mmi.set_meta("kind", "canopy")
+		add_child(mmi)
 
 
 func _cottonwood(variants: Array, p: Vector3, near_water: float) -> void:

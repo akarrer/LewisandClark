@@ -194,6 +194,7 @@
     "seed": 42,
     "stands": {
       "cottonwoods": {
+        "canopy": 9000,
         "tries": 3200,
         "variants": [
           "twisted_tree_1",
