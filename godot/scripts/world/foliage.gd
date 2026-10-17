@@ -390,8 +390,9 @@ func _cottonwood(variants: Array, p: Vector3, near_water: float) -> void:
 	## Old giants on the banks, younger trees further back; each crown stretched
 	## and leaning its own way so the groves don't read as copies.
 	var size := lerpf(0.45, 1.1, pow(rng.randf(), 1.4)) * lerpf(0.85, 1.25, near_water)
-	# Taller than wide: cottonwoods reach for the light over the bottoms.
-	var stretch := Vector3(rng.randf_range(0.85, 1.15), rng.randf_range(1.1, 1.6), 1.0)
+	# Tall, and broad with it: a plains cottonwood spreads; stretched only
+	# upward the young ones stood like Lombardy poplars.
+	var stretch := Vector3(rng.randf_range(1.0, 1.3), rng.randf_range(1.05, 1.4), 1.0)
 	stretch.z = stretch.x * rng.randf_range(0.85, 1.15)
 	var lean := Vector3(rng.randf_range(-0.12, 0.12), 1.0, rng.randf_range(-0.12, 0.12))
 	_add("cottonwood", variants[rng.randi() % variants.size()], p - Vector3(0, 0.3, 0), size, lean, 0.0, stretch)
