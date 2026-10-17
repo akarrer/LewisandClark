@@ -532,6 +532,13 @@ func _scenery_steps() -> Array:
 	if "--no-far-grass" in args:
 		main.get_node("GrassField").visible = false
 		main.get_node("GrassFar").visible = false
+	if "--fair" in args:
+		# No storm today, whatever the day's weather says: for showcase shots,
+		# where an afternoon storm breaking over a late view puts rain curtains
+		# and streaks across it.
+		main.sky.storm_today = false
+		main.sky._storm_target = 0.0
+		main.sky.storm = 0.0
 	if "--reel" in args:
 		# A sizzle reel, recorded with --write-movie: each view settles, then
 		# holds while the camera turns slowly, its start logged so the clip can
