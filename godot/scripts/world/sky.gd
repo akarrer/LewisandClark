@@ -53,16 +53,20 @@ const KEYS := [
 func build() -> void:
 	sun.name = "Sun"
 	sun.shadow_enabled = true
-	# Four cascades out to the far treeline, blended, with a soft penumbra that
-	# widens with distance from the caster (the sun's real ~0.5 degree disc).
+	# Four cascades out to the far treeline, blended, softened by a fixed PCF
+	# kernel. Not PCSS (light_angular_distance): its penumbra grows with the
+	# gap between caster and ground, and a grass blade stands on the ground, so
+	# its shadow got no filtering at all and came out stair-stepped, the blade
+	# a texel or two wide. The first cascade is held to 8 m, where the blades
+	# throw their shadows, so they are drawn at under a centimetre a texel.
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	sun.directional_shadow_max_distance = 420.0
-	sun.directional_shadow_split_1 = 0.04
+	sun.directional_shadow_split_1 = 0.02
 	sun.directional_shadow_split_2 = 0.12
 	sun.directional_shadow_split_3 = 0.35
 	sun.directional_shadow_blend_splits = true
-	sun.light_angular_distance = 0.5
-	sun.shadow_blur = 1.2
+	sun.light_angular_distance = 0.0
+	sun.shadow_blur = 1.0
 	add_child(sun)
 
 	sky_mat.shader = load("res://scripts/world/sky.gdshader")

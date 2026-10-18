@@ -275,8 +275,15 @@ void fragment() {
 	// Bare loess (bluff faces, cutbanks): soft strata by height, and tufts of
 	// grass clinging on where the blades themselves are too steep to grow.
 	float bare = (1.0 - prairie) * smoothstep(0.08, 0.25, slope);
+	// And where the prairie runs over a cut bank too steep for grass to stand
+	// (from about thirty-five degrees the sod breaks): raw loess between the tufts,
+	// not a smooth sheet of the far-grass colour.
+	bare = max(bare, prairie * smoothstep(0.12, 0.22, slope) * 0.9);
 	float strata = sin(hgt * 2.2 + vnoise(p * 0.08) * 5.0) * 0.5 + 0.5;
-	vec3 loess = c * (0.9 + strata * 0.14);
+	// On prairie the colour here is already the grass's; a cut bank there shows
+	// the loess under it, pale buff, with the darker sod lip along its top edge.
+	vec3 loess_base = mix(c, pow(vec3(0.62, 0.53, 0.39), vec3(2.2)) * (0.9 + fbm(p * 1.3) * 0.2), prairie);
+	vec3 loess = loess_base * (0.9 + strata * 0.14);
 	float clinging = smoothstep(0.5, 0.72, fbm(p * 0.9));
 	loess = mix(loess, mix(thatch, blades, 0.6), clinging * 0.7);
 	c = mix(c, loess, bare);
