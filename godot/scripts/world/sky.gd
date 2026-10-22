@@ -53,16 +53,20 @@ const KEYS := [
 func build() -> void:
 	sun.name = "Sun"
 	sun.shadow_enabled = true
-	# Four cascades out to the far treeline, blended, with a soft penumbra that
-	# widens with distance from the caster (the sun's real ~0.5 degree disc).
+	# Four cascades out to the far treeline, blended, softened by a fixed PCF
+	# kernel. Not PCSS (light_angular_distance): its penumbra grows with the
+	# gap between caster and ground, and a grass blade stands on the ground, so
+	# its shadow got no filtering at all and came out stair-stepped, the blade
+	# a texel or two wide. The first cascade is held to 8 m, where the blades
+	# throw their shadows, so they are drawn at under a centimetre a texel.
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	sun.directional_shadow_max_distance = 420.0
-	sun.directional_shadow_split_1 = 0.04
+	sun.directional_shadow_split_1 = 0.02
 	sun.directional_shadow_split_2 = 0.12
 	sun.directional_shadow_split_3 = 0.35
 	sun.directional_shadow_blend_splits = true
-	sun.light_angular_distance = 0.5
-	sun.shadow_blur = 1.2
+	sun.light_angular_distance = 0.0
+	sun.shadow_blur = 1.0
 	add_child(sun)
 
 	sky_mat.shader = load("res://scripts/world/sky.gdshader")
@@ -438,7 +442,12 @@ func update(hour: float, delta: float) -> void:
 	# Moonlight drains colour (scotopic vision), so warm grass doesn't glow olive at night.
 	env.adjustment_saturation = lerpf(lerpf(1.08, 0.72, storm), 0.5, night)
 	env.ambient_light_energy = p[5] * (1.0 - storm * 0.35)
-	env.fog_light_color = horizon
+	# Haze by day is grey with a little warmth from the dust, not the sky's blue:
+	# blue laid over a cured, straw-gold prairie mixes to mint, and every hill
+	# past the near field went a cool green. Low suns keep the horizon's colour,
+	# which is what puts the gold into a sunset haze.
+	var haze_grey := Color(horizon.get_luminance(), horizon.get_luminance(), horizon.get_luminance()) * Color(1.04, 1.0, 0.94)
+	env.fog_light_color = horizon.lerp(haze_grey, 0.6 * smoothstep(0.15, 0.4, elevation))
 	# Air you can see across the plains: hills two kilometres off sit half in the
 	# sky's colour. Thinner, and the far country stood as sharp and green as the
 	# near, flattening every vista into one plane.

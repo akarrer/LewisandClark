@@ -250,7 +250,13 @@ void fragment() {
 	// tips and the shade between them, which averages a little darker than a
 	// tip. Half-way to the blade colour left the far prairie a pale green field
 	// beyond a gold one, with the seam running round the camera.
-	vec3 tips = mix(c, blades * 0.98, 0.82);
+	// Seen from off, a prairie is mostly blade tips, and the blade shader
+	// brightens and warms its tips to straw (and dries the lighter blades).
+	// The plain blade colour here left every hill past the blades a cool,
+	// minty green beyond a gold field, with the line between them going round
+	// the camera.
+	vec3 seen = mix(blades, blades * 1.22 + vec3(0.05, 0.04, 0.0), 0.55) * vec3(1.05, 1.0, 0.88);
+	vec3 tips = mix(c, seen * 0.98, 0.85);
 	float dist = length(v_world - CAMERA_POSITION_WORLD);
 	float under = 1.0 - smoothstep(grass_radius * 0.55, grass_radius * 1.05, dist);
 	// Under the blades the ground is in their shade: dead thatch, darker than
@@ -275,8 +281,15 @@ void fragment() {
 	// Bare loess (bluff faces, cutbanks): soft strata by height, and tufts of
 	// grass clinging on where the blades themselves are too steep to grow.
 	float bare = (1.0 - prairie) * smoothstep(0.08, 0.25, slope);
+	// And where the prairie runs over a cut bank too steep for grass to stand
+	// (from about thirty-five degrees the sod breaks): raw loess between the tufts,
+	// not a smooth sheet of the far-grass colour.
+	bare = max(bare, prairie * smoothstep(0.12, 0.22, slope) * 0.9);
 	float strata = sin(hgt * 2.2 + vnoise(p * 0.08) * 5.0) * 0.5 + 0.5;
-	vec3 loess = c * (0.9 + strata * 0.14);
+	// On prairie the colour here is already the grass's; a cut bank there shows
+	// the loess under it, pale buff, with the darker sod lip along its top edge.
+	vec3 loess_base = mix(c, pow(vec3(0.62, 0.53, 0.39), vec3(2.2)) * (0.9 + fbm(p * 1.3) * 0.2), prairie);
+	vec3 loess = loess_base * (0.9 + strata * 0.14);
 	float clinging = smoothstep(0.5, 0.72, fbm(p * 0.9));
 	loess = mix(loess, mix(thatch, blades, 0.6), clinging * 0.7);
 	c = mix(c, loess, bare);

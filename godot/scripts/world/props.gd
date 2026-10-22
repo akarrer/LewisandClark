@@ -119,26 +119,41 @@ static func village_smoke() -> GPUParticles3D:
 	## A lodge fire seen from half a mile off: tall, slow, thinned by the distance.
 	## The Corps read the country this way — Clark had the Oto towns on his map
 	## days before he saw one, by the smokes standing over the prairie.
+	##
+	## Wood smoke that far off is pale and blue-grey against the sky, rises in a
+	## thin stem, then leans away on the wind and spreads as it thins. As a
+	## column of lit grey puffs shot straight up, it stood over the hills as
+	## dark vertical smears, read in a moving shot as rain.
 	var p := GPUParticles3D.new()
-	p.amount = 42
-	p.lifetime = 16.0
-	p.preprocess = 16.0
-	p.visibility_aabb = AABB(Vector3(-40, 0, -40), Vector3(80, 220, 80))
+	p.amount = 140
+	p.lifetime = 26.0
+	p.preprocess = 26.0
+	p.visibility_aabb = AABB(Vector3(-40, 0, -40), Vector3(260, 200, 140))
 	var sp := ParticleProcessMaterial.new()
 	sp.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
 	sp.emission_sphere_radius = 1.0
-	sp.direction = Vector3(0.3, 1, 0.12)
-	sp.spread = 10.0
-	sp.initial_velocity_min = 5.5
-	sp.initial_velocity_max = 7.5
-	sp.gravity = Vector3(0.6, 0.2, 0.25)
-	sp.scale_min = 9.0
-	sp.scale_max = 15.0
+	sp.direction = Vector3(0.1, 1, 0.04)
+	sp.spread = 6.0
+	sp.initial_velocity_min = 3.2
+	sp.initial_velocity_max = 4.2
+	# The rise slows as the smoke cools (damping) and the wind takes it.
+	sp.damping_min = 0.10
+	sp.damping_max = 0.16
+	sp.gravity = Vector3(1.5, 0.05, 0.55)
+	sp.scale_min = 6.5
+	sp.scale_max = 9.0
+	# A thin stem at the fire, spreading to a broad haze aloft.
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 0.45))
+	grow.add_point(Vector2(0.35, 1.0))
+	grow.add_point(Vector2(1.0, 2.6))
+	var grow_tex := CurveTexture.new()
+	grow_tex.curve = grow
+	sp.scale_curve = grow_tex
 	var ramp := Gradient.new()
-	# Densest well up the column: the foot of it is behind the ridge anyway.
-	ramp.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
-	ramp.colors = PackedColorArray([Color(0.60, 0.59, 0.57, 0.14), Color(0.72, 0.71, 0.69, 0.48),
-			Color(0.84, 0.84, 0.83, 0.0)])
+	ramp.offsets = PackedFloat32Array([0.0, 0.08, 0.45, 1.0])
+	ramp.colors = PackedColorArray([Color(0.74, 0.75, 0.77, 0.0), Color(0.74, 0.75, 0.77, 0.42),
+			Color(0.80, 0.82, 0.86, 0.30), Color(0.86, 0.88, 0.92, 0.0)])
 	var tex := GradientTexture1D.new()
 	tex.gradient = ramp
 	sp.color_ramp = tex
@@ -153,6 +168,11 @@ static func village_smoke() -> GPUParticles3D:
 	m.billboard_keep_scale = true       # otherwise the per-particle scale is thrown away
 	m.vertex_color_use_as_albedo = true
 	m.albedo_texture = puff_texture()
+	# Smoke glows with the light behind it rather than going dark against it.
+	m.backlight_enabled = true
+	m.backlight = Color(0.55, 0.55, 0.55)
+	m.roughness = 1.0
+	m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	quad.material = m
 	p.draw_pass_1 = quad
 	return p
