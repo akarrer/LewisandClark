@@ -442,7 +442,12 @@ func update(hour: float, delta: float) -> void:
 	# Moonlight drains colour (scotopic vision), so warm grass doesn't glow olive at night.
 	env.adjustment_saturation = lerpf(lerpf(1.08, 0.72, storm), 0.5, night)
 	env.ambient_light_energy = p[5] * (1.0 - storm * 0.35)
-	env.fog_light_color = horizon
+	# Haze by day is grey with a little warmth from the dust, not the sky's blue:
+	# blue laid over a cured, straw-gold prairie mixes to mint, and every hill
+	# past the near field went a cool green. Low suns keep the horizon's colour,
+	# which is what puts the gold into a sunset haze.
+	var haze_grey := Color(horizon.get_luminance(), horizon.get_luminance(), horizon.get_luminance()) * Color(1.04, 1.0, 0.94)
+	env.fog_light_color = horizon.lerp(haze_grey, 0.6 * smoothstep(0.15, 0.4, elevation))
 	# Air you can see across the plains: hills two kilometres off sit half in the
 	# sky's colour. Thinner, and the far country stood as sharp and green as the
 	# near, flattening every vista into one plane.

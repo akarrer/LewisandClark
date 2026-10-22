@@ -250,7 +250,13 @@ void fragment() {
 	// tips and the shade between them, which averages a little darker than a
 	// tip. Half-way to the blade colour left the far prairie a pale green field
 	// beyond a gold one, with the seam running round the camera.
-	vec3 tips = mix(c, blades * 0.98, 0.82);
+	// Seen from off, a prairie is mostly blade tips, and the blade shader
+	// brightens and warms its tips to straw (and dries the lighter blades).
+	// The plain blade colour here left every hill past the blades a cool,
+	// minty green beyond a gold field, with the line between them going round
+	// the camera.
+	vec3 seen = mix(blades, blades * 1.22 + vec3(0.05, 0.04, 0.0), 0.55) * vec3(1.05, 1.0, 0.88);
+	vec3 tips = mix(c, seen * 0.98, 0.85);
 	float dist = length(v_world - CAMERA_POSITION_WORLD);
 	float under = 1.0 - smoothstep(grass_radius * 0.55, grass_radius * 1.05, dist);
 	// Under the blades the ground is in their shade: dead thatch, darker than
