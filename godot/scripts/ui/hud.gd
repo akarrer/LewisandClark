@@ -10,6 +10,8 @@ var prompt: Label
 var subtitle: Label
 var toasts: VBoxContainer
 var fps: Label
+## The loaded Region's name, shown top left.
+var place_name := ""
 var _subtitle_left := 0.0
 
 
@@ -113,7 +115,7 @@ func toast(text: String) -> void:
 
 func update(state: ExpeditionState, delta: float, prompt_text: String, sky: SkyAndWeather = null,
 		stores: Stores = null) -> void:
-	place.text = "Sioux Country"
+	place.text = place_name
 	when.text = "%s  ·  %s  ·  %s" % [state.full_date_str(), state.clock_str(), state.season()]
 	supplies.text = "Fit %d of %d   Morale %d   Discoveries %d" % [state.fit, state.men, state.morale, state.discoveries.size()]
 	if stores:

@@ -53,6 +53,7 @@ var _moment: Dictionary = {}  # the running Moment's def + progress
 
 func _ready() -> void:
 	terrain.name = "Terrain"
+	hud.place_name = terrain.region.display_name
 	add_child(terrain)
 	terrain.build()
 	foliage.name = "Foliage"
