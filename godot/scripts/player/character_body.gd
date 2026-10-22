@@ -78,6 +78,7 @@ func _ready() -> void:
 	if hat:
 		_add_hat(skeleton)
 	_add_rifle(skeleton)
+	_add_accoutrements(skeleton)
 	play("Idle")
 
 
@@ -112,6 +113,52 @@ func _outfit_material() -> ShaderMaterial:
 	m.set_shader_parameter("hem", float(cut["hem"]))
 	m.set_shader_parameter("open_front", 1.0 if float(cut["open"]) > 0.0 else 0.0)
 	return m
+
+
+func _hang(skeleton: Skeleton3D, bone: String, at: Transform3D, part: Node3D) -> void:
+	## Hang ``part`` on ``bone``, placed where ``at`` puts it in the body's rest
+	## pose (the mannequin's own space: +Z forward, +X its left), so the offsets
+	## below read as positions on the body and not in each bone's own axes.
+	var attach := BoneAttachment3D.new()
+	attach.bone_name = bone
+	skeleton.add_child(attach)
+	var b := skeleton.find_bone(bone)
+	part.transform = skeleton.get_bone_global_rest(b).affine_inverse() * at
+	attach.add_child(part)
+	for c in part.find_children("*", "GeometryInstance3D", true, false):
+		(c as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+
+func _add_accoutrements(skeleton: Skeleton3D) -> void:
+	## What every man of the Corps carried with his rifle: the shot pouch on its
+	## belt over the left shoulder, riding his right hip, and the powder horn
+	## slung under his left arm.
+	var leather := Color(0.33, 0.22, 0.13)
+	var pouch := Node3D.new()
+	pouch.name = "ShotPouch"
+	pouch.add_child(Props.box(Vector3(0.15, 0.17, 0.05), leather, Vector3.ZERO))
+	# The flap, a shade darker, over the top half.
+	pouch.add_child(Props.box(Vector3(0.155, 0.09, 0.012), leather.darkened(0.25), Vector3(0, 0.045, 0.03)))
+	_hang(skeleton, "DEF-hips", Transform3D(Basis(Vector3.UP, deg_to_rad(-55.0)), Vector3(-0.19, 0.86, 0.02)), pouch)
+	var horn := Node3D.new()
+	horn.name = "PowderHorn"
+	var body := Props.cylinder(0.034, 0.26, Color(0.62, 0.52, 0.36), Vector3.ZERO, 0.010)
+	body.rotation_degrees.z = 90.0
+	horn.add_child(body)
+	horn.add_child(_plug())
+	var tip := Props.cylinder(0.008, 0.04, Color(0.18, 0.14, 0.10), Vector3(-0.145, 0, 0))
+	tip.rotation_degrees.z = 90.0
+	horn.add_child(tip)
+	# Lying along his side, butt up and back, tip down and forward.
+	var lie := Basis(Vector3.UP, deg_to_rad(70.0)) * Basis(Vector3.FORWARD, deg_to_rad(28.0))
+	_hang(skeleton, "DEF-spine.001", Transform3D(lie, Vector3(0.165, 0.99, -0.01)), horn)
+
+
+func _plug() -> MeshInstance3D:
+	## The horn's wooden butt plug.
+	var p := Props.cylinder(0.037, 0.022, Color(0.36, 0.26, 0.16), Vector3(0.13, 0, 0))
+	p.rotation_degrees.z = 90.0
+	return p
 
 
 func _add_rifle(skeleton: Skeleton3D) -> void:

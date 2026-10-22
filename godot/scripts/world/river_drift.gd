@@ -55,10 +55,16 @@ func build(p_terrain: Terrain, p_watch: Node3D) -> void:
 		_logs.append(d)
 
 
+## Game time, not the wall clock: under Movie Maker (and any slow frame) the
+## wall clock runs ahead of the game, and everything timed by it raced.
+var _clock := 0.0
+
+
 func _process(delta: float) -> void:
+	_clock += delta
 	if watch == null:
 		return
-	var t := Time.get_ticks_msec() / 1000.0
+	var t := _clock
 	var here := watch.global_position
 	for d in _logs:
 		var node: Node3D = d["node"]

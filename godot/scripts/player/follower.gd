@@ -36,10 +36,16 @@ func _ready() -> void:
 	_react = gait_rng.randf_range(0.25, 0.65)
 
 
+## Game time, not the wall clock: under Movie Maker (and any slow frame) the
+## wall clock runs ahead of the game, and everything timed by it raced.
+var _clock := 0.0
+
+
 func _physics_process(delta: float) -> void:
+	_clock += delta
 	if leader == null:
 		return
-	var t := Time.get_ticks_msec() / 1000.0
+	var t := _clock
 	var moving := leader.ground_speed() > 0.3
 	if moving and not _leader_moving and _velocity.length() < 0.3:
 		# Those further back react later (they see the man in front move first).
