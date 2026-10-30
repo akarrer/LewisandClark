@@ -273,6 +273,38 @@ func find_route(from: Vector3, goal: Vector3) -> Array[Vector3]:
 	return thin
 
 
+func reach(from: Vector3, radius: float) -> Dictionary:
+	## Every 4 m cell within ``radius`` that can be walked to from ``from``, by
+	## the same rules as find_route: one flood answers "can he get there?" for
+	## many places at once. Ask it with reaches().
+	var n := Terrain.RES + 1
+	var cell := Terrain.SIZE / Terrain.RES
+	var s := Vector2i(clampi(roundi(from.x / cell), 0, n - 1), clampi(roundi(from.z / cell), 0, n - 1))
+	var span := ceili(radius / cell)
+	var seen := {s: true}
+	var queue: Array[Vector2i] = [s]
+	var head := 0
+	while head < queue.size():
+		var c: Vector2i = queue[head]
+		head += 1
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var nb: Vector2i = c + d
+			if nb.x < 0 or nb.y < 0 or nb.x >= n or nb.y >= n or seen.has(nb):
+				continue
+			if absi(nb.x - s.x) > span or absi(nb.y - s.y) > span:
+				continue
+			if not is_dry(nb.x * cell, nb.y * cell) or not walkable(nb.x * cell, nb.y * cell):
+				continue
+			seen[nb] = true
+			queue.append(nb)
+	return seen
+
+
+static func reaches(reached: Dictionary, x: float, z: float) -> bool:
+	var cell := Terrain.SIZE / Terrain.RES
+	return reached.has(Vector2i(roundi(x / cell), roundi(z / cell)))
+
+
 # ------------------------------------------------------------------ mesh
 
 
