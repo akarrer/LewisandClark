@@ -64,3 +64,20 @@ func test_story_places_are_reachable_on_foot() -> void:
 		var route := tr.find_route(start, tr.points[key])
 		t.check(not route.is_empty(), "no walking route from the start to " + key)
 	tr.free()
+
+
+func test_reach_agrees_with_find_route() -> void:
+	# The elk herd is placed only where reach() says he can walk: it must not
+	# count water, and must count what find_route can get to.
+	var tr := _terrain()
+	var camp: Vector3 = tr.points["camp"]
+	var reached := tr.reach(camp, 200.0)
+	t.check(Terrain.reaches(reached, camp.x, camp.z), "camp does not reach itself")
+	var course: Array = tr.meta["river_1804"]
+	var mid: Array = course[course.size() / 2]
+	t.check(not Terrain.reaches(reached, mid[0], mid[1]), "reach counts the river channel")
+	for key in ["oto_meeting", "council_awning"]:
+		var p: Vector3 = tr.points[key]
+		if camp.distance_to(p) < 180.0:
+			t.check(Terrain.reaches(reached, p.x, p.z), "reach misses " + key)
+	tr.free()

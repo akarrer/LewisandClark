@@ -25,6 +25,8 @@ var _detour := ""
 var _free_cam: Camera3D
 var _debug_t := 0.0
 var _blocked := 0
+## Seconds a walk_to may take before the run gives up on it and moves on.
+const WALK_GIVE_UP := 90.0
 
 
 func begin(p_main) -> void:
@@ -612,7 +614,19 @@ func _process(delta: float) -> void:
 			_next()
 		"walk_to":
 			var p: Vector3 = _point(s[1])
+			_wait += delta
 			if _drive_toward(p, float(s[2]), delta):
+				_release()
+				_next()
+			elif _wait > WALK_GIVE_UP:
+				# He cannot get there. Say so in the report, put him there, and go
+				# on, so one bad route costs a line in the log and not the run.
+				var l: Leader = main.leader
+				_log.append("GAVE UP walk_to %s after %.0fs at (%.0f,%.0f), %.0f m short" % [s[1], _wait,
+						l.global_position.x, l.global_position.z, Vector2(p.x - l.global_position.x, p.z - l.global_position.z).length()])
+				l.global_position = Vector3(p.x, main.terrain.height_at(p.x, p.z) + 0.3, p.z)
+				l.velocity = Vector3.ZERO
+				_route_goal = Vector3.INF
 				_release()
 				_next()
 		"interact":

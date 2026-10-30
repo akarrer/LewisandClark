@@ -32,6 +32,7 @@ var stage: ScenarioStage
 var scenario_prompt: ScenarioPrompt
 var _scenario_waiting := false
 var _scenario_rng := RandomNumberGenerator.new()
+var _seeded := false
 ## The date being lived, as "1804-08-01": the Corps resolves a day at the
 ## midnight that ends it, and needs to know which day that was.
 var _today := ""
@@ -100,7 +101,15 @@ func _ready() -> void:
 	motes.follow = leader.camera
 	add_child(motes)
 
-	director = TrailMomentDirector.new(TrailMomentDirector.load_defs("res://data/trail_moments.json"))
+	# `--seed=N` makes a run repeatable: the same Moments and the same rolls.
+	var moment_rng := RandomNumberGenerator.new()
+	moment_rng.randomize()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--seed="):
+			moment_rng.seed = int(a.substr(7))
+			_scenario_rng.seed = int(a.substr(7)) + 1
+			_seeded = true
+	director = TrailMomentDirector.new(TrailMomentDirector.load_defs("res://data/trail_moments.json"), moment_rng)
 	state.journal_added.connect(hud.toast)
 	state.add_journal("The Corps comes ashore below Council Bluff.")
 
@@ -182,7 +191,8 @@ func _place_world_features() -> void:
 	if not "--scenery" in OS.get_cmdline_user_args():
 		for id in Scenario.all_ids():
 			scenarios.append(Scenario.load_scenario(id))
-	_scenario_rng.randomize()
+	if not _seeded:
+		_scenario_rng.randomize()
 	scenario_prompt = ScenarioPrompt.new()
 	scenario_prompt.build(hud)
 	scenario_prompt.chosen.connect(_scenario_chosen)
@@ -356,8 +366,9 @@ func _start_moment(id: String) -> void:
 			_moment["done_action"] = false
 			_moment["stay"] = 0.0
 		"encounter":
-			_moment["done_action"] = false
-			_spawn_elk(d["encounter"])
+			# Tracks with no herd at the end of them when there is no walkable
+			# ground near: the lines still play, nothing waits on a hunt.
+			_moment["done_action"] = not _spawn_elk(d["encounter"])
 		"scenario_hook":
 			_moment["done_action"] = false
 			_start_smoke(d["scenario_hook"])
@@ -437,13 +448,25 @@ func _tick_discovery(disc: Dictionary, delta: float) -> void:
 			_moment["done_action"] = true
 
 
-func _spawn_elk(enc: Dictionary) -> void:
+## Puts the herd ahead of him on ground he can walk to: not across the river,
+## on a bar or up a face he cannot climb. False if there is nowhere near.
+func _spawn_elk(enc: Dictionary) -> bool:
 	var fwd := leader.camera_forward()
-	var p := leader.global_position + fwd * float(enc["distance"])
-	for i in 12:  # find dry ground ahead
-		if terrain.is_dry(p.x, p.z):
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	var distance := float(enc["distance"])
+	var reached := terrain.reach(leader.global_position, distance * 1.4)
+	var p := Vector3.INF
+	for along in [1.0, 0.75, 0.5]:
+		for turn in [0.0, 40.0, -40.0, 80.0, -80.0, 120.0, -120.0, 180.0]:
+			var q: Vector3 = leader.global_position + fwd.rotated(Vector3.UP, deg_to_rad(float(turn))) * distance * float(along)
+			if Terrain.reaches(reached, q.x, q.z):
+				p = q
+				break
+		if p != Vector3.INF:
 			break
-		p += fwd.rotated(Vector3.UP, deg_to_rad(40.0)) * 20.0
+	if p == Vector3.INF:
+		return false
 	p.y = terrain.height_at(p.x, p.z)
 	var herd := Interactable.new()
 	herd.name = "ElkHerd"
@@ -479,6 +502,7 @@ func _spawn_elk(enc: Dictionary) -> void:
 		if not _moment.is_empty():
 			_moment["done_action"] = true
 	add_child(herd)
+	return true
 
 
 func _feed_the_corps(_day: int) -> void:
